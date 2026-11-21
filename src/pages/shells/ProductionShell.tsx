@@ -121,7 +121,7 @@ export function ProductionShell() {
         .select(`
           *,
           formula:formulas(id, code, name_ar, name_en, target_ph_min, target_ph_max, target_viscosity_min, target_viscosity_max),
-          tank:tanks(id, tank_code, name)
+          tank:tanks(id, tank_code, name_ar, name_en)
         `)
         .in("qc_status", ["pending", "needs_rework"])
         .order("created_at", { ascending: false });
@@ -139,7 +139,7 @@ export function ProductionShell() {
         .select(`
           *,
           formula:formulas(id, code, name_ar, name_en, bulk_item_id),
-          tank:tanks(id, tank_code, name)
+          tank:tanks(id, tank_code, name_ar, name_en)
         `)
         .eq("qc_status", "passed")
         .gt("remaining_qty_grams", 0)

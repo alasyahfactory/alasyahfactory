@@ -79,7 +79,7 @@ export function PackagingOrdersPage() {
             batch_number,
             status,
             qc_status,
-            tank:tanks(id, tank_code, name)
+            tank:tanks(id, tank_code, name_ar, name_en)
           ),
           packaging_spec:packaging_specs!packaging_orders_packaging_spec_id_fkey(
             id,
@@ -113,7 +113,7 @@ export function PackagingOrdersPage() {
         .select(`
           *,
           formula:formulas(id, code, name_ar, name_en, bulk_item_id),
-          tank:tanks(id, tank_code, name)
+          tank:tanks(id, tank_code, name_ar, name_en)
         `)
         .eq("qc_status", "passed")
         .gt("remaining_qty_grams", 0)

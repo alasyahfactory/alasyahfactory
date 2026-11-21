@@ -106,7 +106,7 @@ export function MixingBatchesPage() {
         .select(`
           *,
           formula:formulas(id, code, name_ar, name_en, target_ph_min, target_ph_max, target_viscosity_min, target_viscosity_max),
-          tank:tanks(id, tank_code, name, capacity_liters)
+          tank:tanks(id, tank_code, name_ar, name_en, capacity_liters)
         `)
         .order("created_at", { ascending: false })
         .limit(30);
