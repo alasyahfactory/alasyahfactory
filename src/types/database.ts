@@ -341,9 +341,10 @@ export interface PackagingSpec {
   bulk_item?: Item;
   bottle_item?: Item;
   front_sticker?: Item | null;
-  back_sticker?: Item | null;
   front_sticker_item?: Item | null;
+  back_sticker?: Item | null;
   back_sticker_item?: Item | null;
+  closure_item?: Item | null;
   carton_item?: Item | null;
 }
 
@@ -417,6 +418,214 @@ export interface PackagingOrder {
   target_fg_item?: Item;
 }
 
+export interface Customer {
+  id: string;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  vat_number: string | null;
+  cr_number: string | null;
+  phone: string;
+  national_address: string | null;
+  credit_limit: number;
+  default_payment_days: number;
+  assigned_rep_id: string | null;
+  price_list_id: string | null;
+  guarantee_text: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  assigned_rep?: UserProfile | null;
+}
+
+export interface PriceList {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+  items?: PriceListItem[];
+}
+
+export interface PriceListItem {
+  id: string;
+  price_list_id: string;
+  item_id: string;
+  price_per_piece: number;
+  price_per_carton: number;
+  created_at: string;
+  item?: Item;
+}
+
+export interface Quotation {
+  id: string;
+  quotation_number: string;
+  customer_id: string;
+  quotation_date: string;
+  valid_until: string;
+  total_ex_vat: number;
+  vat_amount: number;
+  grand_total: number;
+  status: "draft" | "sent" | "accepted" | "rejected" | "converted_to_invoice";
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer;
+  lines?: QuotationLine[];
+}
+
+export interface QuotationLine {
+  id: string;
+  quotation_id: string;
+  item_id: string;
+  quantity: number;
+  unit_type: "piece" | "carton";
+  unit_price: number;
+  vat_rate: number;
+  vat_amount: number;
+  total_line: number;
+  created_at: string;
+  item?: Item;
+}
+
+export interface SalesInvoice {
+  id: string;
+  invoice_number: string;
+  customer_id: string;
+  invoice_date: string;
+  due_date: string;
+  total_amount_ex_vat: number;
+  vat_amount: number;
+  total_amount_inc_vat: number;
+  advance_deducted: number;
+  net_amount_due: number;
+  paid_amount: number;
+  payment_status: "unpaid" | "partially_paid" | "paid";
+  status: "draft" | "posted" | "cancelled";
+  zatca_qr_base64: string | null;
+  print_count: number;
+  source_type: "direct" | "van_sale" | "quotation";
+  van_warehouse_id: string | null;
+  assigned_rep_id: string | null;
+  journal_entry_id: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer;
+  assigned_rep?: UserProfile | null;
+  van_warehouse?: Warehouse | null;
+  lines?: SalesInvoiceLine[];
+}
+
+export interface SalesInvoiceLine {
+  id: string;
+  invoice_id: string;
+  item_id: string;
+  quantity: number;
+  unit_type: "piece" | "carton";
+  pieces_count: number;
+  unit_price_ex_vat: number;
+  total_price_ex_vat: number;
+  vat_rate: number;
+  vat_amount: number;
+  total_line_inc_vat: number;
+  is_bonus_or_sample: boolean;
+  created_at: string;
+  item?: Item;
+}
+
+export interface SalesReturn {
+  id: string;
+  return_number: string;
+  invoice_id: string | null;
+  customer_id: string;
+  return_date: string;
+  total_ex_vat: number;
+  vat_amount: number;
+  grand_total: number;
+  status: "draft" | "posted" | "cancelled";
+  zatca_qr_base64: string | null;
+  print_count: number;
+  journal_entry_id: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  customer?: Customer;
+  invoice?: SalesInvoice | null;
+  lines?: SalesReturnLine[];
+}
+
+export interface SalesReturnLine {
+  id: string;
+  sales_return_id: string;
+  item_id: string;
+  quantity: number;
+  unit_type: "piece" | "carton";
+  pieces_count: number;
+  unit_price_ex_vat: number;
+  total_price_ex_vat: number;
+  vat_rate: number;
+  vat_amount: number;
+  total_line_inc_vat: number;
+  return_condition: "sellable" | "damaged";
+  created_at: string;
+  item?: Item;
+}
+
+export interface VanCustodyTransfer {
+  id: string;
+  transfer_number: string;
+  source_warehouse_id: string;
+  target_warehouse_id: string;
+  assigned_rep_id: string | null;
+  vehicle_id: string | null;
+  transfer_type: "load_to_van" | "return_from_van";
+  transfer_date: string;
+  status: "draft" | "dispatched" | "confirmed_by_warehouse" | "cancelled";
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  journal_entry_id: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  source_warehouse?: Warehouse;
+  target_warehouse?: Warehouse;
+  assigned_rep?: UserProfile | null;
+  vehicle?: Vehicle | null;
+  items?: VanCustodyItem[];
+}
+
+export interface VanCustodyItem {
+  id: string;
+  transfer_id: string;
+  item_id: string;
+  quantity: number;
+  unit_type: "piece" | "carton";
+  pieces_count: number;
+  created_at: string;
+  item?: Item;
+}
+
+export interface SalesRepCommission {
+  id: string;
+  rep_id: string;
+  invoice_id: string | null;
+  sales_return_id: string | null;
+  commission_amount: number;
+  calculation_basis: "percentage_of_sales" | "percentage_of_collection" | "manual_flat";
+  percentage: number;
+  status: "pending" | "approved" | "paid_in_payroll" | "paid_in_voucher";
+  paid_date: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  rep?: UserProfile;
+  invoice?: SalesInvoice | null;
+}
+
 export interface FactorySettings {
   id: number;
   name_ar: string;
@@ -475,16 +684,16 @@ export interface Warehouse {
 export interface Tank {
   id: string;
   tank_code: string;
-  name?: string;
   name_ar: string;
   name_en: string;
+  name?: string;
   capacity_liters: number;
   status: TankStatus;
   current_batch_id: string | null;
   current_qty_grams: number;
   is_active: boolean;
   created_at: string;
-  current_batch?: MixingBatch;
+  current_batch?: MixingBatch | null;
 }
 
 export interface Account {

@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   Scale,
   Droplets,
+  Receipt,
 } from "lucide-react";
 
 export function BottomNav() {
@@ -35,7 +36,7 @@ export function BottomNav() {
   } else if (role === "accountant") {
     navItems = [
       { to: "/accounting", label: t("nav.accounting"), icon: LayoutDashboard },
-      { to: "/inventory/items", label: isArabic ? "الأصناف" : "Items", icon: Package },
+      { to: "/sales/invoices", label: isArabic ? "الفواتير" : "Invoices", icon: Receipt },
       { to: "/procurement/orders", label: isArabic ? "أوامر الشراء" : "Orders", icon: ShoppingCart },
       { to: "/procurement/receipts", label: isArabic ? "الاستلام" : "Receipts", icon: Scale },
       { to: "/accounting/coa", label: t("nav.coa"), icon: BookOpen },

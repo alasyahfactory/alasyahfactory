@@ -31,6 +31,8 @@ import {
   PackageCheck,
   Factory,
   Layers,
+  Receipt,
+  FileText,
 } from "lucide-react";
 
 export function CommandPalette() {
@@ -181,6 +183,31 @@ export function CommandPalette() {
                   </CommandItem>
                 </>
               )}
+            </CommandGroup>
+          )}
+
+          {(role === "owner" || role === "accountant") && (
+            <CommandGroup heading={isArabic ? "المبيعات والفوترة (ZATCA)" : "Sales & ZATCA Invoicing"}>
+              <CommandItem onSelect={() => handleSelect("/sales/customers")}>
+                <Users className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "دليل العملاء والائتمان" : "Customers Directory"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/sales/quotations")}>
+                <FileText className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "عروض الأسعار والتحويل لفاتورة" : "Quotations"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/sales/invoices")}>
+                <Receipt className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "فواتير المبيعات الضريبية (ZATCA QR)" : "Sales Tax Invoices"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/sales/returns")}>
+                <RotateCcw className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "الإشعارات الدائنة والمرتجعات" : "Sales Credit Notes"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/sales/van-custody")}>
+                <Truck className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "تسوية وتحميل عهدة سيارات التوزيع" : "Van Custody Transfers"}</span>
+              </CommandItem>
             </CommandGroup>
           )}
 

@@ -31,6 +31,11 @@ import { PackagingOrdersPage } from "@/pages/manufacturing/PackagingOrdersPage";
 import { ProductionShell } from "@/pages/shells/ProductionShell";
 import { WarehouseShell } from "@/pages/shells/WarehouseShell";
 import { RepShell } from "@/pages/shells/RepShell";
+import { CustomersPage } from "@/pages/sales/CustomersPage";
+import { QuotationsPage } from "@/pages/sales/QuotationsPage";
+import { SalesInvoicesPage } from "@/pages/sales/SalesInvoicesPage";
+import { SalesReturnsPage } from "@/pages/sales/SalesReturnsPage";
+import { VanCustodyPage } from "@/pages/sales/VanCustodyPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -224,6 +229,48 @@ export function App() {
                 element={
                   <ProtectedRoute allowedRoles={["owner", "production"]}>
                     <PackagingOrdersPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Phase 4: Sales, ZATCA e-Invoicing, Returns & Van Custody */}
+              <Route
+                path="/sales/customers"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <CustomersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales/quotations"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <QuotationsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales/invoices"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <SalesInvoicesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales/returns"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <SalesReturnsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales/van-custody"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <VanCustodyPage />
                   </ProtectedRoute>
                 }
               />

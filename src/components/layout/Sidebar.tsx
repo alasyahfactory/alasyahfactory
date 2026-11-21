@@ -22,6 +22,8 @@ import {
   FlaskConical,
   Droplets,
   PackageCheck,
+  Receipt,
+  FileText,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -118,6 +120,41 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           icon: PackageCheck,
           label: t("nav.packagingOrders"),
           show: isOwner || role === "production",
+        },
+      ],
+    },
+    {
+      title: isArabic ? "المبيعات والفوترة (ZATCA)" : "Sales & Invoicing",
+      items: [
+        {
+          to: "/sales/customers",
+          icon: Users,
+          label: t("nav.customers"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/sales/quotations",
+          icon: FileText,
+          label: t("nav.quotations"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/sales/invoices",
+          icon: Receipt,
+          label: t("nav.salesInvoices"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/sales/returns",
+          icon: RotateCcw,
+          label: t("nav.salesReturns"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/sales/van-custody",
+          icon: Truck,
+          label: t("nav.vanCustody"),
+          show: isOwner || isAccountant,
         },
       ],
     },

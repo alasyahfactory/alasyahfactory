@@ -122,11 +122,12 @@ export function canAccessRoute(role: UserRole, pathname: string): boolean {
   }
 
   if (role === "accountant") {
-    // Accountant can access accounting, inventory, procurement, and vehicles
+    // Accountant can access accounting, inventory, procurement, sales, and vehicles
     return (
       pathname.startsWith("/accounting") ||
       pathname.startsWith("/inventory") ||
       pathname.startsWith("/procurement") ||
+      pathname.startsWith("/sales") ||
       pathname === "/settings/vehicles"
     );
   }
