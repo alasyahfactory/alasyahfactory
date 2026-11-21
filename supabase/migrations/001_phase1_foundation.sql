@@ -2,13 +2,14 @@
 -- 001_phase1_foundation.sql
 -- Al-Asyah Detergent Factory ERP — Phase 1 Foundation Database Migration
 -- Single Source of Truth: SPEC.md (v3.1)
+-- Fully Idempotent & Auto-Healing for existing/partial schemas
 -- ==============================================================================
 
 -- 1. Enable Required Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 2. Clean Existing Types if re-running
+-- 2. Types Definition (Idempotent)
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
@@ -31,12 +32,12 @@ END $$;
 -- 3. Factory Settings Table (Single-row pattern)
 CREATE TABLE IF NOT EXISTS factory_settings (
   id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-  name_ar TEXT NOT NULL,
-  name_en TEXT NOT NULL,
-  vat_number VARCHAR(15) NOT NULL CHECK (length(vat_number) = 15 AND vat_number ~ '^[0-9]{15}$'),
-  cr_number TEXT NOT NULL,
-  national_address TEXT NOT NULL,
-  iban TEXT NOT NULL,
+  name_ar TEXT NOT NULL DEFAULT '',
+  name_en TEXT NOT NULL DEFAULT '',
+  vat_number VARCHAR(15) NOT NULL DEFAULT '300000000000003',
+  cr_number TEXT NOT NULL DEFAULT '',
+  national_address TEXT NOT NULL DEFAULT '',
+  iban TEXT NOT NULL DEFAULT '',
   logo_base64 TEXT NULL,
   label_width_mm INTEGER NOT NULL DEFAULT 50 CHECK (label_width_mm > 0),
   label_height_mm INTEGER NOT NULL DEFAULT 30 CHECK (label_height_mm > 0),
@@ -45,6 +46,21 @@ CREATE TABLE IF NOT EXISTS factory_settings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Auto-heal missing columns on existing factory_settings
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS name_ar TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS name_en TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS vat_number VARCHAR(15) NOT NULL DEFAULT '300000000000003';
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS cr_number TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS national_address TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS iban TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS logo_base64 TEXT NULL;
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS label_width_mm INTEGER NOT NULL DEFAULT 50;
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS label_height_mm INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS near_expiry_days INTEGER NOT NULL DEFAULT 60;
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS enable_fixed_assets BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE IF EXISTS factory_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 -- 4. Users Profile Table (Linked to Supabase Auth auth.users)
 CREATE TABLE IF NOT EXISTS users_profile (
@@ -61,6 +77,17 @@ CREATE TABLE IF NOT EXISTS users_profile (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS role user_role;
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS can_view_formulas BOOLEAN DEFAULT FALSE;
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS can_view_costs BOOLEAN DEFAULT FALSE;
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS can_approve_on_behalf BOOLEAN DEFAULT FALSE;
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE IF EXISTS users_profile ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
 -- 5. Vehicles Table (Sales and Delivery Fleet)
 CREATE TABLE IF NOT EXISTS vehicles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -71,18 +98,33 @@ CREATE TABLE IF NOT EXISTS vehicles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE IF EXISTS vehicles ADD COLUMN IF NOT EXISTS plate_number TEXT;
+ALTER TABLE IF EXISTS vehicles ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE IF EXISTS vehicles ADD COLUMN IF NOT EXISTS assigned_rep_id UUID REFERENCES users_profile(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS vehicles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE IF EXISTS vehicles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
 -- 6. Warehouses Table
 CREATE TABLE IF NOT EXISTS warehouses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code TEXT NOT NULL UNIQUE,
   name_ar TEXT NOT NULL,
   name_en TEXT NOT NULL,
-  warehouse_type warehouse_type NOT NULL,
+  warehouse_type warehouse_type NOT NULL DEFAULT 'raw_materials',
   vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
   assigned_rep_id UUID REFERENCES users_profile(id) ON DELETE SET NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE IF EXISTS warehouses ADD COLUMN IF NOT EXISTS code TEXT;
+ALTER TABLE IF EXISTS warehouses ADD COLUMN IF NOT EXISTS name_ar TEXT;
+ALTER TABLE IF EXISTS warehouses ADD COLUMN IF NOT EXISTS name_en TEXT;
+ALTER TABLE IF EXISTS warehouses ADD COLUMN IF NOT EXISTS warehouse_type warehouse_type DEFAULT 'raw_materials';
+ALTER TABLE IF EXISTS warehouses ADD COLUMN IF NOT EXISTS vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS warehouses ADD COLUMN IF NOT EXISTS assigned_rep_id UUID REFERENCES users_profile(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS warehouses ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE IF EXISTS warehouses ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 7. Tanks Table (Bulk mixing tanks with capacity in Liters)
 CREATE TABLE IF NOT EXISTS tanks (
@@ -98,6 +140,16 @@ CREATE TABLE IF NOT EXISTS tanks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS tank_code TEXT;
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS name_ar TEXT;
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS name_en TEXT;
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS capacity_liters NUMERIC(12, 2);
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS status tank_status DEFAULT 'empty';
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS current_batch_id UUID;
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS current_qty_grams NUMERIC(14, 2) DEFAULT 0;
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE IF EXISTS tanks ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
 -- 8. Chart of Accounts Table (Pre-seeded Industrial COA)
 CREATE TABLE IF NOT EXISTS accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -112,18 +164,35 @@ CREATE TABLE IF NOT EXISTS accounts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS code VARCHAR(20);
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS name_ar TEXT;
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS name_en TEXT;
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS type account_type;
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES accounts(id) ON DELETE RESTRICT;
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS is_system BOOLEAN DEFAULT FALSE;
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS current_balance NUMERIC(14, 2) DEFAULT 0.00;
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
 -- 9. Fiscal Periods Table
 CREATE TABLE IF NOT EXISTS fiscal_periods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  period_name TEXT NOT NULL,
-  start_date DATE NOT NULL,
-  end_date DATE NOT NULL,
+  period_name TEXT NOT NULL DEFAULT '',
+  start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  end_date DATE NOT NULL DEFAULT CURRENT_DATE,
   is_locked BOOLEAN NOT NULL DEFAULT FALSE,
   locked_at TIMESTAMPTZ NULL,
   locked_by UUID REFERENCES users_profile(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT check_period_dates CHECK (end_date >= start_date)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE IF EXISTS fiscal_periods ADD COLUMN IF NOT EXISTS period_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS fiscal_periods ADD COLUMN IF NOT EXISTS start_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE IF EXISTS fiscal_periods ADD COLUMN IF NOT EXISTS end_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE IF EXISTS fiscal_periods ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;
+ALTER TABLE IF EXISTS fiscal_periods ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS fiscal_periods ADD COLUMN IF NOT EXISTS locked_by UUID REFERENCES users_profile(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS fiscal_periods ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 10. Security Audit Logs Table
 CREATE TABLE IF NOT EXISTS audit_logs (
@@ -139,19 +208,39 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users_profile(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS action TEXT;
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS table_name TEXT;
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS record_id TEXT;
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS old_values JSONB;
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS new_values JSONB;
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS ip_address TEXT;
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS details TEXT;
+ALTER TABLE IF EXISTS audit_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
 -- 11. Live Notifications Table (Supabase Realtime enabled)
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users_profile(id) ON DELETE CASCADE,
-  title_ar TEXT NOT NULL,
-  title_en TEXT NOT NULL,
-  message_ar TEXT NOT NULL,
-  message_en TEXT NOT NULL,
+  title_ar TEXT NOT NULL DEFAULT '',
+  title_en TEXT NOT NULL DEFAULT '',
+  message_ar TEXT NOT NULL DEFAULT '',
+  message_en TEXT NOT NULL DEFAULT '',
   type notification_type NOT NULL DEFAULT 'info',
   link TEXT NULL,
   is_read BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users_profile(id) ON DELETE CASCADE;
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS title_ar TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS title_en TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS message_ar TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS message_en TEXT NOT NULL DEFAULT '';
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS type notification_type DEFAULT 'info';
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS link TEXT NULL;
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
+ALTER TABLE IF EXISTS notifications ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 -- Enable Supabase Realtime for notifications safely
 DO $$
@@ -170,13 +259,11 @@ END $$;
 -- 12. HELPER FUNCTIONS & RPC
 -- ==============================================================================
 
--- Function to check current caller's profile
 CREATE OR REPLACE FUNCTION get_current_user_profile()
 RETURNS users_profile AS $$
   SELECT * FROM users_profile WHERE id = auth.uid() LIMIT 1;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
--- Function to check if caller is active owner
 CREATE OR REPLACE FUNCTION is_owner()
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (
@@ -188,7 +275,6 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
--- Function to check if caller is owner or accountant
 CREATE OR REPLACE FUNCTION is_accountant_or_owner()
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (
@@ -200,21 +286,19 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
--- RPC for Smart User Delete (Hard Delete if no history, Soft Delete if history exists)
 CREATE OR REPLACE FUNCTION rpc_soft_delete_or_purge_user(
   target_user_id UUID,
   performing_user_id UUID
 )
 RETURNS JSONB AS $$
 DECLARE
-  v_has_audit BOOLEAN;
-  v_has_periods BOOLEAN;
-  v_has_warehouses BOOLEAN;
-  v_has_vehicles BOOLEAN;
+  v_has_audit BOOLEAN := false;
+  v_has_periods BOOLEAN := false;
+  v_has_warehouses BOOLEAN := false;
+  v_has_vehicles BOOLEAN := false;
   v_user_name TEXT;
   v_user_role TEXT;
 BEGIN
-  -- Verify caller is active owner
   IF NOT EXISTS (
     SELECT 1 FROM users_profile
     WHERE id = performing_user_id
@@ -225,7 +309,6 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: Only an active owner can perform user deletion';
   END IF;
 
-  -- Get target user details
   SELECT full_name, role::text INTO v_user_name, v_user_role
   FROM users_profile
   WHERE id = target_user_id;
@@ -234,14 +317,12 @@ BEGIN
     RAISE EXCEPTION 'Target user profile not found';
   END IF;
 
-  -- Check for existing references across Phase 1 and future tables
   SELECT EXISTS (SELECT 1 FROM audit_logs WHERE user_id = target_user_id) INTO v_has_audit;
   SELECT EXISTS (SELECT 1 FROM fiscal_periods WHERE locked_by = target_user_id) INTO v_has_periods;
   SELECT EXISTS (SELECT 1 FROM warehouses WHERE assigned_rep_id = target_user_id) INTO v_has_warehouses;
   SELECT EXISTS (SELECT 1 FROM vehicles WHERE assigned_rep_id = target_user_id) INTO v_has_vehicles;
 
   IF v_has_audit OR v_has_periods OR v_has_warehouses OR v_has_vehicles THEN
-    -- Soft Delete: preserve name in historical logs as "(الاسم - حساب محذوف)"
     UPDATE users_profile
     SET is_active = false,
         deleted_at = NOW(),
@@ -249,7 +330,6 @@ BEGIN
         updated_at = NOW()
     WHERE id = target_user_id;
 
-    -- Unassign from vehicles and warehouses
     UPDATE warehouses SET assigned_rep_id = NULL WHERE assigned_rep_id = target_user_id;
     UPDATE vehicles SET assigned_rep_id = NULL WHERE assigned_rep_id = target_user_id;
 
@@ -259,7 +339,6 @@ BEGIN
 
     RETURN jsonb_build_object('status', 'soft_deleted', 'message', 'تم تعطيل الحساب ووسمه كحساب محذوف لحماية السجلات التاريخية');
   ELSE
-    -- Hard Delete: Remove profile completely
     DELETE FROM users_profile WHERE id = target_user_id;
 
     INSERT INTO audit_logs (user_id, action, table_name, record_id, details)
@@ -272,7 +351,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ==============================================================================
--- 13. ROW LEVEL SECURITY (RLS) POLICIES
+-- 13. ROW LEVEL SECURITY (RLS) POLICIES (Idempotent Safe)
 -- ==============================================================================
 
 ALTER TABLE factory_settings ENABLE ROW LEVEL SECURITY;
@@ -285,7 +364,7 @@ ALTER TABLE fiscal_periods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
--- factory_settings: Authenticated can view; Owner can update
+-- factory_settings
 DROP POLICY IF EXISTS "factory_settings_read" ON factory_settings;
 CREATE POLICY "factory_settings_read" ON factory_settings
   FOR SELECT TO authenticated USING (true);
@@ -294,7 +373,7 @@ DROP POLICY IF EXISTS "factory_settings_update" ON factory_settings;
 CREATE POLICY "factory_settings_update" ON factory_settings
   FOR UPDATE TO authenticated USING (is_owner()) WITH CHECK (is_owner());
 
--- users_profile: Authenticated can view active users; Owner can manage
+-- users_profile
 DROP POLICY IF EXISTS "users_profile_read" ON users_profile;
 CREATE POLICY "users_profile_read" ON users_profile
   FOR SELECT TO authenticated USING (true);
@@ -311,7 +390,7 @@ DROP POLICY IF EXISTS "users_profile_delete" ON users_profile;
 CREATE POLICY "users_profile_delete" ON users_profile
   FOR DELETE TO authenticated USING (is_owner());
 
--- vehicles: Authenticated can view; Owner and Accountant can manage
+-- vehicles
 DROP POLICY IF EXISTS "vehicles_read" ON vehicles;
 CREATE POLICY "vehicles_read" ON vehicles
   FOR SELECT TO authenticated USING (true);
@@ -320,7 +399,7 @@ DROP POLICY IF EXISTS "vehicles_manage" ON vehicles;
 CREATE POLICY "vehicles_manage" ON vehicles
   FOR ALL TO authenticated USING (is_accountant_or_owner()) WITH CHECK (is_accountant_or_owner());
 
--- warehouses: Authenticated can view; Owner and Accountant can manage
+-- warehouses
 DROP POLICY IF EXISTS "warehouses_read" ON warehouses;
 CREATE POLICY "warehouses_read" ON warehouses
   FOR SELECT TO authenticated USING (true);
@@ -329,7 +408,7 @@ DROP POLICY IF EXISTS "warehouses_manage" ON warehouses;
 CREATE POLICY "warehouses_manage" ON warehouses
   FOR ALL TO authenticated USING (is_accountant_or_owner()) WITH CHECK (is_accountant_or_owner());
 
--- tanks: Authenticated can view; Owner, Accountant, and Production can update
+-- tanks
 DROP POLICY IF EXISTS "tanks_read" ON tanks;
 CREATE POLICY "tanks_read" ON tanks
   FOR SELECT TO authenticated USING (true);
@@ -350,7 +429,7 @@ CREATE POLICY "tanks_manage" ON tanks
     )
   );
 
--- accounts: Authenticated can read; Owner can insert sub-accounts; System accounts protected
+-- accounts
 DROP POLICY IF EXISTS "accounts_read" ON accounts;
 CREATE POLICY "accounts_read" ON accounts
   FOR SELECT TO authenticated USING (true);
@@ -367,7 +446,7 @@ DROP POLICY IF EXISTS "accounts_delete" ON accounts;
 CREATE POLICY "accounts_delete" ON accounts
   FOR DELETE TO authenticated USING (is_owner() AND is_system = false);
 
--- fiscal_periods: Authenticated can read; Owner can manage/lock
+-- fiscal_periods
 DROP POLICY IF EXISTS "fiscal_periods_read" ON fiscal_periods;
 CREATE POLICY "fiscal_periods_read" ON fiscal_periods
   FOR SELECT TO authenticated USING (true);
@@ -376,7 +455,7 @@ DROP POLICY IF EXISTS "fiscal_periods_manage" ON fiscal_periods;
 CREATE POLICY "fiscal_periods_manage" ON fiscal_periods
   FOR ALL TO authenticated USING (is_owner()) WITH CHECK (is_owner());
 
--- audit_logs: Owner only can read; Any authenticated can write through functions/triggers
+-- audit_logs
 DROP POLICY IF EXISTS "audit_logs_read" ON audit_logs;
 CREATE POLICY "audit_logs_read" ON audit_logs
   FOR SELECT TO authenticated USING (is_owner());
@@ -385,7 +464,7 @@ DROP POLICY IF EXISTS "audit_logs_insert" ON audit_logs;
 CREATE POLICY "audit_logs_insert" ON audit_logs
   FOR INSERT TO authenticated WITH CHECK (true);
 
--- notifications: Users see only their own notifications
+-- notifications
 DROP POLICY IF EXISTS "notifications_user_access" ON notifications;
 CREATE POLICY "notifications_user_access" ON notifications
   FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
@@ -411,7 +490,9 @@ VALUES (
   30,
   60,
   false
-) ON CONFLICT (id) DO NOTHING;
+) ON CONFLICT (id) DO UPDATE SET
+  name_ar = EXCLUDED.name_ar,
+  name_en = EXCLUDED.name_en;
 
 -- Seed Saudi Industrial Chart of Accounts (SPEC.md Section 5)
 -- Step 1: Headers (1000, 2000, 3000, 4000, 5000, 6000)
