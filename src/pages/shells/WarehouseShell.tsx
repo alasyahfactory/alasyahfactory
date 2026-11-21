@@ -246,11 +246,11 @@ export function WarehouseShell() {
           purchase_order_id: selectedPo.id,
           supplier_id: selectedPo.supplier_id,
           warehouse_id: receivingWarehouseId,
-          supplier_delivery_note: supplierDnNumber.trim() || null,
+          supplier_dn_number: supplierDnNumber.trim() || null,
           receipt_date: new Date().toISOString().slice(0, 10),
           received_by: user?.id,
           freight_cost: 0,
-          status: "pending",
+          status: "draft",
         })
         .select()
         .single();

@@ -337,18 +337,26 @@ BEGIN
   -- Notify requester if user exists
   IF v_req.requester_id IS NOT NULL THEN
     INSERT INTO notifications (
+      target_user_id,
       user_id,
       title_ar,
       title_en,
+      body_ar,
+      body_en,
       message_ar,
       message_en,
+      severity,
       type
     ) VALUES (
+      v_req.requester_id,
       v_req.requester_id,
       'قرار الاعتماد الإداري',
       'Management Approval Decision',
       CASE WHEN p_decision = 'approved' THEN 'تمت الموافقة على طلبك: ' || v_req.reference_number ELSE 'تم رفض طلبك: ' || v_req.reference_number END,
       CASE WHEN p_decision = 'approved' THEN 'Your request ' || v_req.reference_number || ' was approved' ELSE 'Your request ' || v_req.reference_number || ' was rejected' END,
+      CASE WHEN p_decision = 'approved' THEN 'تمت الموافقة على طلبك: ' || v_req.reference_number ELSE 'تم رفض طلبك: ' || v_req.reference_number END,
+      CASE WHEN p_decision = 'approved' THEN 'Your request ' || v_req.reference_number || ' was approved' ELSE 'Your request ' || v_req.reference_number || ' was rejected' END,
+      CASE WHEN p_decision = 'approved' THEN 'success' ELSE 'error' END,
       CASE WHEN p_decision = 'approved' THEN 'success'::notification_type ELSE 'error'::notification_type END
     );
   END IF;
