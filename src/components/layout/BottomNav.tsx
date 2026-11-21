@@ -14,6 +14,7 @@ import {
   Truck,
   ShoppingCart,
   Scale,
+  Droplets,
 } from "lucide-react";
 
 export function BottomNav() {
@@ -41,8 +42,10 @@ export function BottomNav() {
     ];
   } else if (role === "production") {
     navItems = [
-      { to: "/production", label: t("nav.productionShell"), icon: Factory },
-      { to: "/inventory/items", label: isArabic ? "المخزون" : "Stock", icon: Package },
+      { to: "/production", label: isArabic ? "الإنتاج" : "Floor", icon: Factory },
+      { to: "/manufacturing/mixing", label: isArabic ? "التانكات" : "Tanks", icon: Droplets },
+      { to: "/manufacturing/packaging", label: isArabic ? "التعبئة" : "Packing", icon: Package },
+      { to: "/inventory/items", label: isArabic ? "الأصناف" : "Stock", icon: Scale },
     ];
   } else if (role === "warehouse") {
     navItems = [

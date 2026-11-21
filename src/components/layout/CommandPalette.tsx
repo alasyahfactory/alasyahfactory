@@ -26,6 +26,11 @@ import {
   RotateCcw,
   Truck,
   Building,
+  FlaskConical,
+  Droplets,
+  PackageCheck,
+  Factory,
+  Layers,
 } from "lucide-react";
 
 export function CommandPalette() {
@@ -146,6 +151,35 @@ export function CommandPalette() {
                   <RotateCcw className="me-2 h-4 w-4 text-slate-500" />
                   <span>{isArabic ? "إشعارات المدين والتعويض (DN)" : "Debit Notes & Compensation"}</span>
                 </CommandItem>
+              )}
+            </CommandGroup>
+          )}
+
+          {(role === "owner" || role === "production" || role === "accountant") && (
+            <CommandGroup heading={isArabic ? "التصنيع والتعبئة" : "Manufacturing & Packaging"}>
+              <CommandItem onSelect={() => handleSelect("/manufacturing/formulas")}>
+                <FlaskConical className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "معادلات وتركيبات الخلط (BOM)" : "Formulas & BOM"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/manufacturing/specs")}>
+                <Layers className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "مواصفات التعبئة والتغليف" : "Packaging Specs"}</span>
+              </CommandItem>
+              {(role === "owner" || role === "production") && (
+                <>
+                  <CommandItem onSelect={() => handleSelect("/manufacturing/mixing")}>
+                    <Droplets className="me-2 h-4 w-4 text-slate-500" />
+                    <span>{isArabic ? "تانكات الخلط والتشغيل الحية" : "Live Mixing Tanks"}</span>
+                  </CommandItem>
+                  <CommandItem onSelect={() => handleSelect("/manufacturing/packaging")}>
+                    <PackageCheck className="me-2 h-4 w-4 text-slate-500" />
+                    <span>{isArabic ? "أوامر التعبئة والملصقات الحرارية" : "Packaging Orders & Labels"}</span>
+                  </CommandItem>
+                  <CommandItem onSelect={() => handleSelect("/production")}>
+                    <Factory className="me-2 h-4 w-4 text-slate-500" />
+                    <span>{isArabic ? "بوابة مشرف الإنتاج (جوال)" : "Production Floor Shell"}</span>
+                  </CommandItem>
+                </>
               )}
             </CommandGroup>
           )}

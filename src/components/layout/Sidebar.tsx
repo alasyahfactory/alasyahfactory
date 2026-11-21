@@ -19,6 +19,9 @@ import {
   RotateCcw,
   Truck,
   Building,
+  FlaskConical,
+  Droplets,
+  PackageCheck,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -86,6 +89,35 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           icon: RotateCcw,
           label: t("nav.debitNotes"),
           show: isOwner || isAccountant,
+        },
+      ],
+    },
+    {
+      title: isArabic ? "التصنيع والتعبئة" : "Manufacturing",
+      items: [
+        {
+          to: "/manufacturing/formulas",
+          icon: FlaskConical,
+          label: t("nav.formulas"),
+          show: isOwner || role === "production" || isAccountant,
+        },
+        {
+          to: "/manufacturing/specs",
+          icon: Layers,
+          label: t("nav.packagingSpecs"),
+          show: isOwner || role === "production" || isAccountant,
+        },
+        {
+          to: "/manufacturing/mixing",
+          icon: Droplets,
+          label: t("nav.mixingBatches"),
+          show: isOwner || role === "production",
+        },
+        {
+          to: "/manufacturing/packaging",
+          icon: PackageCheck,
+          label: t("nav.packagingOrders"),
+          show: isOwner || role === "production",
         },
       ],
     },

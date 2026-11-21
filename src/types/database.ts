@@ -288,6 +288,135 @@ export interface PurchaseReturnLine {
   item?: Item;
 }
 
+export interface Formula {
+  id: string;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  bulk_item_id: string | null;
+  batch_size_grams: number;
+  density: number;
+  target_ph_min: number;
+  target_ph_max: number;
+  target_viscosity_min: number;
+  target_viscosity_max: number;
+  instructions: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  bulk_item?: Item;
+  lines?: FormulaLine[];
+  formula_lines?: FormulaLine[];
+}
+
+export interface FormulaLine {
+  id: string;
+  formula_id: string;
+  item_id: string;
+  qty_grams: number;
+  percentage: number;
+  addition_step: number;
+  instructions: string | null;
+  created_at: string;
+  item?: Item;
+}
+
+export interface PackagingSpec {
+  id: string;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  finished_good_id: string;
+  bulk_item_id: string;
+  volume_per_unit_grams: number;
+  bottle_item_id: string;
+  front_sticker_item_id: string | null;
+  back_sticker_item_id: string | null;
+  carton_item_id: string | null;
+  pieces_per_carton: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  finished_good?: Item;
+  bulk_item?: Item;
+  bottle_item?: Item;
+  front_sticker?: Item | null;
+  back_sticker?: Item | null;
+  front_sticker_item?: Item | null;
+  back_sticker_item?: Item | null;
+  carton_item?: Item | null;
+}
+
+export interface MixingBatch {
+  id: string;
+  batch_number: string;
+  formula_id: string;
+  tank_id: string;
+  planned_qty_grams: number;
+  actual_output_grams: number | null;
+  remaining_qty_grams: number;
+  status: "mixing" | "pending_qc" | "qc_passed" | "ready_for_packaging" | "in_packaging" | "closed" | "cancelled" | "rework";
+  qc_ph: number | null;
+  qc_viscosity: number | null;
+  qc_odor_ok: boolean;
+  qc_color_ok: boolean;
+  qc_status: "pending" | "passed" | "needs_rework";
+  qc_tested_by: string | null;
+  qc_tested_at: string | null;
+  qc_notes: string | null;
+  actual_yield_grams: number | null;
+  yield_variance_grams: number;
+  variance_cost: number;
+  journal_entry_id: string | null;
+  closed_by: string | null;
+  closed_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  formula?: Formula;
+  tank?: Tank;
+  tester?: UserProfile;
+  consumptions?: MixingConsumption[];
+}
+
+export interface MixingConsumption {
+  id: string;
+  mixing_batch_id: string;
+  item_id: string;
+  consumption_type: "standard" | "adjustment_ph" | "adjustment_viscosity" | "rework" | "write_off";
+  qty_grams: number;
+  unit_cost: number;
+  total_cost: number;
+  created_by: string | null;
+  created_at: string;
+  item?: Item;
+}
+
+export interface PackagingOrder {
+  id: string;
+  order_number: string;
+  mixing_batch_id: string;
+  packaging_spec_id: string;
+  target_fg_item_id: string;
+  packaging_date: string;
+  units_produced: number;
+  cartons_produced: number;
+  bulk_consumed_grams: number;
+  wasted_bottles: number;
+  wasted_stickers: number;
+  wasted_cartons: number;
+  wasted_notes: string | null;
+  total_cost: number;
+  unit_cost: number;
+  target_warehouse_id: string | null;
+  status: "draft" | "completed" | "cancelled";
+  created_by: string | null;
+  created_at: string;
+  mixing_batch?: MixingBatch;
+  packaging_spec?: PackagingSpec;
+  target_fg_item?: Item;
+}
+
 export interface FactorySettings {
   id: number;
   name_ar: string;
@@ -346,6 +475,7 @@ export interface Warehouse {
 export interface Tank {
   id: string;
   tank_code: string;
+  name?: string;
   name_ar: string;
   name_en: string;
   capacity_liters: number;
@@ -354,6 +484,7 @@ export interface Tank {
   current_qty_grams: number;
   is_active: boolean;
   created_at: string;
+  current_batch?: MixingBatch;
 }
 
 export interface Account {
@@ -739,6 +870,42 @@ export interface Database {
         Update: Partial<PurchaseReturnLine>;
         Relationships: [];
       };
+      formulas: {
+        Row: Formula;
+        Insert: Partial<Formula> & { code: string; name_ar: string; name_en: string };
+        Update: Partial<Formula>;
+        Relationships: [];
+      };
+      formula_lines: {
+        Row: FormulaLine;
+        Insert: Partial<FormulaLine> & { formula_id: string; item_id: string; qty_grams: number };
+        Update: Partial<FormulaLine>;
+        Relationships: [];
+      };
+      packaging_specs: {
+        Row: PackagingSpec;
+        Insert: Partial<PackagingSpec> & { code: string; name_ar: string; name_en: string; finished_good_id: string; bulk_item_id: string; volume_per_unit_grams: number; bottle_item_id: string };
+        Update: Partial<PackagingSpec>;
+        Relationships: [];
+      };
+      mixing_batches: {
+        Row: MixingBatch;
+        Insert: Partial<MixingBatch> & { batch_number: string; formula_id: string; tank_id: string; planned_qty_grams: number };
+        Update: Partial<MixingBatch>;
+        Relationships: [];
+      };
+      mixing_consumptions: {
+        Row: MixingConsumption;
+        Insert: Partial<MixingConsumption> & { mixing_batch_id: string; item_id: string; qty_grams: number };
+        Update: Partial<MixingConsumption>;
+        Relationships: [];
+      };
+      packaging_orders: {
+        Row: PackagingOrder;
+        Insert: Partial<PackagingOrder> & { order_number: string; mixing_batch_id: string; packaging_spec_id: string; target_fg_item_id: string; units_produced: number; bulk_consumed_grams: number };
+        Update: Partial<PackagingOrder>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -781,6 +948,55 @@ export interface Database {
         Args: {
           p_return_id: string;
           p_created_by: string;
+        };
+        Returns: Json;
+      };
+      rpc_pre_production_check: {
+        Args: {
+          p_formula_id: string;
+          p_batch_size_grams: number;
+        };
+        Returns: Json;
+      };
+      rpc_start_mixing_batch: {
+        Args: {
+          p_formula_id: string;
+          p_tank_id: string;
+          p_planned_qty_grams: number;
+          p_created_by: string;
+        };
+        Returns: Json;
+      };
+      rpc_record_qc_test: {
+        Args: {
+          p_batch_id: string;
+          p_ph: number;
+          p_viscosity: number;
+          p_odor_ok: boolean;
+          p_color_ok: boolean;
+          p_status: string;
+          p_tested_by: string;
+          p_notes: string;
+        };
+        Returns: Json;
+      };
+      rpc_execute_packaging_order: {
+        Args: {
+          p_batch_id: string;
+          p_spec_id: string;
+          p_units_produced: number;
+          p_wasted_bottles: number;
+          p_wasted_stickers: number;
+          p_wasted_cartons: number;
+          p_created_by: string;
+        };
+        Returns: Json;
+      };
+      rpc_close_tank_with_actual_yield: {
+        Args: {
+          p_batch_id: string;
+          p_actual_yield_grams: number;
+          p_closed_by: string;
         };
         Returns: Json;
       };

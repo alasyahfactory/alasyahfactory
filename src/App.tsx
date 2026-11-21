@@ -24,6 +24,10 @@ import { SuppliersPage } from "@/pages/procurement/SuppliersPage";
 import { PurchaseOrdersPage } from "@/pages/procurement/PurchaseOrdersPage";
 import { PurchaseReceiptsPage } from "@/pages/procurement/PurchaseReceiptsPage";
 import { PurchaseReturnsPage } from "@/pages/procurement/PurchaseReturnsPage";
+import { FormulasPage } from "@/pages/manufacturing/FormulasPage";
+import { PackagingSpecsPage } from "@/pages/manufacturing/PackagingSpecsPage";
+import { MixingBatchesPage } from "@/pages/manufacturing/MixingBatchesPage";
+import { PackagingOrdersPage } from "@/pages/manufacturing/PackagingOrdersPage";
 import { ProductionShell } from "@/pages/shells/ProductionShell";
 import { WarehouseShell } from "@/pages/shells/WarehouseShell";
 import { RepShell } from "@/pages/shells/RepShell";
@@ -190,7 +194,41 @@ export function App() {
                 }
               />
 
-              {/* Production Mobile Shell (Phase 2 Target) */}
+              {/* Phase 3: Manufacturing, BOM, Tanks & Packaging */}
+              <Route
+                path="/manufacturing/formulas"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "production", "accountant"]}>
+                    <FormulasPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manufacturing/specs"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "production", "accountant"]}>
+                    <PackagingSpecsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manufacturing/mixing"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "production"]}>
+                    <MixingBatchesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manufacturing/packaging"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "production"]}>
+                    <PackagingOrdersPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Production Mobile Shell (Phase 3) */}
               <Route
                 path="/production"
                 element={

@@ -132,7 +132,12 @@ export function canAccessRoute(role: UserRole, pathname: string): boolean {
   }
 
   if (role === "production") {
-    return pathname === "/production" || pathname.startsWith("/production/") || pathname === "/inventory/items";
+    return (
+      pathname === "/production" ||
+      pathname.startsWith("/production/") ||
+      pathname.startsWith("/manufacturing") ||
+      pathname === "/inventory/items"
+    );
   }
 
   if (role === "warehouse") {
