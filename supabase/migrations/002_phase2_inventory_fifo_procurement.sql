@@ -638,7 +638,7 @@ BEGIN
 
   -- Create balanced Journal Entry for Opening Balance (Debit Inventory, Credit Opening Equity 3102)
   IF v_total_inventory_value > 0 AND v_account_equity IS NOT NULL THEN
-    v_je_num := 'JV-OPEN-' || TO_CHAR(NOW(), 'YYYYMMDD');
+    v_je_num := 'JV-OPEN-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || SUBSTRING(gen_random_uuid()::TEXT FROM 1 FOR 4);
     INSERT INTO journal_entries (
       entry_number,
       entry_date,
