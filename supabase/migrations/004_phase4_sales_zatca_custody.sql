@@ -383,7 +383,7 @@ BEGIN
       v_item_id,
       v_source_wh,
       v_pieces,
-      'sales_issue',
+      'sales_dispatch',
       v_invoice_id,
       p_created_by
     );
