@@ -5,7 +5,12 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  <div
+    tabIndex={0}
+    role="region"
+    aria-label={(props as any)["aria-label"] || "جدول بيانات"}
+    className="relative w-full overflow-auto table-accessible-wrapper focus-visible:outline-2 focus-visible:outline-sky-600 focus-visible:outline-offset-2"
+  >
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
@@ -68,9 +73,10 @@ TableRow.displayName = "TableRow";
 const TableHead = React.forwardRef<
   HTMLTableCellElement,
   React.ThHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+>(({ className, scope = "col", ...props }, ref) => (
   <th
     ref={ref}
+    scope={scope}
     className={cn(
       "h-10 px-4 text-start align-middle font-semibold text-slate-600 [&:has([role=checkbox])]:pe-0",
       className

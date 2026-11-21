@@ -1,0 +1,45 @@
+{
+  "id": "/",
+  "name": "مصنع الأسياح للمنظفات الصناعية ERP",
+  "short_name": "Al-Asyah ERP",
+  "description": "نظام تخطيط موارد المؤسسة المتكامل لمصنع الأسياح للمنظفات الصناعية بالمملكة العربية السعودية",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F172A",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "بوابة المستودع",
+      "short_name": "المستودع",
+      "description": "استلام الوزن بالباركود والميزان",
+      "url": "/warehouse",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "بوابة الإنتاج",
+      "short_name": "الإنتاج",
+      "description": "الخلطات والتانكات والتعبئة",
+      "url": "/production",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "بوابة المندوب",
+      "short_name": "المندوب",
+      "description": "فواتير سيارة التوزيع الفورية",
+      "url": "/rep",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    }
+  ]
+}

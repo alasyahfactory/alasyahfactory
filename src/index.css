@@ -105,3 +105,22 @@ html, body {
   max-width: 100%;
   overflow-x: hidden;
 }
+
+/* Accessible scrollable container per modern-web-guidance: responsive-table & accessibility */
+.table-accessible-wrapper {
+  overflow-x: auto;
+  max-inline-size: 100%;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-accessible-wrapper:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 2px;
+}
+
+/* Modern Web Guidance: Defer Rendering Heavy Content */
+.heavy-section-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 350px;
+}

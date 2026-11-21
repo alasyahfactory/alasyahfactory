@@ -304,20 +304,28 @@ export function SalesInvoicesPage() {
       {/* Invoices Table */}
       <Card className="border-industrial-border bg-white shadow-sm">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div
+            className="table-accessible-wrapper heavy-section-deferred"
+            tabIndex={0}
+            role="region"
+            aria-label={isArabic ? "جدول فواتير المبيعات الضريبية" : "Tax Sales Invoices Table"}
+          >
             <table className="w-full text-xs text-start">
-              <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 font-semibold">
+              <caption className="sr-only">
+                {isArabic ? "قائمة فواتير المبيعات الضريبية" : "Tax Sales Invoices List"}
+              </caption>
+              <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 font-semibold sticky top-0 z-10">
                 <tr>
-                  <th className="py-2.5 px-3">{t("sales.invoiceNumber")}</th>
-                  <th className="py-2.5 px-3">{t("sales.invoiceDate")}</th>
-                  <th className="py-2.5 px-3">العميل</th>
-                  <th className="py-2.5 px-3">المصدر</th>
-                  <th className="py-2.5 px-3 text-end">قبل الضريبة</th>
-                  <th className="py-2.5 px-3 text-end">ضريبة 15%</th>
-                  <th className="py-2.5 px-3 text-end">العربون</th>
-                  <th className="py-2.5 px-3 text-end">صافي المستحق</th>
-                  <th className="py-2.5 px-3 text-center">{t("common.status")}</th>
-                  <th className="py-2.5 px-3 text-center">طباعة A4</th>
+                  <th scope="col" className="py-2.5 px-3">{t("sales.invoiceNumber")}</th>
+                  <th scope="col" className="py-2.5 px-3">{t("sales.invoiceDate")}</th>
+                  <th scope="col" className="py-2.5 px-3">العميل</th>
+                  <th scope="col" className="py-2.5 px-3">المصدر</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">قبل الضريبة</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">ضريبة 15%</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">العربون</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">صافي المستحق</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">{t("common.status")}</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">طباعة A4</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

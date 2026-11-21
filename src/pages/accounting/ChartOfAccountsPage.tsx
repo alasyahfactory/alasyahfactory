@@ -250,16 +250,24 @@ export function ChartOfAccountsPage() {
               {isArabic ? "لا توجد حسابات مطابقة للبحث" : "No matching accounts"}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div
+              className="table-accessible-wrapper heavy-section-deferred"
+              tabIndex={0}
+              role="region"
+              aria-label={isArabic ? "شجرة الحسابات المحاسبية" : "Chart of Accounts"}
+            >
               <table className="w-full text-start text-xs sm:text-sm">
-                <thead>
-                  <tr className="border-b border-industrial-border bg-slate-50/70 text-slate-600 font-semibold">
-                    <th className="p-3 text-start w-32">{t("coa.accountCode")}</th>
-                    <th className="p-3 text-start">{t("coa.accountNameAr")}</th>
-                    <th className="p-3 text-start">{t("coa.accountNameEn")}</th>
-                    <th className="p-3 text-start">{t("coa.accountType")}</th>
-                    <th className="p-3 text-start text-end">{t("coa.balance")}</th>
-                    <th className="p-3 text-center w-24">{t("common.status")}</th>
+                <caption className="sr-only">
+                  {isArabic ? "دليل شجرة الحسابات العامة" : "General Chart of Accounts"}
+                </caption>
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-industrial-border bg-slate-50/95 text-slate-600 font-semibold backdrop-blur-sm">
+                    <th scope="col" className="p-3 text-start w-32">{t("coa.accountCode")}</th>
+                    <th scope="col" className="p-3 text-start">{t("coa.accountNameAr")}</th>
+                    <th scope="col" className="p-3 text-start">{t("coa.accountNameEn")}</th>
+                    <th scope="col" className="p-3 text-start">{t("coa.accountType")}</th>
+                    <th scope="col" className="p-3 text-start text-end">{t("coa.balance")}</th>
+                    <th scope="col" className="p-3 text-center w-24">{t("common.status")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-industrial-border font-sans">

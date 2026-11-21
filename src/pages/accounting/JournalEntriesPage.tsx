@@ -247,18 +247,26 @@ export function JournalEntriesPage() {
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div
+            className="table-accessible-wrapper heavy-section-deferred"
+            tabIndex={0}
+            role="region"
+            aria-label={isArabic ? "سجل قيود اليومية المحاسبية" : "Journal Entries Register"}
+          >
             <table className="w-full text-xs text-start border-collapse">
-              <thead>
-                <tr className="border-b border-industrial-border bg-slate-100/75 text-slate-700 font-semibold">
-                  <th className="py-2.5 px-3 text-start">رقم القيد</th>
-                  <th className="py-2.5 px-3 text-start">التاريخ</th>
-                  <th className="py-2.5 px-3 text-start">المصدر / النوع</th>
-                  <th className="py-2.5 px-3 text-start">البيان والشرح</th>
-                  <th className="py-2.5 px-3 text-end">إجمالي المدين</th>
-                  <th className="py-2.5 px-3 text-end">إجمالي الدائن</th>
-                  <th className="py-2.5 px-3 text-center">الحالة</th>
-                  <th className="py-2.5 px-3 text-center">التفاصيل</th>
+              <caption className="sr-only">
+                {isArabic ? "سجل القيود اليومية المرحلة" : "Posted Journal Entries Log"}
+              </caption>
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-industrial-border bg-slate-100/95 text-slate-700 font-semibold backdrop-blur-sm">
+                  <th scope="col" className="py-2.5 px-3 text-start">رقم القيد</th>
+                  <th scope="col" className="py-2.5 px-3 text-start">التاريخ</th>
+                  <th scope="col" className="py-2.5 px-3 text-start">المصدر / النوع</th>
+                  <th scope="col" className="py-2.5 px-3 text-start">البيان والشرح</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">إجمالي المدين</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">إجمالي الدائن</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">الحالة</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">التفاصيل</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-industrial-border">
