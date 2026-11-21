@@ -121,13 +121,16 @@ export function SalesInvoicesPage() {
     enabled: createModalOpen,
   });
 
-  // 3. Fetch Finished Goods
-  const { data: finishedGoods } = useQuery<Item[]>({
+  // 3. Fetch Finished Goods with FIFO Cost Layers
+  const { data: finishedGoods } = useQuery<any[]>({
     queryKey: ["items-fg-active"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("items")
-        .select("*")
+        .select(`
+          *,
+          fifo_layers(unit_cost_ex_vat, remaining_qty)
+        `)
         .eq("item_type", "finished_good")
         .eq("is_active", true)
         .order("name_ar");
@@ -523,110 +526,149 @@ export function SalesInvoicesPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {lines.map((line, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"
-                    >
-                      <div className="flex-1">
-                        <Select
-                          value={line.item_id}
-                          onValueChange={(val) => {
-                            const updated = [...lines];
-                            updated[idx].item_id = val;
-                            setLines(updated);
-                          }}
-                        >
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="اختر المنتج..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {finishedGoods?.map((item) => (
-                              <SelectItem key={item.id} value={item.id}>
-                                {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  {lines.map((line, idx) => {
+                    const selectedItem = finishedGoods?.find((fg) => fg.id === line.item_id);
+                    const activeLayer = selectedItem?.fifo_layers?.find((l: any) => l.remaining_qty > 0) || selectedItem?.fifo_layers?.[0];
+                    const itemCost = activeLayer?.unit_cost_ex_vat ? Number(activeLayer.unit_cost_ex_vat) : 0;
+                    const isBelowCost = line.unit_price_ex_vat > 0 && itemCost > 0 && line.unit_price_ex_vat < itemCost && !line.is_bonus_or_sample;
+                    const marginPercent = line.unit_price_ex_vat > 0 && itemCost > 0
+                      ? (((line.unit_price_ex_vat - itemCost) / line.unit_price_ex_vat) * 100).toFixed(0)
+                      : null;
 
-                      <div className="w-20">
-                        <Input
-                          type="number"
-                          placeholder="الكمية"
-                          value={line.quantity || ""}
-                          onChange={(e) => {
-                            const updated = [...lines];
-                            updated[idx].quantity = Number(e.target.value);
-                            setLines(updated);
-                          }}
-                          className="font-mono tabular-nums bg-white text-center text-xs"
-                        />
-                      </div>
-
-                      <div className="w-24">
-                        <Select
-                          value={line.unit_type}
-                          onValueChange={(val: "carton" | "piece") => {
-                            const updated = [...lines];
-                            updated[idx].unit_type = val;
-                            setLines(updated);
-                          }}
-                        >
-                          <SelectTrigger className="bg-white text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="carton">كرتون</SelectItem>
-                            <SelectItem value="piece">حبة</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="w-24">
-                        <Input
-                          type="number"
-                          placeholder="السعر"
-                          disabled={line.is_bonus_or_sample}
-                          value={line.is_bonus_or_sample ? 0 : line.unit_price_ex_vat || ""}
-                          onChange={(e) => {
-                            const updated = [...lines];
-                            updated[idx].unit_price_ex_vat = Number(e.target.value);
-                            setLines(updated);
-                          }}
-                          className="font-mono tabular-nums bg-white text-center text-xs"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-1 ps-1">
-                        <Checkbox
-                          id={`bonus_${idx}`}
-                          checked={line.is_bonus_or_sample}
-                          onCheckedChange={(c: any) => {
-                            const updated = [...lines];
-                            updated[idx].is_bonus_or_sample = !!c;
-                            setLines(updated);
-                          }}
-                        />
-                        <Label htmlFor={`bonus_${idx}`} className="text-[10px] text-amber-700 cursor-pointer">
-                          بونص
-                        </Label>
-                      </div>
-
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        type="button"
-                        onClick={() => {
-                          const updated = lines.filter((_, i) => i !== idx);
-                          setLines(updated);
-                        }}
-                        className="text-rose-500 hover:bg-rose-50"
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-2.5 rounded-lg border transition-all ${
+                          isBelowCost
+                            ? "bg-rose-50/80 border-rose-300 ring-1 ring-rose-300"
+                            : "bg-slate-50 border-slate-200"
+                        }`}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <Select
+                              value={line.item_id}
+                              onValueChange={(val) => {
+                                const updated = [...lines];
+                                updated[idx].item_id = val;
+                                setLines(updated);
+                              }}
+                            >
+                              <SelectTrigger className="bg-white">
+                                <SelectValue placeholder="اختر المنتج..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {finishedGoods?.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="w-20">
+                            <Input
+                              type="number"
+                              placeholder="الكمية"
+                              value={line.quantity || ""}
+                              onChange={(e) => {
+                                const updated = [...lines];
+                                updated[idx].quantity = Number(e.target.value);
+                                setLines(updated);
+                              }}
+                              className="font-mono tabular-nums bg-white text-center text-xs"
+                            />
+                          </div>
+
+                          <div className="w-24">
+                            <Select
+                              value={line.unit_type}
+                              onValueChange={(val: "carton" | "piece") => {
+                                const updated = [...lines];
+                                updated[idx].unit_type = val;
+                                setLines(updated);
+                              }}
+                            >
+                              <SelectTrigger className="bg-white text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="carton">كرتون</SelectItem>
+                                <SelectItem value="piece">حبة</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="w-24">
+                            <Input
+                              type="number"
+                              placeholder="السعر"
+                              disabled={line.is_bonus_or_sample}
+                              value={line.is_bonus_or_sample ? 0 : line.unit_price_ex_vat || ""}
+                              onChange={(e) => {
+                                const updated = [...lines];
+                                updated[idx].unit_price_ex_vat = Number(e.target.value);
+                                setLines(updated);
+                              }}
+                              className={`font-mono tabular-nums bg-white text-center text-xs ${
+                                isBelowCost ? "border-rose-400 text-rose-700 font-bold" : ""
+                              }`}
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-1 ps-1">
+                            <Checkbox
+                              id={`bonus_${idx}`}
+                              checked={line.is_bonus_or_sample}
+                              onCheckedChange={(c: any) => {
+                                const updated = [...lines];
+                                updated[idx].is_bonus_or_sample = !!c;
+                                setLines(updated);
+                              }}
+                            />
+                            <Label htmlFor={`bonus_${idx}`} className="text-[10px] text-amber-700 cursor-pointer">
+                              بونص
+                            </Label>
+                          </div>
+
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            type="button"
+                            onClick={() => {
+                              const updated = lines.filter((_, i) => i !== idx);
+                              setLines(updated);
+                            }}
+                            className="text-rose-500 hover:bg-rose-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Live Margin Guard Feedback (SPEC v3.1 Section 8.2) */}
+                        {isBelowCost && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 mt-1.5 rounded bg-rose-100 text-rose-800 text-[11px] font-semibold border border-rose-300">
+                            <AlertTriangle className="h-3.5 w-3.5 text-rose-600 flex-shrink-0 animate-pulse" />
+                            <span>
+                              {isArabic
+                                ? `حارس الهامش: السعر (${line.unit_price_ex_vat} ر.س) أقل من آخر تكلفة FIFO (${itemCost.toFixed(2)} ر.س) — هامش ربح سالب!`
+                                : `Margin Guard Alert: Price (${line.unit_price_ex_vat} SAR) is below FIFO cost (${itemCost.toFixed(2)} SAR)!`}
+                            </span>
+                          </div>
+                        )}
+                        {!isBelowCost && marginPercent && !line.is_bonus_or_sample && (
+                          <div className="flex items-center gap-2 mt-1 px-1 text-[11px] text-emerald-700">
+                            <span>{isArabic ? "هامش ربح إيجابي:" : "Profit Margin:"}</span>
+                            <span className="font-mono font-bold">+{marginPercent}%</span>
+                            <span className="text-slate-400 text-[10px]">
+                              ({isArabic ? "تكلفة الوحدة:" : "Unit Cost:"} {itemCost.toFixed(2)} ر.س)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
