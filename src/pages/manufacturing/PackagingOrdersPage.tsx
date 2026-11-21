@@ -281,20 +281,28 @@ export function PackagingOrdersPage() {
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div
+            className="table-accessible-wrapper heavy-section-deferred"
+            tabIndex={0}
+            role="region"
+            aria-label={isArabic ? "سجل أوامر التعبئة والتغليف" : "Packaging Orders Register"}
+          >
             <table className="w-full text-xs text-start">
-              <thead className="bg-slate-100 text-slate-700 border-y border-slate-200 font-semibold">
+              <caption className="sr-only">
+                {isArabic ? "قائمة أوامر التعبئة والتغليف المكتملة والجارية" : "Packaging Orders List"}
+              </caption>
+              <thead className="bg-slate-100 text-slate-700 border-y border-slate-200 font-semibold sticky top-0 z-10">
                 <tr>
-                  <th className="py-2.5 px-3">{t("manufacturing.orderNumber")}</th>
-                  <th className="py-2.5 px-3">{t("common.date")}</th>
-                  <th className="py-2.5 px-3">التشغيلة / التانك</th>
-                  <th className="py-2.5 px-3">{t("manufacturing.finishedGood")}</th>
-                  <th className="py-2.5 px-3 text-end">{t("manufacturing.unitsProduced")}</th>
-                  <th className="py-2.5 px-3 text-end">{t("manufacturing.cartonsProduced")}</th>
-                  <th className="py-2.5 px-3 text-end">السائل المستهلك</th>
-                  <th className="py-2.5 px-3 text-center">الهالك</th>
-                  {canViewCosts && <th className="py-2.5 px-3 text-end">تكلفة الوحدة</th>}
-                  <th className="py-2.5 px-3 text-center">{t("common.actions")}</th>
+                  <th scope="col" className="py-2.5 px-3">{t("manufacturing.orderNumber")}</th>
+                  <th scope="col" className="py-2.5 px-3">{t("common.date")}</th>
+                  <th scope="col" className="py-2.5 px-3">التشغيلة / التانك</th>
+                  <th scope="col" className="py-2.5 px-3">{t("manufacturing.finishedGood")}</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">{t("manufacturing.unitsProduced")}</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">{t("manufacturing.cartonsProduced")}</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">السائل المستهلك</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">الهالك</th>
+                  {canViewCosts && <th scope="col" className="py-2.5 px-3 text-end">تكلفة الوحدة</th>}
+                  <th scope="col" className="py-2.5 px-3 text-center">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

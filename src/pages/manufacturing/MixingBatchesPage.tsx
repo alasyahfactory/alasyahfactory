@@ -466,18 +466,26 @@ export function MixingBatchesPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div
+            className="table-accessible-wrapper heavy-section-deferred"
+            tabIndex={0}
+            role="region"
+            aria-label={isArabic ? "سجل تشغيلات الخلط الكيميائي" : "Chemical Mixing Batches Register"}
+          >
             <table className="w-full text-xs text-start">
-              <thead className="bg-slate-100 text-slate-700 border-y border-slate-200 font-semibold">
+              <caption className="sr-only">
+                {isArabic ? "قائمة أوامر وتشغيلات الخلط الكيميائي" : "Chemical Mixing Batches List"}
+              </caption>
+              <thead className="bg-slate-100 text-slate-700 border-y border-slate-200 font-semibold sticky top-0 z-10">
                 <tr>
-                  <th className="py-2.5 px-3">{t("manufacturing.batchNumber")}</th>
-                  <th className="py-2.5 px-3">التركيبة الكيميائية</th>
-                  <th className="py-2.5 px-3">التانك</th>
-                  <th className="py-2.5 px-3 text-end">{t("manufacturing.plannedQty")}</th>
-                  <th className="py-2.5 px-3 text-end">{t("manufacturing.bulkRemainingInTank")}</th>
-                  <th className="py-2.5 px-3 text-center">{t("manufacturing.qcStatus")}</th>
-                  <th className="py-2.5 px-3 text-center">{t("common.status")}</th>
-                  <th className="py-2.5 px-3 text-center">{t("common.actions")}</th>
+                  <th scope="col" className="py-2.5 px-3">{t("manufacturing.batchNumber")}</th>
+                  <th scope="col" className="py-2.5 px-3">التركيبة الكيميائية</th>
+                  <th scope="col" className="py-2.5 px-3">التانك</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">{t("manufacturing.plannedQty")}</th>
+                  <th scope="col" className="py-2.5 px-3 text-end">{t("manufacturing.bulkRemainingInTank")}</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">{t("manufacturing.qcStatus")}</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">{t("common.status")}</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

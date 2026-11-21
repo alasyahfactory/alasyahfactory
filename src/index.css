@@ -125,6 +125,32 @@ html, body {
   contain-intrinsic-size: auto none auto 350px;
 }
 
+/* Modern Web Guidance: Validate Input After Interaction (:user-invalid) */
+:where(input, select, textarea):user-invalid {
+  border-color: #e11d48 !important;
+  background-color: #fff1f2 !important;
+}
+:where(input, select, textarea):user-invalid:focus-visible {
+  outline-color: #e11d48 !important;
+}
+
+/* Modern Web Guidance: Style Parent Form Group on User Invalid with :has() */
+.space-y-1\.5:has(:user-invalid) > label,
+.space-y-2:has(:user-invalid) > label,
+.field-group:has(:user-invalid) > label {
+  color: #e11d48;
+}
+
+/* Modern Web Guidance: Prevent Page Scroll Under Modal Dialog */
+dialog:modal,
+[role="dialog"][data-state="open"] {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
 /* Modern Web Guidance: Customize Scrollbar Color and Thickness */
 :root {
   --scrollbar-thumb: #94a3b8;
