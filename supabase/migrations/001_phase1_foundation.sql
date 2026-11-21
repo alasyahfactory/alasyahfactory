@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   code VARCHAR(20) NOT NULL UNIQUE,
   name_ar TEXT NOT NULL,
   name_en TEXT NOT NULL,
-  type account_type NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('header', 'asset', 'contra_asset', 'liability', 'equity', 'revenue', 'contra_revenue', 'expense')),
   parent_id UUID REFERENCES accounts(id) ON DELETE RESTRICT,
   is_system BOOLEAN NOT NULL DEFAULT FALSE,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -164,10 +164,14 @@ CREATE TABLE IF NOT EXISTS accounts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Ensure type is TEXT and allows 'header' and all account types safely
+ALTER TABLE IF EXISTS accounts ALTER COLUMN type TYPE TEXT;
+ALTER TABLE IF EXISTS accounts DROP CONSTRAINT IF EXISTS check_account_type;
+ALTER TABLE IF EXISTS accounts ADD CONSTRAINT check_account_type CHECK (type IN ('header', 'asset', 'contra_asset', 'liability', 'equity', 'revenue', 'contra_revenue', 'expense'));
+
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS code VARCHAR(20);
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS name_ar TEXT;
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS name_en TEXT;
-ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS type account_type;
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES accounts(id) ON DELETE RESTRICT;
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS is_system BOOLEAN DEFAULT FALSE;
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
