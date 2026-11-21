@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Lock, Phone, Shield, Globe } from "lucide-react";
+import { Lock, Phone, Shield, Globe, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDefaultRouteForRole } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ export function LoginPage() {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === "ar";
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const {
     register,
@@ -68,6 +69,7 @@ export function LoginPage() {
       {/* Language switcher top corner */}
       <div className="absolute top-4 end-4">
         <button
+          type="button"
           onClick={toggleLanguage}
           className="flex items-center gap-1.5 rounded-md border border-industrial-border bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
         >
@@ -86,7 +88,7 @@ export function LoginPage() {
             {t("appName")}
           </h1>
           <p className="mt-1 text-xs text-slate-500 font-mono">
-            Saudi Detergent Factory ERP • Phase 1
+            Saudi Detergent Factory ERP • Enterprise v3.1
           </p>
         </div>
 
@@ -101,12 +103,12 @@ export function LoginPage() {
           </CardHeader>
           <CardContent>
             {errorMsg && (
-              <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+              <div role="alert" aria-live="assertive" className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
                 {errorMsg}
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">{t("common.phone")}</Label>
                 <div className="relative">
@@ -116,17 +118,21 @@ export function LoginPage() {
                     dir="ltr"
                     tabularNums
                     autoComplete="tel"
+                    inputMode="tel"
+                    enterKeyHint="next"
                     placeholder="05XXXXXXXX"
                     className="ps-9 font-mono text-start"
                     disabled={isSubmitting}
+                    aria-invalid={errors.phone ? "true" : undefined}
+                    aria-describedby={errors.phone ? "phone-error phone-help" : "phone-help"}
                     {...register("phone")}
                   />
                   <Phone className="absolute start-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
                 </div>
                 {errors.phone && (
-                  <p className="text-xs text-rose-600">{errors.phone.message}</p>
+                  <p id="phone-error" role="alert" className="text-xs text-rose-600">{errors.phone.message}</p>
                 )}
-                <p className="text-[11px] text-slate-400">{t("auth.phoneHelp")}</p>
+                <p id="phone-help" className="text-[11px] text-slate-400">{t("auth.phoneHelp")}</p>
               </div>
 
               <div className="space-y-1.5">
@@ -134,18 +140,30 @@ export function LoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     dir="ltr"
                     autoComplete="current-password"
+                    enterKeyHint="done"
                     placeholder="••••••••"
-                    className="ps-9"
+                    className="ps-9 pe-10"
                     disabled={isSubmitting}
+                    aria-invalid={errors.password ? "true" : undefined}
+                    aria-describedby={errors.password ? "password-error" : undefined}
                     {...register("password")}
                   />
                   <Lock className="absolute start-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-pressed={showPassword}
+                    aria-label={showPassword ? "إخفاء كلمة المرور" : "عرض كلمة المرور"}
+                    className="absolute end-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
                 {errors.password && (
-                  <p className="text-xs text-rose-600">{errors.password.message}</p>
+                  <p id="password-error" role="alert" className="text-xs text-rose-600">{errors.password.message}</p>
                 )}
               </div>
 

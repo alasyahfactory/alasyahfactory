@@ -124,3 +124,12 @@ html, body {
   content-visibility: auto;
   contain-intrinsic-size: auto none auto 350px;
 }
+
+/* Modern Web Guidance: Validate Input After Interaction (:user-invalid) */
+:where(input, select, textarea):user-invalid {
+  border-color: #e11d48 !important;
+  background-color: #fff1f2 !important;
+}
+:where(input, select, textarea):user-invalid:focus-visible {
+  outline-color: #e11d48 !important;
+}
