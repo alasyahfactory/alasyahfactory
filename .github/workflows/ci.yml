@@ -1,0 +1,30 @@
+name: Factory ERP CI & Build Validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Validate TypeScript & Build Production SPA
+        env:
+          VITE_SUPABASE_URL: "https://tcbdwthfgxxnitskyczo.supabase.co"
+          VITE_SUPABASE_ANON_KEY: "sb_publishable_NAlWC5tpbP1HtGqAbJt8hw_H9dXZp6p"
+        run: npm run build

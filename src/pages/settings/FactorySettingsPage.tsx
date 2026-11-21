@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Save, Upload, Trash2, ShieldAlert } from "lucide-react";
+import { Building2, Save, Upload, Trash2, ShieldAlert, Download, FileSpreadsheet, FileJson, Database } from "lucide-react";
+import * as XLSX from "xlsx";
 
 const vatRegex = /^3[0-9]{13}3$/;
 
@@ -45,6 +46,96 @@ export function FactorySettingsPage() {
 
   const [loading, setLoading] = useState(true);
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
+  const [exportingJson, setExportingJson] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
+
+  const fetchBackupData = async () => {
+    const [
+      { data: settings },
+      { data: items },
+      { data: warehouses },
+      { data: tanks },
+      { data: accounts },
+      { data: customers },
+      { data: suppliers },
+      { data: formulas },
+      { data: salesInvoices },
+      { data: purchaseOrders },
+      { data: journalEntries },
+    ] = await Promise.all([
+      supabase.from("factory_settings").select("*"),
+      supabase.from("items").select("*"),
+      supabase.from("warehouses").select("*"),
+      supabase.from("tanks").select("*"),
+      supabase.from("accounts").select("*"),
+      supabase.from("customers").select("*"),
+      supabase.from("suppliers").select("*"),
+      supabase.from("formulas").select("*"),
+      supabase.from("sales_invoices").select("*"),
+      supabase.from("purchase_orders").select("*"),
+      supabase.from("journal_entries").select("*"),
+    ]);
+
+    return {
+      backupDate: new Date().toISOString(),
+      factorySettings: settings || [],
+      items: items || [],
+      warehouses: warehouses || [],
+      tanks: tanks || [],
+      chartOfAccounts: accounts || [],
+      customers: customers || [],
+      suppliers: suppliers || [],
+      formulas: formulas || [],
+      salesInvoices: salesInvoices || [],
+      purchaseOrders: purchaseOrders || [],
+      journalEntries: journalEntries || [],
+    };
+  };
+
+  const exportBackupJson = async () => {
+    try {
+      setExportingJson(true);
+      const data = await fetchBackupData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `alasyah_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(isArabic ? "تم تنزيل النسخة الاحتياطية بصيغة JSON بنجاح" : "JSON backup downloaded successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error(isArabic ? "فشل إنشاء النسخة الاحتياطية" : "Failed to create backup");
+    } finally {
+      setExportingJson(false);
+    }
+  };
+
+  const exportBackupExcel = async () => {
+    try {
+      setExportingExcel(true);
+      const data = await fetchBackupData();
+      const wb = XLSX.utils.book_new();
+
+      if (data.items.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.items), "Items");
+      if (data.chartOfAccounts.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.chartOfAccounts), "Accounts");
+      if (data.tanks.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.tanks), "Tanks");
+      if (data.warehouses.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.warehouses), "Warehouses");
+      if (data.customers.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.customers), "Customers");
+      if (data.suppliers.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.suppliers), "Suppliers");
+      if (data.salesInvoices.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.salesInvoices), "SalesInvoices");
+      if (data.journalEntries.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.journalEntries), "JournalEntries");
+
+      XLSX.writeFile(wb, `alasyah_backup_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success(isArabic ? "تم تنزيل النسخة الاحتياطية بصيغة Excel بنجاح" : "Excel backup downloaded successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error(isArabic ? "فشل إنشاء النسخة الاحتياطية" : "Failed to create backup");
+    } finally {
+      setExportingExcel(false);
+    }
+  };
 
   const {
     register,
@@ -430,6 +521,48 @@ export function FactorySettingsPage() {
           </Button>
         </div>
       </form>
+
+      {/* Manual Backup & Data Export (SPEC v3.1 Section 2.3) */}
+      <Card className="border-industrial-border bg-white shadow-sm mt-6">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Database className="h-5 w-5 text-industrial-primary" />
+            <CardTitle className="text-lg">
+              {isArabic ? "النسخ الاحتياطي وحفظ البيانات للمدير العام" : "Manual System Backup & Data Export"}
+            </CardTitle>
+          </div>
+          <CardDescription>
+            {isArabic
+              ? "تصدير فوري لكامل جداول المصنع (الأصناف، الخلطات، الحسابات، العملاء، الموردين، الفواتير، والقيود) بصيغة JSON أو ملف Excel متعدد الصفحات وحفظها محلياً بأمان"
+              : "Export all master records, ledger entries, formulas and invoices to JSON or multi-sheet Excel for offline security"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={exportBackupExcel}
+              isLoading={exportingExcel}
+              className="flex-1 border-emerald-300 text-emerald-800 hover:bg-emerald-50 hover:text-emerald-900 font-semibold"
+            >
+              <FileSpreadsheet className="me-2 h-4 w-4 text-emerald-600" />
+              <span>{isArabic ? "تصدير نسخة احتياطية كاملة (Excel)" : "Export All Tables to Excel (.xlsx)"}</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={exportBackupJson}
+              isLoading={exportingJson}
+              className="flex-1 border-sky-300 text-sky-800 hover:bg-sky-50 hover:text-sky-900 font-semibold"
+            >
+              <FileJson className="me-2 h-4 w-4 text-sky-600" />
+              <span>{isArabic ? "تصدير قاعدة البيانات (JSON Backup)" : "Export Full Database (JSON Backup)"}</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
