@@ -125,11 +125,81 @@ html, body {
   contain-intrinsic-size: auto none auto 350px;
 }
 
-/* Modern Web Guidance: Validate Input After Interaction (:user-invalid) */
-:where(input, select, textarea):user-invalid {
-  border-color: #e11d48 !important;
-  background-color: #fff1f2 !important;
+/* Modern Web Guidance: Customize Scrollbar Color and Thickness */
+:root {
+  --scrollbar-thumb: #94a3b8;
+  --scrollbar-track: #f1f5f9;
 }
-:where(input, select, textarea):user-invalid:focus-visible {
-  outline-color: #e11d48 !important;
+
+html,
+.table-accessible-wrapper,
+[data-scrollable="true"] {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+
+@supports not (scrollbar-color: auto) {
+  html,
+  .table-accessible-wrapper {
+    scrollbar-width: auto;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+}
+
+/* Modern Web Guidance: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Keep gentle rotation for spinners so user knows task is alive */
+  .animate-spin {
+    animation: spin 6s linear infinite !important;
+  }
+}
+
+/* Modern Web Guidance: Industrial Print Media Styles */
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  nav,
+  aside,
+  header,
+  .no-print,
+  [role="navigation"],
+  button:not([data-printable="true"]) {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  .table-accessible-wrapper {
+    overflow: visible !important;
+  }
+  tr,
+  .printable-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
