@@ -229,3 +229,21 @@ html,
     page-break-inside: avoid;
   }
 }
+
+/* Modern Web Guidance: Accessible Single-Line Overflow */
+.single-line-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-inline-size: 0;
+}
+
+/* Modern Web Guidance: Scrollability Affordance Hints (Background Attachment Shadows) */
+.scroll-hint-shadows {
+  background:
+    linear-gradient(#ffffff 30%, transparent) top / 100% 2rem no-repeat local,
+    linear-gradient(transparent, #ffffff 70%) bottom / 100% 2rem no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgb(0 0 0 / 0.08), transparent) top / 100% 0.5rem no-repeat,
+    radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / 0.08), transparent) bottom / 100% 0.5rem no-repeat,
+    #ffffff;
+}
