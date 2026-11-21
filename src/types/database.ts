@@ -1002,6 +1002,39 @@ export interface VatReturnData {
   net_vat_due: number;
 }
 
+export interface StocktakingSession {
+  id: string;
+  session_number: string;
+  warehouse_id: string;
+  session_date: string;
+  status: "draft" | "in_progress" | "completed" | "cancelled";
+  notes: string | null;
+  total_shortage_cost: number;
+  total_surplus_cost: number;
+  net_variance_cost: number;
+  journal_entry_id: string | null;
+  completed_by: string | null;
+  completed_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  warehouse?: Warehouse;
+  lines?: StocktakingLine[];
+}
+
+export interface StocktakingLine {
+  id: string;
+  session_id: string;
+  item_id: string;
+  system_qty: number;
+  physical_qty: number | null;
+  variance_qty: number | null;
+  unit_cost: number;
+  variance_amount: number | null;
+  notes: string | null;
+  created_at: string;
+  item?: Item;
+}
+
 export interface Database {
   public: {
     Tables: {

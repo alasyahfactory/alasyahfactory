@@ -74,6 +74,7 @@ export function OwnerDashboard() {
           { data: todayInvoices },
           { count: batchesCount },
           { count: nearExpiryCount },
+          { count: pendingApprovalsCount },
         ] = await Promise.all([
           supabase.from("users_profile").select("*", { count: "exact", head: true }),
           supabase.from("warehouses").select("*", { count: "exact", head: true }),
@@ -83,6 +84,7 @@ export function OwnerDashboard() {
           supabase.from("sales_invoices").select("net_amount_due").eq("invoice_date", todayStr),
           supabase.from("mixing_batches").select("id", { count: "exact", head: true }).in("status", ["mixing", "pending_qc", "ready_for_packaging"]),
           supabase.from("fifo_layers").select("id", { count: "exact", head: true }).gt("remaining_qty", 0).not("expiry_date", "is", null),
+          supabase.from("approval_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         ]);
 
         const totalCash = cashAccounts?.reduce((acc: number, a: any) => acc + (a.current_balance || 0), 0) || 0;
@@ -93,7 +95,7 @@ export function OwnerDashboard() {
           warehousesCount: warehousesCount || 0,
           tanksCount: tanksCount || 0,
           accountsCount: accountsCount || 0,
-          pendingApprovalsCount: 0,
+          pendingApprovalsCount: pendingApprovalsCount || 0,
           totalCashLiquidity: totalCash,
           todaySales: totalTodaySales,
           todayBatchesMixing: batchesCount || 0,
@@ -227,13 +229,32 @@ export function OwnerDashboard() {
               <CheckSquare className="h-4 w-4 text-industrial-accent" />
               <span>{isArabic ? "مركز الاعتمادات والرقابة الإدارية" : "Approvals Center"}</span>
             </h3>
-            <Badge variant="outline" className="text-[10px]">المدير العام</Badge>
+            {stats.pendingApprovalsCount > 0 ? (
+              <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-800 border-amber-300 font-bold">
+                {stats.pendingApprovalsCount} طلب معلق
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px]">المدير العام</Badge>
+            )}
           </div>
           <p className="text-xs text-slate-500">
             اعتماد طلبات الشراء ذات المبالغ الكبيرة، تجاوزات الحدود الائتمانية للعملاء، القيود اليدوية، وهالك الإنتاج الكبير.
           </p>
-          <div className="flex items-center gap-3 pt-1 text-xs text-slate-500">
-            <span>لا توجد طلبات معلقة بانتظار الاعتماد حالياً</span>
+          <div className="flex items-center justify-between pt-1 text-xs">
+            {stats.pendingApprovalsCount > 0 ? (
+              <span className="text-amber-700 font-bold flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                <span>يوجد {stats.pendingApprovalsCount} طلب بانتظار قرارك</span>
+              </span>
+            ) : (
+              <span className="text-slate-400">لا توجد طلبات معلقة بانتظار الاعتماد حالياً</span>
+            )}
+            <Link to="/approvals">
+              <Button size="sm" variant="outline" className="h-7 text-xs border-industrial-accent text-industrial-accent hover:bg-industrial-accent hover:text-white">
+                <span>{isArabic ? "عرض الاعتمادات" : "Review"}</span>
+                <Arrow className="ms-1 h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </div>
         </Card>
       </div>

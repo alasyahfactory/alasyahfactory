@@ -113,6 +113,10 @@ export function CommandPalette() {
                 <Truck className="me-2 h-4 w-4 text-slate-500" />
                 <span>{isArabic ? "سيارات التوزيع" : "Delivery Vehicles"}</span>
               </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/approvals")}>
+                <ShieldCheck className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "مركز الاعتمادات والرقابة الإدارية" : "Approvals Center"}</span>
+              </CommandItem>
               <CommandItem onSelect={() => handleSelect("/settings/audit-log")}>
                 <ShieldCheck className="me-2 h-4 w-4 text-slate-500" />
                 <span>{t("nav.auditLog")}</span>
@@ -132,6 +136,10 @@ export function CommandPalette() {
                   <span>{isArabic ? "الأرصدة الافتتاحية للمخزون" : "Opening Inventory Balances"}</span>
                 </CommandItem>
               )}
+              <CommandItem onSelect={() => handleSelect("/inventory/stocktaking")}>
+                <Layers className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "الجرد الفعلي المخزني والتسويات" : "Stocktaking & Reconciliation"}</span>
+              </CommandItem>
             </CommandGroup>
           )}
 

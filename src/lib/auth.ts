@@ -148,6 +148,7 @@ export function canAccessRoute(role: UserRole, pathname: string): boolean {
       pathname === "/warehouse" ||
       pathname.startsWith("/warehouse/") ||
       pathname === "/inventory/items" ||
+      pathname.startsWith("/inventory/stocktaking") ||
       pathname === "/procurement/receipts"
     );
   }

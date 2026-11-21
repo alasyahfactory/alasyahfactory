@@ -46,6 +46,8 @@ import { EmployeeAdvancesPage } from "@/pages/hr/EmployeeAdvancesPage";
 import { PayrollRunsPage } from "@/pages/hr/PayrollRunsPage";
 import { FixedAssetsPage } from "@/pages/assets/FixedAssetsPage";
 import { AnalyticsReportsPage } from "@/pages/analytics/AnalyticsReportsPage";
+import { StocktakingPage } from "@/pages/inventory/StocktakingPage";
+import { ApprovalsCenterPage } from "@/pages/settings/ApprovalsCenterPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,6 +92,14 @@ export function App() {
               />
 
               {/* Owner Settings Routes */}
+              <Route
+                path="/approvals"
+                element={
+                  <ProtectedRoute allowedRoles={["owner"]}>
+                    <ApprovalsCenterPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/settings/factory"
                 element={
@@ -137,6 +147,14 @@ export function App() {
                 element={
                   <ProtectedRoute allowedRoles={["owner", "accountant", "production", "warehouse"]}>
                     <ItemsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/inventory/stocktaking"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant", "warehouse"]}>
+                    <StocktakingPage />
                   </ProtectedRoute>
                 }
               />

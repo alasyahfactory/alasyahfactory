@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import QRCode from "qrcode";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, Share2 } from "lucide-react";
 import type { SalesInvoice, FactorySettings } from "@/types/database";
 
 interface TaxInvoicePrintProps {
@@ -200,16 +200,51 @@ export function TaxInvoicePrint({ invoice, settings, isCreditNote = false }: Tax
   const isDraft = invoice.status === "draft";
   const isCopy = invoice.print_count > 1;
 
+  const handleShareWhatsApp = () => {
+    const factory = settings?.name_ar || "مصنع الأسياح للمنظفات الصناعية";
+    const invoiceNum = invoice.invoice_number;
+    const date = invoice.invoice_date;
+    const total = invoice.total_amount_inc_vat.toFixed(2);
+    const net = invoice.net_amount_due.toFixed(2);
+    const customer = invoice.customer?.name_ar || "العميل الكريم";
+
+    const msg = `*فاتورة ضريبية إلكترونية - ${factory}*
+رقم الفاتورة: ${invoiceNum}
+التاريخ: ${date}
+العميل: ${customer}
+الإجمالي شامل الضريبة (15%): ${total} ر.س
+صافي المستحق للسداد: ${net} ر.س
+سجل تجاري: ${settings?.cr_number || ""}
+الرقم الضريبي: ${settings?.vat_number || ""}
+نشكركم لتعاملكم معنا.`;
+
+    const encoded = encodeURIComponent(msg);
+    const phone = invoice.customer?.phone?.replace(/[^0-9]/g, "") || "";
+    const waUrl = phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   return (
     <div>
-      <Button
-        onClick={handlePrint}
-        size="sm"
-        className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-4"
-      >
-        <Printer className="me-2 h-4 w-4 text-sky-400" />
-        <span>{isAr ? "طباعة الفاتورة الضريبية A4" : "Print Tax Invoice A4"}</span>
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={handlePrint}
+          size="sm"
+          className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-4"
+        >
+          <Printer className="me-2 h-4 w-4 text-sky-400" />
+          <span>{isAr ? "طباعة الفاتورة الضريبية A4" : "Print Tax Invoice A4"}</span>
+        </Button>
+
+        <Button
+          onClick={handleShareWhatsApp}
+          size="sm"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[40px] px-4"
+        >
+          <Share2 className="me-2 h-4 w-4 text-emerald-200" />
+          <span>{isAr ? "مشاركة عبر واتساب" : "Share via WhatsApp"}</span>
+        </Button>
+      </div>
 
       {/* Hidden Render Template */}
       <div style={{ display: "none" }}>

@@ -109,6 +109,7 @@ const resources = {
         fixedAssets: "الأصول الثابتة والإهلاك",
         directorAnalytics: "التقارير التحليلية الخمسة",
         approvalsCenter: "مركز الاعتمادات والرقابة",
+        stocktaking: "الجرد الفعلي والتسويات",
       },
       factory: {
         title: "إعدادات المصنع والمنشأة",
@@ -442,6 +443,7 @@ const resources = {
         fixedAssets: "Fixed Assets & Depreciation",
         directorAnalytics: "Five Director Analytics",
         approvalsCenter: "Approvals & Audit Center",
+        stocktaking: "Stocktaking & Reconciliation",
       },
       factory: {
         title: "Factory & Facility Settings",

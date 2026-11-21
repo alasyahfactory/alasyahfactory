@@ -51,6 +51,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           label: isOwner ? (isArabic ? "لوحة المدير" : "Dashboard") : (isArabic ? "لوحة المحاسب" : "Accounting"),
           show: isOwner || isAccountant,
         },
+        {
+          to: "/approvals",
+          icon: ShieldCheck,
+          label: isArabic ? "مركز الاعتمادات الإدارية" : "Approvals Center",
+          show: isOwner,
+        },
       ],
     },
     {
@@ -67,6 +73,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           icon: Scale,
           label: t("nav.openingBalances"),
           show: isOwner || isAccountant,
+        },
+        {
+          to: "/inventory/stocktaking",
+          icon: Layers,
+          label: isArabic ? "الجرد الفعلي والتسويات" : "Stocktaking & Discrepancies",
+          show: isOwner || isAccountant || role === "warehouse",
         },
       ],
     },
