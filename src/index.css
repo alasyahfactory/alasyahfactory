@@ -40,11 +40,53 @@
   * {
     @apply border-border;
   }
+  html {
+    scrollbar-gutter: stable;
+    scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    scroll-padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+    accent-color: #0284c7;
+    color-scheme: light;
+  }
   body {
     @apply bg-industrial-bg text-industrial-primary antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.5;
+    text-align: start;
+    overflow-wrap: break-word;
     overflow-x: hidden;
   }
+
+  /* Modern Web Guidance: Balanced Headings & Pretty Body Copy */
+  h1, h2, h3, h4, h5, h6, th {
+    text-wrap: balance;
+  }
+  p, li, blockquote {
+    text-wrap: pretty;
+  }
+  :where(a, code) {
+    overflow-wrap: anywhere;
+  }
+
+  /* Touch Targets for Coarse Pointers (form-factor-adaptation) */
+  :root {
+    --target-size: 24px;
+  }
+  @media (pointer: coarse) {
+    :root {
+      --target-size: 44px;
+    }
+    :where(button, select, textarea, input:not([type="checkbox"], [type="radio"]), [role="button"], nav a) {
+      min-block-size: var(--target-size);
+    }
+  }
+}
+
+/* Safe Area Utilities for Notches and Edge-to-Edge Displays */
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
 }
 
 /* Enforce tabular-nums for numeric precision */
