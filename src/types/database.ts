@@ -750,6 +750,258 @@ export interface Notification {
   created_at: string;
 }
 
+// ============================================================================
+// PHASE 5: Accounting, Payroll, Fixed Assets & Approvals Interfaces
+// ============================================================================
+
+export interface JournalEntry {
+  id: string;
+  entry_number: string;
+  entry_date: string;
+  description: string;
+  ref_type: string | null;
+  ref_id: string | null;
+  is_posted: boolean;
+  status: "draft" | "posted" | "cancelled";
+  total_debit: number;
+  total_credit: number;
+  created_by: string;
+  created_at: string;
+  lines?: JournalLine[];
+  creator?: UserProfile;
+}
+
+export interface JournalLine {
+  id: string;
+  journal_entry_id: string;
+  account_id: string;
+  debit: number;
+  credit: number;
+  description: string | null;
+  note?: string | null;
+  cost_center_van_id: string | null;
+  account?: Account;
+}
+
+export interface Voucher {
+  id: string;
+  voucher_number: string;
+  voucher_type: "receipt" | "payment" | "transfer";
+  voucher_date: string;
+  account_id: string;
+  contra_account_id: string;
+  amount: number;
+  tax_rate: number;
+  tax_amount: number;
+  total_amount: number;
+  payment_method: "cash" | "bank_transfer" | "check" | "pos" | "advance";
+  reference_type: string | null;
+  reference_id: string | null;
+  customer_id: string | null;
+  supplier_id: string | null;
+  vehicle_id: string | null;
+  sales_rep_id: string | null;
+  description: string;
+  journal_entry_id: string | null;
+  status: "draft" | "posted" | "cancelled";
+  created_by: string | null;
+  created_at: string;
+  account?: Account;
+  contra_account?: Account;
+  customer?: Customer | null;
+  supplier?: Supplier | null;
+  vehicle?: Vehicle | null;
+  sales_rep?: UserProfile | null;
+  journal_entry?: JournalEntry | null;
+}
+
+export interface CheckAndNote {
+  id: string;
+  check_number: string;
+  check_type: "received" | "issued";
+  bank_name: string;
+  due_date: string;
+  amount: number;
+  customer_id: string | null;
+  supplier_id: string | null;
+  voucher_id: string | null;
+  status: "under_collection" | "collected" | "bounced" | "cancelled";
+  collected_date: string | null;
+  collected_account_id: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  customer?: Customer | null;
+  supplier?: Supplier | null;
+  voucher?: Voucher | null;
+}
+
+export interface Employee {
+  id: string;
+  emp_code: string;
+  name_ar: string;
+  name_en: string;
+  phone: string;
+  national_id: string;
+  job_title: string;
+  department: "production" | "warehouse" | "sales" | "management" | "accounting" | "maintenance";
+  basic_salary: number;
+  housing_allowance: number;
+  transport_allowance: number;
+  other_allowances: number;
+  iban: string | null;
+  join_date: string;
+  user_profile_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  user_profile?: UserProfile | null;
+}
+
+export interface EmployeeAdvance {
+  id: string;
+  advance_number: string;
+  employee_id: string;
+  advance_date: string;
+  amount: number;
+  installment_months: number;
+  monthly_deduction: number;
+  recovered_amount: number;
+  remaining_balance: number;
+  journal_entry_id: string | null;
+  notes: string | null;
+  status: "active" | "settled" | "cancelled";
+  created_by: string | null;
+  created_at: string;
+  employee?: Employee;
+}
+
+export interface PayrollRun {
+  id: string;
+  run_number: string;
+  month: number;
+  year: number;
+  payroll_date: string;
+  total_basic: number;
+  total_allowances: number;
+  total_commissions: number;
+  total_overtime: number;
+  total_deductions: number;
+  total_advance_deductions: number;
+  net_payable: number;
+  status: "draft" | "approved" | "paid" | "cancelled";
+  journal_entry_id: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  lines?: PayrollRunLine[];
+}
+
+export interface PayrollRunLine {
+  id: string;
+  payroll_run_id: string;
+  employee_id: string;
+  basic_salary: number;
+  housing_allowance: number;
+  transport_allowance: number;
+  other_allowance: number;
+  overtime_amount: number;
+  commission_amount: number;
+  bonus_amount: number;
+  absence_deduction: number;
+  penalty_deduction: number;
+  advance_deduction: number;
+  net_salary: number;
+  created_at: string;
+  employee?: Employee;
+}
+
+export interface FixedAsset {
+  id: string;
+  asset_code: string;
+  name_ar: string;
+  name_en: string;
+  category: "machinery_equipment" | "vehicles" | "tanks_infrastructure" | "furniture_fixtures" | "computers_software";
+  purchase_date: string;
+  purchase_cost: number;
+  salvage_value: number;
+  useful_life_months: number;
+  asset_account_id: string;
+  depreciation_expense_account_id: string;
+  accumulated_depreciation_account_id: string;
+  vehicle_id: string | null;
+  accumulated_depreciation: number;
+  book_value: number;
+  status: "active" | "fully_depreciated" | "disposed" | "written_off";
+  created_at: string;
+  vehicle?: Vehicle | null;
+  asset_account?: Account;
+  accumulated_depreciation_account?: Account;
+}
+
+export interface DepreciationLog {
+  id: string;
+  asset_id: string;
+  depreciation_date: string;
+  month: number;
+  year: number;
+  depreciation_amount: number;
+  journal_entry_id: string | null;
+  created_at: string;
+  asset?: FixedAsset;
+}
+
+export interface ApprovalRequest {
+  id: string;
+  request_type: "purchase_order" | "credit_limit_override" | "manual_journal_entry" | "spoilage_write_off" | "discount_override" | "payroll_approval";
+  reference_id: string | null;
+  reference_number: string;
+  requester_id: string | null;
+  reason: string;
+  amount: number | null;
+  status: "pending" | "approved" | "rejected";
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  requester?: UserProfile | null;
+  approver?: UserProfile | null;
+}
+
+export interface TrialBalanceRow {
+  account_id: string;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  type: string;
+  initial_balance: number;
+  period_debit: number;
+  period_credit: number;
+  ending_balance: number;
+}
+
+export interface IncomeStatementData {
+  total_revenue: number;
+  total_cogs: number;
+  gross_profit: number;
+  total_opex: number;
+  net_profit: number;
+}
+
+export interface BalanceSheetData {
+  total_assets: number;
+  total_liabilities: number;
+  total_equity: number;
+  retained_earnings_current: number;
+}
+
+export interface VatReturnData {
+  sales_taxable: number;
+  sales_vat: number;
+  purchases_taxable: number;
+  purchases_vat: number;
+  net_vat_due: number;
+}
+
 export interface Database {
   public: {
     Tables: {

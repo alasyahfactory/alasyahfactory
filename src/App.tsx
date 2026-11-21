@@ -36,6 +36,16 @@ import { QuotationsPage } from "@/pages/sales/QuotationsPage";
 import { SalesInvoicesPage } from "@/pages/sales/SalesInvoicesPage";
 import { SalesReturnsPage } from "@/pages/sales/SalesReturnsPage";
 import { VanCustodyPage } from "@/pages/sales/VanCustodyPage";
+import { JournalEntriesPage } from "@/pages/accounting/JournalEntriesPage";
+import { VouchersPage } from "@/pages/accounting/VouchersPage";
+import { ChecksPage } from "@/pages/accounting/ChecksPage";
+import { FinancialReportsPage } from "@/pages/accounting/FinancialReportsPage";
+import { YearEndClosingPage } from "@/pages/accounting/YearEndClosingPage";
+import { EmployeesPage } from "@/pages/hr/EmployeesPage";
+import { EmployeeAdvancesPage } from "@/pages/hr/EmployeeAdvancesPage";
+import { PayrollRunsPage } from "@/pages/hr/PayrollRunsPage";
+import { FixedAssetsPage } from "@/pages/assets/FixedAssetsPage";
+import { AnalyticsReportsPage } from "@/pages/analytics/AnalyticsReportsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -195,6 +205,90 @@ export function App() {
                 element={
                   <ProtectedRoute allowedRoles={["owner", "accountant"]}>
                     <FiscalPeriodsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/accounting/journal-entries"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <JournalEntriesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/accounting/vouchers"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <VouchersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/accounting/checks"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <ChecksPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/accounting/reports"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <FinancialReportsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/accounting/year-end"
+                element={
+                  <ProtectedRoute allowedRoles={["owner"]}>
+                    <YearEndClosingPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Phase 5: HR & Payroll */}
+              <Route
+                path="/hr/employees"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <EmployeesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/advances"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <EmployeeAdvancesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/payroll"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <PayrollRunsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Phase 5: Fixed Assets & Director Analytics */}
+              <Route
+                path="/assets/registry"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <FixedAssetsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports/director-analytics"
+                element={
+                  <ProtectedRoute allowedRoles={["owner"]}>
+                    <AnalyticsReportsPage />
                   </ProtectedRoute>
                 }
               />

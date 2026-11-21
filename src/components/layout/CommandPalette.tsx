@@ -33,6 +33,11 @@ import {
   Layers,
   Receipt,
   FileText,
+  Coins,
+  Wrench,
+  BarChart3,
+  CreditCard,
+  Lock,
 } from "lucide-react";
 
 export function CommandPalette() {
@@ -221,6 +226,60 @@ export function CommandPalette() {
                 <Calendar className="me-2 h-4 w-4 text-slate-500" />
                 <span>{t("nav.periods")}</span>
               </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/accounting/journal-entries")}>
+                <BookOpen className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "دفتر قيود اليومية العامة" : "Journal Entries"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/accounting/vouchers")}>
+                <Receipt className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "سندات القبض والصرف والتحويل" : "Vouchers"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/accounting/checks")}>
+                <CreditCard className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "حافظة الشيكات وأوراق القبض" : "Checks Portfolio"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/accounting/reports")}>
+                <FileText className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "التقارير المالية وإقرار ZATCA" : "Financial Reports"}</span>
+              </CommandItem>
+              {role === "owner" && (
+                <CommandItem onSelect={() => handleSelect("/accounting/year-end")}>
+                  <Lock className="me-2 h-4 w-4 text-slate-500" />
+                  <span>{isArabic ? "معالج الإقفال السنوي (3201)" : "Year-End Closing"}</span>
+                </CommandItem>
+              )}
+            </CommandGroup>
+          )}
+
+          {(role === "owner" || role === "accountant") && (
+            <CommandGroup heading={isArabic ? "الموارد البشرية والرواتب" : "HR & Payroll"}>
+              <CommandItem onSelect={() => handleSelect("/hr/employees")}>
+                <Users className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "دليل الموظفين وشؤون العاملين" : "Employees Directory"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/hr/payroll")}>
+                <Coins className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "مسيرات الرواتب الشهرية" : "Payroll Runs"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/hr/advances")}>
+                <CreditCard className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "سُلف الموظفين والأقساط" : "Employee Advances"}</span>
+              </CommandItem>
+            </CommandGroup>
+          )}
+
+          {(role === "owner" || role === "accountant") && (
+            <CommandGroup heading={isArabic ? "الأصول الثابتة والرقابة" : "Fixed Assets & Analytics"}>
+              <CommandItem onSelect={() => handleSelect("/assets/registry")}>
+                <Wrench className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "سجل الأصول الثابتة والإهلاك" : "Fixed Assets Registry"}</span>
+              </CommandItem>
+              {role === "owner" && (
+                <CommandItem onSelect={() => handleSelect("/reports/director-analytics")}>
+                  <BarChart3 className="me-2 h-4 w-4 text-slate-500" />
+                  <span>{isArabic ? "التقارير التحليلية الخمسة للمدير" : "Director Analytics"}</span>
+                </CommandItem>
+              )}
             </CommandGroup>
           )}
 

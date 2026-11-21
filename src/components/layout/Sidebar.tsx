@@ -24,6 +24,11 @@ import {
   PackageCheck,
   Receipt,
   FileText,
+  Coins,
+  Wrench,
+  BarChart3,
+  CreditCard,
+  Lock,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -172,6 +177,76 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           icon: Calendar,
           label: t("nav.periods"),
           show: isOwner || isAccountant,
+        },
+        {
+          to: "/accounting/journal-entries",
+          icon: BookOpen,
+          label: t("nav.journalEntries"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/accounting/vouchers",
+          icon: Receipt,
+          label: t("nav.vouchers"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/accounting/checks",
+          icon: CreditCard,
+          label: t("nav.checks"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/accounting/reports",
+          icon: FileText,
+          label: t("nav.financialReports"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/accounting/year-end",
+          icon: Lock,
+          label: t("nav.yearEndClosing"),
+          show: isOwner,
+        },
+      ],
+    },
+    {
+      title: isArabic ? "الموارد البشرية والرواتب" : "HR & Payroll",
+      items: [
+        {
+          to: "/hr/employees",
+          icon: Users,
+          label: t("nav.employees"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/hr/payroll",
+          icon: Coins,
+          label: t("nav.payrollRuns"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/hr/advances",
+          icon: CreditCard,
+          label: t("nav.employeeAdvances"),
+          show: isOwner || isAccountant,
+        },
+      ],
+    },
+    {
+      title: isArabic ? "الأصول والرقابة التحليلية" : "Assets & Analytics",
+      items: [
+        {
+          to: "/assets/registry",
+          icon: Wrench,
+          label: t("nav.fixedAssets"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/reports/director-analytics",
+          icon: BarChart3,
+          label: t("nav.directorAnalytics"),
+          show: isOwner,
         },
       ],
     },
