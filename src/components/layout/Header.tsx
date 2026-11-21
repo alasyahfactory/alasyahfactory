@@ -61,8 +61,8 @@ export function Header({ onToggleSidebar }: HeaderProps) {
             <span className="text-sm font-bold text-industrial-primary leading-tight">
               {t("shortAppName")}
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">
-              v3.1 • Phase 1
+            <span className="text-[10px] text-emerald-600 font-medium font-mono">
+              {isArabic ? "v3.1 • نظام مكتمل" : "v3.1 • Full ERP"}
             </span>
           </div>
         </div>
