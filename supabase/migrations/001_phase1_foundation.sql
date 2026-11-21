@@ -153,8 +153,18 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Enable Supabase Realtime for notifications
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+-- Enable Supabase Realtime for notifications safely
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+  END IF;
+END $$;
 
 -- ==============================================================================
 -- 12. HELPER FUNCTIONS & RPC
@@ -276,43 +286,55 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- factory_settings: Authenticated can view; Owner can update
+DROP POLICY IF EXISTS "factory_settings_read" ON factory_settings;
 CREATE POLICY "factory_settings_read" ON factory_settings
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "factory_settings_update" ON factory_settings;
 CREATE POLICY "factory_settings_update" ON factory_settings
   FOR UPDATE TO authenticated USING (is_owner()) WITH CHECK (is_owner());
 
 -- users_profile: Authenticated can view active users; Owner can manage
+DROP POLICY IF EXISTS "users_profile_read" ON users_profile;
 CREATE POLICY "users_profile_read" ON users_profile
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "users_profile_insert" ON users_profile;
 CREATE POLICY "users_profile_insert" ON users_profile
   FOR INSERT TO authenticated WITH CHECK (is_owner());
 
+DROP POLICY IF EXISTS "users_profile_update" ON users_profile;
 CREATE POLICY "users_profile_update" ON users_profile
   FOR UPDATE TO authenticated USING (is_owner()) WITH CHECK (is_owner());
 
+DROP POLICY IF EXISTS "users_profile_delete" ON users_profile;
 CREATE POLICY "users_profile_delete" ON users_profile
   FOR DELETE TO authenticated USING (is_owner());
 
 -- vehicles: Authenticated can view; Owner and Accountant can manage
+DROP POLICY IF EXISTS "vehicles_read" ON vehicles;
 CREATE POLICY "vehicles_read" ON vehicles
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "vehicles_manage" ON vehicles;
 CREATE POLICY "vehicles_manage" ON vehicles
   FOR ALL TO authenticated USING (is_accountant_or_owner()) WITH CHECK (is_accountant_or_owner());
 
 -- warehouses: Authenticated can view; Owner and Accountant can manage
+DROP POLICY IF EXISTS "warehouses_read" ON warehouses;
 CREATE POLICY "warehouses_read" ON warehouses
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "warehouses_manage" ON warehouses;
 CREATE POLICY "warehouses_manage" ON warehouses
   FOR ALL TO authenticated USING (is_accountant_or_owner()) WITH CHECK (is_accountant_or_owner());
 
 -- tanks: Authenticated can view; Owner, Accountant, and Production can update
+DROP POLICY IF EXISTS "tanks_read" ON tanks;
 CREATE POLICY "tanks_read" ON tanks
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "tanks_manage" ON tanks;
 CREATE POLICY "tanks_manage" ON tanks
   FOR ALL TO authenticated
   USING (
@@ -329,33 +351,42 @@ CREATE POLICY "tanks_manage" ON tanks
   );
 
 -- accounts: Authenticated can read; Owner can insert sub-accounts; System accounts protected
+DROP POLICY IF EXISTS "accounts_read" ON accounts;
 CREATE POLICY "accounts_read" ON accounts
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "accounts_insert" ON accounts;
 CREATE POLICY "accounts_insert" ON accounts
   FOR INSERT TO authenticated WITH CHECK (is_owner());
 
+DROP POLICY IF EXISTS "accounts_update" ON accounts;
 CREATE POLICY "accounts_update" ON accounts
   FOR UPDATE TO authenticated USING (is_owner()) WITH CHECK (is_owner());
 
+DROP POLICY IF EXISTS "accounts_delete" ON accounts;
 CREATE POLICY "accounts_delete" ON accounts
   FOR DELETE TO authenticated USING (is_owner() AND is_system = false);
 
 -- fiscal_periods: Authenticated can read; Owner can manage/lock
+DROP POLICY IF EXISTS "fiscal_periods_read" ON fiscal_periods;
 CREATE POLICY "fiscal_periods_read" ON fiscal_periods
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "fiscal_periods_manage" ON fiscal_periods;
 CREATE POLICY "fiscal_periods_manage" ON fiscal_periods
   FOR ALL TO authenticated USING (is_owner()) WITH CHECK (is_owner());
 
 -- audit_logs: Owner only can read; Any authenticated can write through functions/triggers
+DROP POLICY IF EXISTS "audit_logs_read" ON audit_logs;
 CREATE POLICY "audit_logs_read" ON audit_logs
   FOR SELECT TO authenticated USING (is_owner());
 
+DROP POLICY IF EXISTS "audit_logs_insert" ON audit_logs;
 CREATE POLICY "audit_logs_insert" ON audit_logs
   FOR INSERT TO authenticated WITH CHECK (true);
 
 -- notifications: Users see only their own notifications
+DROP POLICY IF EXISTS "notifications_user_access" ON notifications;
 CREATE POLICY "notifications_user_access" ON notifications
   FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
