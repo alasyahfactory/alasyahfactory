@@ -166,8 +166,10 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 -- Ensure type is TEXT and allows 'header' and all account types safely
 ALTER TABLE IF EXISTS accounts ALTER COLUMN type TYPE TEXT;
+UPDATE accounts SET type = 'expense' WHERE type = 'cogs';
+UPDATE accounts SET type = 'header' WHERE code IN ('1000', '2000', '3000', '4000', '5000', '6000');
 ALTER TABLE IF EXISTS accounts DROP CONSTRAINT IF EXISTS check_account_type;
-ALTER TABLE IF EXISTS accounts ADD CONSTRAINT check_account_type CHECK (type IN ('header', 'asset', 'contra_asset', 'liability', 'equity', 'revenue', 'contra_revenue', 'expense'));
+ALTER TABLE IF EXISTS accounts ADD CONSTRAINT check_account_type CHECK (type IN ('header', 'asset', 'contra_asset', 'liability', 'equity', 'revenue', 'contra_revenue', 'expense', 'cogs'));
 
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS code VARCHAR(20);
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS name_ar TEXT;
@@ -500,81 +502,108 @@ VALUES (
 
 -- Seed Saudi Industrial Chart of Accounts (SPEC.md Section 5)
 -- Step 1: Headers (1000, 2000, 3000, 4000, 5000, 6000)
-INSERT INTO accounts (id, code, name_ar, name_en, type, parent_id, is_system, is_active, current_balance)
+INSERT INTO accounts (code, name_ar, name_en, type, parent_id, is_system, is_active, current_balance)
 VALUES
-  ('a0000000-0000-0000-0000-000000001000', '1000', 'الأصول', 'Assets', 'header', NULL, true, true, 0.00),
-  ('a0000000-0000-0000-0000-000000002000', '2000', 'الالتزامات', 'Liabilities', 'header', NULL, true, true, 0.00),
-  ('a0000000-0000-0000-0000-000000003000', '3000', 'حقوق الملكية', 'Equity', 'header', NULL, true, true, 0.00),
-  ('a0000000-0000-0000-0000-000000004000', '4000', 'الإيرادات', 'Revenue', 'header', NULL, true, true, 0.00),
-  ('a0000000-0000-0000-0000-000000005000', '5000', 'تكلفة المبيعات', 'COGS', 'header', NULL, true, true, 0.00),
-  ('a0000000-0000-0000-0000-000000006000', '6000', 'المصروفات التشغيلية والإدارية', 'Operating Expenses', 'header', NULL, true, true, 0.00)
-ON CONFLICT (code) DO NOTHING;
+  ('1000', 'الأصول', 'Assets', 'header', NULL, true, true, 0.00),
+  ('2000', 'الالتزامات', 'Liabilities', 'header', NULL, true, true, 0.00),
+  ('3000', 'حقوق الملكية', 'Equity', 'header', NULL, true, true, 0.00),
+  ('4000', 'الإيرادات', 'Revenue', 'header', NULL, true, true, 0.00),
+  ('5000', 'تكلفة المبيعات', 'COGS', 'header', NULL, true, true, 0.00),
+  ('6000', 'المصروفات التشغيلية والإدارية', 'Operating Expenses', 'header', NULL, true, true, 0.00)
+ON CONFLICT (code) DO UPDATE SET
+  name_ar = EXCLUDED.name_ar,
+  name_en = EXCLUDED.name_en,
+  type = EXCLUDED.type;
 
 -- Step 2: Sub-accounts under 1000 (Assets)
 INSERT INTO accounts (code, name_ar, name_en, type, parent_id, is_system, is_active, current_balance)
 VALUES
-  ('1101', 'خزنة المصنع', 'Factory Cash Box', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1102', 'الحساب البنكي', 'Bank Account', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1103', 'شبكة مدى / تحويل بنكي', 'Mada / Bank Transfer', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1104', 'عهدة المشتريات', 'Purchasing Petty Cash', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1105', 'عهد تحصيل المندوبين (يتفرع لكل مندوب)', 'Sales Reps Cash Custody', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1110', 'ذمم العملاء', 'Accounts Receivable', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1112', 'دفعات مقدمة للموردين (عربون شراء)', 'Supplier Advances', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1115', 'أوراق قبض (شيكات وسندات لأمر)', 'Notes & Checks Receivable', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1120', 'سُلف الموظفين', 'Employee Advances', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1131', 'مخزون المواد الخام', 'Raw Materials Inventory', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1132', 'مخزون مواد التعبئة والتغليف', 'Packaging Materials Inventory', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1133', 'مخزون تحت التشغيل (السائب في التانكات)', 'WIP Inventory (Bulk Tanks)', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1134', 'مخزون المنتج التام', 'Finished Goods Inventory', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1135', 'بضاعة عهدة سيارات المندوبين', 'Sales Vans Inventory Custody', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1140', 'ضريبة القيمة المضافة — مدخلات (15%)', 'Input VAT Receivable', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1200', 'الأصول الثابتة (تُفعّل من الإعدادات)', 'Fixed Assets', 'asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00),
-  ('1290', 'مجمع إهلاك الأصول الثابتة', 'Accumulated Depreciation', 'contra_asset', 'a0000000-0000-0000-0000-000000001000', true, true, 0.00)
-ON CONFLICT (code) DO NOTHING;
+  ('1101', 'خزنة المصنع', 'Factory Cash Box', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1102', 'الحساب البنكي', 'Bank Account', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1103', 'شبكة مدى / تحويل بنكي', 'Mada / Bank Transfer', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1104', 'عهدة المشتريات', 'Purchasing Petty Cash', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1105', 'عهد تحصيل المندوبين (يتفرع لكل مندوب)', 'Sales Reps Cash Custody', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1110', 'ذمم العملاء', 'Accounts Receivable', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1112', 'دفعات مقدمة للموردين (عربون شراء)', 'Supplier Advances', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1115', 'أوراق قبض (شيكات وسندات لأمر)', 'Notes & Checks Receivable', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1120', 'سُلف الموظفين', 'Employee Advances', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1131', 'مخزون المواد الخام', 'Raw Materials Inventory', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1132', 'مخزون مواد التعبئة والتغليف', 'Packaging Materials Inventory', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1133', 'مخزون تحت التشغيل (السائب في التانكات)', 'WIP Inventory (Bulk Tanks)', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1134', 'مخزون المنتج التام', 'Finished Goods Inventory', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1135', 'بضاعة عهدة سيارات المندوبين', 'Sales Vans Inventory Custody', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1140', 'ضريبة القيمة المضافة — مدخلات (15%)', 'Input VAT Receivable', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1200', 'الأصول الثابتة (تُفعّل من الإعدادات)', 'Fixed Assets', 'asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00),
+  ('1290', 'مجمع إهلاك الأصول الثابتة', 'Accumulated Depreciation', 'contra_asset', (SELECT id FROM accounts WHERE code = '1000'), true, true, 0.00)
+ON CONFLICT (code) DO UPDATE SET
+  name_ar = EXCLUDED.name_ar,
+  name_en = EXCLUDED.name_en,
+  type = EXCLUDED.type,
+  parent_id = EXCLUDED.parent_id;
 
 -- Step 3: Sub-accounts under 2000 (Liabilities)
 INSERT INTO accounts (code, name_ar, name_en, type, parent_id, is_system, is_active, current_balance)
 VALUES
-  ('2101', 'ذمم الموردين', 'Accounts Payable', 'liability', 'a0000000-0000-0000-0000-000000002000', true, true, 0.00),
-  ('2102', 'دفعات مقدمة من العملاء (عربون بيع)', 'Customer Advances', 'liability', 'a0000000-0000-0000-0000-000000002000', true, true, 0.00),
-  ('2105', 'أوراق دفع (شيكات وسندات لأمر)', 'Notes & Checks Payable', 'liability', 'a0000000-0000-0000-0000-000000002000', true, true, 0.00),
-  ('2110', 'ضريبة القيمة المضافة — مخرجات (15%)', 'Output VAT Payable', 'liability', 'a0000000-0000-0000-0000-000000002000', true, true, 0.00),
-  ('2120', 'رواتب وعمولات مستحقة', 'Accrued Salaries & Commissions', 'liability', 'a0000000-0000-0000-0000-000000002000', true, true, 0.00)
-ON CONFLICT (code) DO NOTHING;
+  ('2101', 'ذمم الموردين', 'Accounts Payable', 'liability', (SELECT id FROM accounts WHERE code = '2000'), true, true, 0.00),
+  ('2102', 'دفعات مقدمة من العملاء (عربون بيع)', 'Customer Advances', 'liability', (SELECT id FROM accounts WHERE code = '2000'), true, true, 0.00),
+  ('2105', 'أوراق دفع (شيكات وسندات لأمر)', 'Notes & Checks Payable', 'liability', (SELECT id FROM accounts WHERE code = '2000'), true, true, 0.00),
+  ('2110', 'ضريبة القيمة المضافة — مخرجات (15%)', 'Output VAT Payable', 'liability', (SELECT id FROM accounts WHERE code = '2000'), true, true, 0.00),
+  ('2120', 'رواتب وعمولات مستحقة', 'Accrued Salaries & Commissions', 'liability', (SELECT id FROM accounts WHERE code = '2000'), true, true, 0.00)
+ON CONFLICT (code) DO UPDATE SET
+  name_ar = EXCLUDED.name_ar,
+  name_en = EXCLUDED.name_en,
+  type = EXCLUDED.type,
+  parent_id = EXCLUDED.parent_id;
 
 -- Step 4: Sub-accounts under 3000 (Equity)
 INSERT INTO accounts (code, name_ar, name_en, type, parent_id, is_system, is_active, current_balance)
 VALUES
-  ('3101', 'رأس المال', 'Capital', 'equity', 'a0000000-0000-0000-0000-000000003000', true, true, 0.00),
-  ('3102', 'تسوية الأرصدة الافتتاحية', 'Opening Balance Equity', 'equity', 'a0000000-0000-0000-0000-000000003000', true, true, 0.00),
-  ('3201', 'الأرباح المبقاة (يُرحّل إليها عند الإقفال السنوي)', 'Retained Earnings', 'equity', 'a0000000-0000-0000-0000-000000003000', true, true, 0.00)
-ON CONFLICT (code) DO NOTHING;
+  ('3101', 'رأس المال', 'Capital', 'equity', (SELECT id FROM accounts WHERE code = '3000'), true, true, 0.00),
+  ('3102', 'تسوية الأرصدة الافتتاحية', 'Opening Balance Equity', 'equity', (SELECT id FROM accounts WHERE code = '3000'), true, true, 0.00),
+  ('3201', 'الأرباح المبقاة (يُرحّل إليها عند الإقفال السنوي)', 'Retained Earnings', 'equity', (SELECT id FROM accounts WHERE code = '3000'), true, true, 0.00)
+ON CONFLICT (code) DO UPDATE SET
+  name_ar = EXCLUDED.name_ar,
+  name_en = EXCLUDED.name_en,
+  type = EXCLUDED.type,
+  parent_id = EXCLUDED.parent_id;
 
 -- Step 5: Sub-accounts under 4000 (Revenue)
 INSERT INTO accounts (code, name_ar, name_en, type, parent_id, is_system, is_active, current_balance)
 VALUES
-  ('4101', 'إيرادات المبيعات', 'Sales Revenue', 'revenue', 'a0000000-0000-0000-0000-000000004000', true, true, 0.00),
-  ('4102', 'مردودات ومسموحات المبيعات (إشعارات دائنة)', 'Sales Returns & Credit Notes', 'contra_revenue', 'a0000000-0000-0000-0000-000000004000', true, true, 0.00),
-  ('4201', 'تعويضات الموردين عن خامات تالفة مستهلكة', 'Supplier Defect Compensation', 'revenue', 'a0000000-0000-0000-0000-000000004000', true, true, 0.00)
-ON CONFLICT (code) DO NOTHING;
+  ('4101', 'إيرادات المبيعات', 'Sales Revenue', 'revenue', (SELECT id FROM accounts WHERE code = '4000'), true, true, 0.00),
+  ('4102', 'مردودات ومسموحات المبيعات (إشعارات دائنة)', 'Sales Returns & Credit Notes', 'contra_revenue', (SELECT id FROM accounts WHERE code = '4000'), true, true, 0.00),
+  ('4201', 'تعويضات الموردين عن خامات تالفة مستهلكة', 'Supplier Defect Compensation', 'revenue', (SELECT id FROM accounts WHERE code = '4000'), true, true, 0.00)
+ON CONFLICT (code) DO UPDATE SET
+  name_ar = EXCLUDED.name_ar,
+  name_en = EXCLUDED.name_en,
+  type = EXCLUDED.type,
+  parent_id = EXCLUDED.parent_id;
 
 -- Step 6: Sub-accounts under 5000 (COGS)
 INSERT INTO accounts (code, name_ar, name_en, type, parent_id, is_system, is_active, current_balance)
 VALUES
-  ('5101', 'تكلفة البضاعة المباعة (FIFO)', 'Cost of Goods Sold (FIFO)', 'expense', 'a0000000-0000-0000-0000-000000005000', true, true, 0.00),
-  ('5102', 'فروق تسوية تكلفة البيع بالسالب', 'Negative Stock Cost Variance', 'expense', 'a0000000-0000-0000-0000-000000005000', true, true, 0.00)
-ON CONFLICT (code) DO NOTHING;
+  ('5101', 'تكلفة البضاعة المباعة (FIFO)', 'Cost of Goods Sold (FIFO)', 'expense', (SELECT id FROM accounts WHERE code = '5000'), true, true, 0.00),
+  ('5102', 'فروق تسوية تكلفة البيع بالسالب', 'Negative Stock Cost Variance', 'expense', (SELECT id FROM accounts WHERE code = '5000'), true, true, 0.00)
+ON CONFLICT (code) DO UPDATE SET
+  name_ar = EXCLUDED.name_ar,
+  name_en = EXCLUDED.name_en,
+  type = EXCLUDED.type,
+  parent_id = EXCLUDED.parent_id;
 
 -- Step 7: Sub-accounts under 6000 (Operating Expenses)
 INSERT INTO accounts (code, name_ar, name_en, type, parent_id, is_system, is_active, current_balance)
 VALUES
-  ('6101', 'مصروفات الرواتب والبدلات والعمولات', 'Salaries, Allowances & Commissions', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00),
-  ('6102', 'مصروف الكهرباء والمياه', 'Electricity & Water', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00),
-  ('6103', 'مصروف الإيجار', 'Rent Expense', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00),
-  ('6104', 'مصروف النقل والشحن (النولون العام)', 'General Freight & Transport', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00),
-  ('6105', 'مصروف الهالك والتالف (إنتاج / فاقد تانك / تعبئة / مرتجع تالف)', 'Scrap & Spoilage Expense', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00),
-  ('6106', 'مصروف العينات المجانية وبضاعة البونص', 'Samples & Bonus Goods Expense', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00),
-  ('6107', 'فروق وعجز الجرد', 'Inventory Shortage / Adjustment', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00),
-  ('6108', 'مصروف إهلاك الأصول الثابتة', 'Depreciation Expense', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00),
-  ('6109', 'مصاريف سيارات التوزيع (بنزين، زيت، صيانة، مخالفات — مربوطة بالسيارة)', 'Delivery Vehicles Expenses', 'expense', 'a0000000-0000-0000-0000-000000006000', true, true, 0.00)
-ON CONFLICT (code) DO NOTHING;
+  ('6101', 'مصروفات الرواتب والبدلات والعمولات', 'Salaries, Allowances & Commissions', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00),
+  ('6102', 'مصروف الكهرباء والمياه', 'Electricity & Water', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00),
+  ('6103', 'مصروف الإيجار', 'Rent Expense', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00),
+  ('6104', 'مصروف النقل والشحن (النولون العام)', 'General Freight & Transport', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00),
+  ('6105', 'مصروف الهالك والتالف (إنتاج / فاقد تانك / تعبئة / مرتجع تالف)', 'Scrap & Spoilage Expense', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00),
+  ('6106', 'مصروف العينات المجانية وبضاعة البونص', 'Samples & Bonus Goods Expense', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00),
+  ('6107', 'فروق وعجز الجرد', 'Inventory Shortage / Adjustment', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00),
+  ('6108', 'مصروف إهلاك الأصول الثابتة', 'Depreciation Expense', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00),
+  ('6109', 'مصاريف سيارات التوزيع (بنزين، زيت، صيانة، مخالفات — مربوطة بالسيارة)', 'Delivery Vehicles Expenses', 'expense', (SELECT id FROM accounts WHERE code = '6000'), true, true, 0.00)
+ON CONFLICT (code) DO UPDATE SET
+  name_ar = EXCLUDED.name_ar,
+  name_en = EXCLUDED.name_en,
+  type = EXCLUDED.type,
+  parent_id = EXCLUDED.parent_id;
