@@ -12,6 +12,13 @@ import {
   ShieldCheck,
   ChevronRight,
   ChevronLeft,
+  Package,
+  Layers,
+  Scale,
+  ShoppingCart,
+  RotateCcw,
+  Truck,
+  Building,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -20,58 +27,166 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const { role } = useAuth();
+  const { role, isOwner, isAccountant } = useAuth();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === "ar";
 
-  const ownerLinks = [
-    { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/settings/factory", icon: Building2, label: t("nav.factorySettings") },
-    { to: "/settings/users", icon: Users, label: t("nav.users") },
-    { to: "/settings/facilities", icon: Warehouse, label: t("nav.facilities") },
-    { to: "/accounting/coa", icon: BookOpen, label: t("nav.coa") },
-    { to: "/accounting/periods", icon: Calendar, label: t("nav.periods") },
-    { to: "/settings/audit-log", icon: ShieldCheck, label: t("nav.auditLog") },
+  const sections = [
+    {
+      title: isArabic ? "الرئيسية" : "Overview",
+      items: [
+        {
+          to: isOwner ? "/" : "/accounting",
+          icon: LayoutDashboard,
+          label: isOwner ? (isArabic ? "لوحة المدير" : "Dashboard") : (isArabic ? "لوحة المحاسب" : "Accounting"),
+          show: isOwner || isAccountant,
+        },
+      ],
+    },
+    {
+      title: isArabic ? "المخزون والـ FIFO" : "Inventory & FIFO",
+      items: [
+        {
+          to: "/inventory/items",
+          icon: Package,
+          label: t("nav.items"),
+          show: isOwner || isAccountant || role === "production" || role === "warehouse",
+        },
+        {
+          to: "/inventory/opening-balances",
+          icon: Scale,
+          label: t("nav.openingBalances"),
+          show: isOwner || isAccountant,
+        },
+      ],
+    },
+    {
+      title: isArabic ? "المشتريات والموردين" : "Procurement",
+      items: [
+        {
+          to: "/procurement/suppliers",
+          icon: Building,
+          label: t("nav.suppliers"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/procurement/orders",
+          icon: ShoppingCart,
+          label: t("nav.purchaseOrders"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/procurement/receipts",
+          icon: Scale,
+          label: t("nav.goodsReceipts"),
+          show: isOwner || isAccountant || role === "warehouse",
+        },
+        {
+          to: "/procurement/returns",
+          icon: RotateCcw,
+          label: t("nav.debitNotes"),
+          show: isOwner || isAccountant,
+        },
+      ],
+    },
+    {
+      title: isArabic ? "المحاسبة والمالية" : "Accounting",
+      items: [
+        {
+          to: "/accounting/coa",
+          icon: BookOpen,
+          label: t("nav.coa"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/accounting/periods",
+          icon: Calendar,
+          label: t("nav.periods"),
+          show: isOwner || isAccountant,
+        },
+      ],
+    },
+    {
+      title: isArabic ? "الإعدادات والأسطول" : "Settings & Fleet",
+      items: [
+        {
+          to: "/settings/factory",
+          icon: Building2,
+          label: t("nav.factorySettings"),
+          show: isOwner,
+        },
+        {
+          to: "/settings/users",
+          icon: Users,
+          label: t("nav.users"),
+          show: isOwner,
+        },
+        {
+          to: "/settings/facilities",
+          icon: Warehouse,
+          label: t("nav.facilities"),
+          show: isOwner,
+        },
+        {
+          to: "/settings/vehicles",
+          icon: Truck,
+          label: t("nav.vehicles"),
+          show: isOwner || isAccountant,
+        },
+        {
+          to: "/settings/audit-log",
+          icon: ShieldCheck,
+          label: t("nav.auditLog"),
+          show: isOwner,
+        },
+      ],
+    },
   ];
-
-  const accountantLinks = [
-    { to: "/accounting", icon: LayoutDashboard, label: t("nav.accounting") },
-    { to: "/accounting/coa", icon: BookOpen, label: t("nav.coa") },
-    { to: "/accounting/periods", icon: Calendar, label: t("nav.periods") },
-  ];
-
-  const navLinks = role === "owner" ? ownerLinks : accountantLinks;
 
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col border-e border-industrial-border bg-white transition-all duration-300 select-none",
+        "hidden md:flex flex-col border-e border-industrial-border bg-white transition-all duration-300 select-none overflow-y-auto",
         collapsed ? "w-16" : "w-64"
       )}
     >
-      <div className="flex flex-1 flex-col justify-between p-3">
-        <nav className="space-y-1">
-          {navLinks.map((item) => {
-            const Icon = item.icon;
+      <div className="flex flex-1 flex-col justify-between p-3 space-y-4">
+        <nav className="space-y-4">
+          {sections.map((sec, secIdx) => {
+            const visibleItems = sec.items.filter((i) => i.show);
+            if (visibleItems.length === 0) return null;
+
             return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/" || item.to === "/accounting"}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-slate-900 text-white shadow-sm"
-                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
-                    collapsed && "justify-center px-2"
-                  )
-                }
-                title={collapsed ? item.label : undefined}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </NavLink>
+              <div key={secIdx} className="space-y-1">
+                {!collapsed && (
+                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    {sec.title}
+                  </div>
+                )}
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.to === "/" || item.to === "/accounting"}
+                      className={({ isActive }) =>
+                        cn(
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-slate-900 text-white shadow-sm"
+                            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
+                          collapsed && "justify-center px-2"
+                        )
+                      }
+                      title={collapsed ? item.label : undefined}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </NavLink>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
@@ -105,3 +220,4 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     </aside>
   );
 }
+

@@ -17,6 +17,13 @@ import { FacilitiesPage } from "@/pages/settings/FacilitiesPage";
 import { ChartOfAccountsPage } from "@/pages/accounting/ChartOfAccountsPage";
 import { FiscalPeriodsPage } from "@/pages/accounting/FiscalPeriodsPage";
 import { AuditLogPage } from "@/pages/settings/AuditLogPage";
+import { VehiclesPage } from "@/pages/settings/VehiclesPage";
+import { ItemsPage } from "@/pages/inventory/ItemsPage";
+import { OpeningBalancesPage } from "@/pages/inventory/OpeningBalancesPage";
+import { SuppliersPage } from "@/pages/procurement/SuppliersPage";
+import { PurchaseOrdersPage } from "@/pages/procurement/PurchaseOrdersPage";
+import { PurchaseReceiptsPage } from "@/pages/procurement/PurchaseReceiptsPage";
+import { PurchaseReturnsPage } from "@/pages/procurement/PurchaseReturnsPage";
 import { ProductionShell } from "@/pages/shells/ProductionShell";
 import { WarehouseShell } from "@/pages/shells/WarehouseShell";
 import { RepShell } from "@/pages/shells/RepShell";
@@ -89,10 +96,70 @@ export function App() {
                 }
               />
               <Route
+                path="/settings/vehicles"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <VehiclesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/settings/audit-log"
                 element={
                   <ProtectedRoute allowedRoles={["owner"]}>
                     <AuditLogPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Phase 2: Inventory & Materials Routes */}
+              <Route
+                path="/inventory/items"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant", "production", "warehouse"]}>
+                    <ItemsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/inventory/opening-balances"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <OpeningBalancesPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Phase 2: Procurement & Suppliers Routes */}
+              <Route
+                path="/procurement/suppliers"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <SuppliersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/procurement/orders"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <PurchaseOrdersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/procurement/receipts"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant", "warehouse"]}>
+                    <PurchaseReceiptsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/procurement/returns"
+                element={
+                  <ProtectedRoute allowedRoles={["owner", "accountant"]}>
+                    <PurchaseReturnsPage />
                   </ProtectedRoute>
                 }
               />

@@ -24,6 +24,269 @@ export type AccountType =
   | "contra_revenue"
   | "expense";
 export type NotificationType = "info" | "warning" | "success" | "error" | "approval";
+export type ItemType = "raw_material" | "packaging" | "bulk_in_tank" | "finished_good";
+export type BaseUnit = "gram" | "piece";
+export type PurchaseOrderStatus =
+  | "draft"
+  | "pending_approval"
+  | "approved"
+  | "rejected"
+  | "partially_received"
+  | "completed"
+  | "cancelled";
+export type MovementType =
+  | "purchase_receipt"
+  | "purchase_return"
+  | "production_consume"
+  | "production_output"
+  | "sales_dispatch"
+  | "sales_return"
+  | "van_transfer"
+  | "opening_balance"
+  | "scrap_spoilage"
+  | "inventory_adjustment";
+
+export interface Item {
+  id: string;
+  sku: string;
+  name_ar: string;
+  name_en: string;
+  item_type: ItemType;
+  base_unit: BaseUnit;
+  density: number;
+  pieces_per_carton: number;
+  volume_per_unit_grams: number;
+  shelf_life_months: number;
+  reorder_point: number;
+  current_stock: number;
+  default_warehouse_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  default_warehouse?: Warehouse | null;
+}
+
+export interface Supplier {
+  id: string;
+  name_ar: string;
+  name_en: string | null;
+  tax_number: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  address: string | null;
+  credit_limit: number;
+  current_balance: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  po_number: string;
+  supplier_id: string;
+  order_date: string;
+  expected_delivery_date: string | null;
+  target_warehouse_id: string | null;
+  status: PurchaseOrderStatus;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  created_by: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  supplier?: Supplier;
+  target_warehouse?: Warehouse;
+  creator?: UserProfile;
+  approver?: UserProfile;
+  lines?: PurchaseOrderLine[];
+}
+
+export interface PurchaseOrderLine {
+  id: string;
+  purchase_order_id: string;
+  item_id: string;
+  ordered_qty: number;
+  received_qty: number;
+  unit_price_ex_vat: number;
+  vat_rate: number;
+  vat_amount: number;
+  total_ex_vat: number;
+  total_inc_vat: number;
+  notes: string | null;
+  created_at: string;
+  item?: Item;
+}
+
+export interface PurchaseReceipt {
+  id: string;
+  receipt_number: string;
+  purchase_order_id: string | null;
+  supplier_id: string;
+  warehouse_id: string;
+  receipt_date: string;
+  status: "draft" | "completed" | "cancelled";
+  supplier_dn_number: string | null;
+  received_by: string | null;
+  freight_cost: number;
+  notes: string | null;
+  created_at: string;
+  supplier?: Supplier;
+  warehouse?: Warehouse;
+  receiver?: UserProfile;
+  lines?: PurchaseReceiptLine[];
+}
+
+export interface PurchaseReceiptLine {
+  id: string;
+  receipt_id: string;
+  po_line_id: string | null;
+  item_id: string;
+  weight_kg: number | null;
+  received_qty: number;
+  unit_cost_ex_vat: number;
+  batch_number: string;
+  production_date: string | null;
+  expiry_date: string | null;
+  notes: string | null;
+  created_at: string;
+  item?: Item;
+}
+
+export interface FifoLayer {
+  id: string;
+  item_id: string;
+  warehouse_id: string;
+  batch_number: string;
+  layer_date: string;
+  initial_qty: number;
+  remaining_qty: number;
+  unit_cost_ex_vat: number;
+  expiry_date: string | null;
+  purchase_receipt_id: string | null;
+  is_closed: boolean;
+  created_at: string;
+  updated_at: string;
+  item?: Item;
+  warehouse?: Warehouse;
+}
+
+export interface InventoryMovement {
+  id: string;
+  movement_number: string;
+  item_id: string;
+  movement_type: MovementType;
+  source_warehouse_id: string | null;
+  target_warehouse_id: string | null;
+  batch_number: string | null;
+  qty: number;
+  cost_per_unit: number;
+  total_cost: number;
+  fifo_layer_id: string | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  created_by: string | null;
+  notes: string | null;
+  created_at: string;
+  item?: Item;
+  source_warehouse?: Warehouse | null;
+  target_warehouse?: Warehouse | null;
+}
+
+export interface NegativeStockQueue {
+  id: string;
+  item_id: string;
+  warehouse_id: string;
+  qty_pending: number;
+  estimated_cost: number;
+  reference_type: string | null;
+  reference_id: string | null;
+  settled_at: string | null;
+  variance_amount: number;
+  journal_entry_id: string | null;
+  created_at: string;
+  item?: Item;
+}
+
+export interface PurchaseInvoice {
+  id: string;
+  invoice_number: string;
+  supplier_invoice_number: string;
+  supplier_id: string;
+  purchase_receipt_id: string | null;
+  invoice_date: string;
+  due_date: string | null;
+  subtotal_ex_vat: number;
+  vat_amount: number;
+  freight_amount: number;
+  total_inc_vat: number;
+  status: "draft" | "posted" | "paid" | "cancelled";
+  payment_status: "unpaid" | "partially_paid" | "paid";
+  journal_entry_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  supplier?: Supplier;
+  lines?: PurchaseInvoiceLine[];
+}
+
+export interface PurchaseInvoiceLine {
+  id: string;
+  invoice_id: string;
+  item_id: string;
+  qty: number;
+  unit_price_ex_vat: number;
+  vat_rate: number;
+  vat_amount: number;
+  total_ex_vat: number;
+  total_inc_vat: number;
+  notes: string | null;
+  item?: Item;
+}
+
+export interface PurchaseReturn {
+  id: string;
+  return_number: string;
+  purchase_invoice_id: string | null;
+  purchase_receipt_id: string | null;
+  supplier_id: string;
+  return_date: string;
+  total_claimed_ex_vat: number;
+  total_vat_refund: number;
+  total_claimed_inc_vat: number;
+  stock_deducted_value: number;
+  consumed_compensation_value: number;
+  status: "draft" | "completed" | "cancelled";
+  journal_entry_id: string | null;
+  created_by: string | null;
+  notes: string | null;
+  created_at: string;
+  supplier?: Supplier;
+  lines?: PurchaseReturnLine[];
+}
+
+export interface PurchaseReturnLine {
+  id: string;
+  return_id: string;
+  item_id: string;
+  fifo_layer_id: string | null;
+  claimed_qty: number;
+  remaining_in_stock_qty: number;
+  consumed_qty: number;
+  unit_price_ex_vat: number;
+  vat_rate: number;
+  total_ex_vat: number;
+  vat_amount: number;
+  total_inc_vat: number;
+  stock_deducted_amount: number;
+  compensation_amount: number;
+  reason: string | null;
+  item?: Item;
+}
 
 export interface FactorySettings {
   id: number;
@@ -398,6 +661,84 @@ export interface Database {
         };
         Relationships: [];
       };
+      items: {
+        Row: Item;
+        Insert: Partial<Item> & { sku: string; name_ar: string; name_en: string; item_type: ItemType; base_unit: BaseUnit };
+        Update: Partial<Item>;
+        Relationships: [];
+      };
+      suppliers: {
+        Row: Supplier;
+        Insert: Partial<Supplier> & { name_ar: string };
+        Update: Partial<Supplier>;
+        Relationships: [];
+      };
+      purchase_orders: {
+        Row: PurchaseOrder;
+        Insert: Partial<PurchaseOrder> & { po_number: string; supplier_id: string };
+        Update: Partial<PurchaseOrder>;
+        Relationships: [];
+      };
+      purchase_order_lines: {
+        Row: PurchaseOrderLine;
+        Insert: Partial<PurchaseOrderLine> & { purchase_order_id: string; item_id: string; ordered_qty: number; unit_price_ex_vat: number };
+        Update: Partial<PurchaseOrderLine>;
+        Relationships: [];
+      };
+      purchase_receipts: {
+        Row: PurchaseReceipt;
+        Insert: Partial<PurchaseReceipt> & { receipt_number: string; supplier_id: string; warehouse_id: string };
+        Update: Partial<PurchaseReceipt>;
+        Relationships: [];
+      };
+      purchase_receipt_lines: {
+        Row: PurchaseReceiptLine;
+        Insert: Partial<PurchaseReceiptLine> & { receipt_id: string; item_id: string; received_qty: number; unit_cost_ex_vat: number; batch_number: string };
+        Update: Partial<PurchaseReceiptLine>;
+        Relationships: [];
+      };
+      fifo_layers: {
+        Row: FifoLayer;
+        Insert: Partial<FifoLayer> & { item_id: string; warehouse_id: string; batch_number: string; initial_qty: number; remaining_qty: number; unit_cost_ex_vat: number };
+        Update: Partial<FifoLayer>;
+        Relationships: [];
+      };
+      inventory_movements: {
+        Row: InventoryMovement;
+        Insert: Partial<InventoryMovement> & { movement_number: string; item_id: string; movement_type: MovementType; qty: number };
+        Update: Partial<InventoryMovement>;
+        Relationships: [];
+      };
+      negative_stock_queue: {
+        Row: NegativeStockQueue;
+        Insert: Partial<NegativeStockQueue> & { item_id: string; warehouse_id: string; qty_pending: number; estimated_cost: number };
+        Update: Partial<NegativeStockQueue>;
+        Relationships: [];
+      };
+      purchase_invoices: {
+        Row: PurchaseInvoice;
+        Insert: Partial<PurchaseInvoice> & { invoice_number: string; supplier_invoice_number: string; supplier_id: string };
+        Update: Partial<PurchaseInvoice>;
+        Relationships: [];
+      };
+      purchase_invoice_lines: {
+        Row: PurchaseInvoiceLine;
+        Insert: Partial<PurchaseInvoiceLine> & { invoice_id: string; item_id: string; qty: number; unit_price_ex_vat: number };
+        Update: Partial<PurchaseInvoiceLine>;
+        Relationships: [];
+      };
+      purchase_returns: {
+        Row: PurchaseReturn;
+        Insert: Partial<PurchaseReturn> & { return_number: string; supplier_id: string };
+        Update: Partial<PurchaseReturn>;
+        Relationships: [];
+      };
+      purchase_return_lines: {
+        Row: PurchaseReturnLine;
+        Insert: Partial<PurchaseReturnLine> & { return_id: string; item_id: string; claimed_qty: number; unit_price_ex_vat: number };
+        Update: Partial<PurchaseReturnLine>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -410,6 +751,38 @@ export interface Database {
           status: "soft_deleted" | "hard_deleted";
           message: string;
         };
+      };
+      rpc_receive_fifo: {
+        Args: {
+          p_receipt_id: string;
+          p_created_by: string;
+        };
+        Returns: Json;
+      };
+      rpc_consume_fifo: {
+        Args: {
+          p_item_id: string;
+          p_warehouse_id: string;
+          p_qty: number;
+          p_reference_type: string;
+          p_reference_id: string;
+          p_created_by: string;
+        };
+        Returns: Json;
+      };
+      rpc_post_opening_balances: {
+        Args: {
+          p_items_data: Json;
+          p_created_by: string;
+        };
+        Returns: Json;
+      };
+      rpc_process_purchase_return_with_compensation: {
+        Args: {
+          p_return_id: string;
+          p_created_by: string;
+        };
+        Returns: Json;
       };
       is_owner: {
         Args: Record<string, never>;
@@ -426,6 +799,10 @@ export interface Database {
       tank_status: TankStatus;
       account_type: AccountType;
       notification_type: NotificationType;
+      item_type: ItemType;
+      base_unit: BaseUnit;
+      purchase_order_status: PurchaseOrderStatus;
+      movement_type: MovementType;
     };
     CompositeTypes: Record<string, never>;
   };

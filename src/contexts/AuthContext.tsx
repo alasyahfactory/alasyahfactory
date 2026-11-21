@@ -8,6 +8,8 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   role: UserRole | null;
+  isOwner: boolean;
+  isAccountant: boolean;
   isLoading: boolean;
   error: string | null;
   login: (phone: string, pass: string) => Promise<void>;
@@ -159,12 +161,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isOwner = profile?.role === "owner";
+  const isAccountant = profile?.role === "accountant";
+
   return (
     <AuthContext.Provider
       value={{
         user,
         profile,
         role: profile?.role || null,
+        isOwner,
+        isAccountant,
         isLoading,
         error,
         login,

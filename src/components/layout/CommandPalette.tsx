@@ -20,6 +20,12 @@ import {
   LayoutDashboard,
   LogOut,
   Globe,
+  Package,
+  Scale,
+  ShoppingCart,
+  RotateCcw,
+  Truck,
+  Building,
 } from "lucide-react";
 
 export function CommandPalette() {
@@ -91,10 +97,56 @@ export function CommandPalette() {
                 <Warehouse className="me-2 h-4 w-4 text-slate-500" />
                 <span>{t("nav.facilities")}</span>
               </CommandItem>
+              <CommandItem onSelect={() => handleSelect("/settings/vehicles")}>
+                <Truck className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "سيارات التوزيع" : "Delivery Vehicles"}</span>
+              </CommandItem>
               <CommandItem onSelect={() => handleSelect("/settings/audit-log")}>
                 <ShieldCheck className="me-2 h-4 w-4 text-slate-500" />
                 <span>{t("nav.auditLog")}</span>
               </CommandItem>
+            </CommandGroup>
+          )}
+
+          {(role === "owner" || role === "accountant" || role === "warehouse" || role === "production") && (
+            <CommandGroup heading={isArabic ? "المخزون والمواد" : "Inventory & FIFO"}>
+              <CommandItem onSelect={() => handleSelect("/inventory/items")}>
+                <Package className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "دليل الأصناف والمواد" : "Items & Materials"}</span>
+              </CommandItem>
+              {(role === "owner" || role === "accountant") && (
+                <CommandItem onSelect={() => handleSelect("/inventory/opening-balances")}>
+                  <Scale className="me-2 h-4 w-4 text-slate-500" />
+                  <span>{isArabic ? "الأرصدة الافتتاحية للمخزون" : "Opening Inventory Balances"}</span>
+                </CommandItem>
+              )}
+            </CommandGroup>
+          )}
+
+          {(role === "owner" || role === "accountant" || role === "warehouse") && (
+            <CommandGroup heading={isArabic ? "المشتريات والتوريد" : "Procurement & Suppliers"}>
+              {(role === "owner" || role === "accountant") && (
+                <>
+                  <CommandItem onSelect={() => handleSelect("/procurement/suppliers")}>
+                    <Building className="me-2 h-4 w-4 text-slate-500" />
+                    <span>{isArabic ? "دليل الموردين" : "Suppliers Directory"}</span>
+                  </CommandItem>
+                  <CommandItem onSelect={() => handleSelect("/procurement/orders")}>
+                    <ShoppingCart className="me-2 h-4 w-4 text-slate-500" />
+                    <span>{isArabic ? "أوامر الشراء (PO)" : "Purchase Orders"}</span>
+                  </CommandItem>
+                </>
+              )}
+              <CommandItem onSelect={() => handleSelect("/procurement/receipts")}>
+                <Scale className="me-2 h-4 w-4 text-slate-500" />
+                <span>{isArabic ? "سندات استلام المشتريات" : "Goods Receipts (GRN)"}</span>
+              </CommandItem>
+              {(role === "owner" || role === "accountant") && (
+                <CommandItem onSelect={() => handleSelect("/procurement/returns")}>
+                  <RotateCcw className="me-2 h-4 w-4 text-slate-500" />
+                  <span>{isArabic ? "إشعارات المدين والتعويض (DN)" : "Debit Notes & Compensation"}</span>
+                </CommandItem>
+              )}
             </CommandGroup>
           )}
 

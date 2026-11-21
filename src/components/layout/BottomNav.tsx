@@ -12,35 +12,43 @@ import {
   Factory,
   Package,
   Truck,
+  ShoppingCart,
+  Scale,
 } from "lucide-react";
 
 export function BottomNav() {
   const { role } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language === "ar";
 
   let navItems: { to: string; label: string; icon: React.ElementType }[] = [];
 
   if (role === "owner") {
     navItems = [
       { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard },
-      { to: "/settings/factory", label: t("nav.factorySettings"), icon: Building2 },
-      { to: "/settings/users", label: t("nav.users"), icon: Users },
-      { to: "/settings/facilities", label: t("nav.facilities"), icon: Warehouse },
+      { to: "/inventory/items", label: isArabic ? "الأصناف" : "Items", icon: Package },
+      { to: "/procurement/orders", label: isArabic ? "المشتريات" : "Orders", icon: ShoppingCart },
+      { to: "/procurement/receipts", label: isArabic ? "الاستلام" : "Receipts", icon: Scale },
       { to: "/accounting/coa", label: t("nav.coa"), icon: BookOpen },
     ];
   } else if (role === "accountant") {
     navItems = [
       { to: "/accounting", label: t("nav.accounting"), icon: LayoutDashboard },
+      { to: "/inventory/items", label: isArabic ? "الأصناف" : "Items", icon: Package },
+      { to: "/procurement/orders", label: isArabic ? "أوامر الشراء" : "Orders", icon: ShoppingCart },
+      { to: "/procurement/receipts", label: isArabic ? "الاستلام" : "Receipts", icon: Scale },
       { to: "/accounting/coa", label: t("nav.coa"), icon: BookOpen },
-      { to: "/accounting/periods", label: t("nav.periods"), icon: Calendar },
     ];
   } else if (role === "production") {
     navItems = [
       { to: "/production", label: t("nav.productionShell"), icon: Factory },
+      { to: "/inventory/items", label: isArabic ? "المخزون" : "Stock", icon: Package },
     ];
   } else if (role === "warehouse") {
     navItems = [
       { to: "/warehouse", label: t("nav.warehouseShell"), icon: Package },
+      { to: "/procurement/receipts", label: isArabic ? "استلام الوزن" : "GRN", icon: Scale },
+      { to: "/inventory/items", label: isArabic ? "الأصناف" : "Items", icon: Package },
     ];
   } else if (role === "sales_rep") {
     navItems = [

@@ -122,16 +122,26 @@ export function canAccessRoute(role: UserRole, pathname: string): boolean {
   }
 
   if (role === "accountant") {
-    // Accountant has /accounting and subroutes (/accounting/coa, /accounting/periods)
-    return pathname.startsWith("/accounting");
+    // Accountant can access accounting, inventory, procurement, and vehicles
+    return (
+      pathname.startsWith("/accounting") ||
+      pathname.startsWith("/inventory") ||
+      pathname.startsWith("/procurement") ||
+      pathname === "/settings/vehicles"
+    );
   }
 
   if (role === "production") {
-    return pathname === "/production" || pathname.startsWith("/production/");
+    return pathname === "/production" || pathname.startsWith("/production/") || pathname === "/inventory/items";
   }
 
   if (role === "warehouse") {
-    return pathname === "/warehouse" || pathname.startsWith("/warehouse/");
+    return (
+      pathname === "/warehouse" ||
+      pathname.startsWith("/warehouse/") ||
+      pathname === "/inventory/items" ||
+      pathname === "/procurement/receipts"
+    );
   }
 
   if (role === "sales_rep") {
