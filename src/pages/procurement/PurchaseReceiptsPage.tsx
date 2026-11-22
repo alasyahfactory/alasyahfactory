@@ -787,7 +787,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleSavePdfGrn(selectedReceipt)}
+              onClick={() => handlePrintGrn(selectedReceipt)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -796,7 +796,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintGrn(selectedReceipt)}
+              onClick={() => handleSavePdfGrn(selectedReceipt)}
               className="gap-1.5"
             >
               <FileDown className="w-4 h-4 text-sky-600" />
@@ -1102,7 +1102,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleSavePdfGrn(rec)}
+                            onClick={() => handlePrintGrn(rec)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title={isAr ? "طباعة A4" : "Print A4"}
                           >
@@ -1111,7 +1111,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintGrn(rec)}
+                            onClick={() => handleSavePdfGrn(rec)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title={isAr ? "حفظ PDF" : "Save PDF"}
                           >

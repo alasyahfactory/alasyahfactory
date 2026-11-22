@@ -647,7 +647,7 @@ export function PurchaseReturnsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleSavePdfDebitNote(selectedReturn)}
+              onClick={() => handlePrintDebitNote(selectedReturn)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -656,7 +656,7 @@ export function PurchaseReturnsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintDebitNote(selectedReturn)}
+              onClick={() => handleSavePdfDebitNote(selectedReturn)}
               className="gap-1.5"
             >
               <Download className="w-4 h-4 text-sky-600" />
@@ -1038,7 +1038,7 @@ export function PurchaseReturnsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleSavePdfDebitNote(dn)}
+                            onClick={() => handlePrintDebitNote(dn)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title={isAr ? "طباعة A4" : "Print A4"}
                           >
@@ -1047,7 +1047,7 @@ export function PurchaseReturnsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintDebitNote(dn)}
+                            onClick={() => handleSavePdfDebitNote(dn)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title={isAr ? "حفظ PDF" : "Save PDF"}
                           >

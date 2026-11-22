@@ -548,7 +548,7 @@ _نظام إدارة العمليات والمحاسبة - مصنع الأسيا
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleSavePdfEntry(selectedEntry)}
+              onClick={() => handlePrintEntry(selectedEntry)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -557,7 +557,7 @@ _نظام إدارة العمليات والمحاسبة - مصنع الأسيا
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintEntry(selectedEntry)}
+              onClick={() => handleSavePdfEntry(selectedEntry)}
               className="gap-1.5"
             >
               <FileDown className="w-4 h-4 text-sky-600" />
@@ -794,7 +794,7 @@ _نظام إدارة العمليات والمحاسبة - مصنع الأسيا
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleSavePdfEntry(entry)}
+                            onClick={() => handlePrintEntry(entry)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title={isArabic ? "طباعة A4" : "Print A4"}
                           >
@@ -803,7 +803,7 @@ _نظام إدارة العمليات والمحاسبة - مصنع الأسيا
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintEntry(entry)}
+                            onClick={() => handleSavePdfEntry(entry)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title={isArabic ? "حفظ PDF" : "Save PDF"}
                           >

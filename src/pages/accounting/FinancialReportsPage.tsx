@@ -174,6 +174,24 @@ export function FinancialReportsPage() {
     window.print();
   };
 
+  const handleSavePdf = () => {
+    const reportNames: Record<string, string> = {
+      trial_balance: "ميزان_المراجعة",
+      income_statement: "قائمة_الدخل",
+      balance_sheet: "الميزانية_العمومية",
+      vat_return: "إقرار_الضريبة_ZATCA",
+      ledger: "كشف_الحساب_العام",
+      aging: "أعمار_الديون",
+    };
+    const rName = reportNames[activeTab] || "التقرير_المالي";
+    const reportEl = document.getElementById("active-financial-report-card");
+    if (reportEl) {
+      saveDocumentPdfFromHtml(reportEl.outerHTML, `${rName}_${startDate}_${endDate}`);
+    } else {
+      window.print();
+    }
+  };
+
   const handleShareWhatsApp = () => {
     const reportNames: Record<string, string> = {
       trial_balance: "ميزان المراجعة بالمجاميع والأرصدة",
@@ -230,7 +248,7 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
           <Button
             variant="outline"
             size="sm"
-            onClick={handlePrint}
+            onClick={handleSavePdf}
             className="gap-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-50"
           >
             <FileDown className="h-3.5 w-3.5" />
@@ -361,6 +379,7 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
         </button>
       </div>
 
+      <div id="active-financial-report-card">
       {/* Tab 1: Trial Balance */}
       {activeTab === "trial_balance" && (
         <Card className="border-industrial-border bg-white shadow-sm overflow-hidden">
@@ -730,6 +749,7 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }

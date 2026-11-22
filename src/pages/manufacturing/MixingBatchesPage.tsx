@@ -436,7 +436,7 @@ _إدارة العمليات الصناعية والخلط - مصنع الأسي
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleSavePdfBatchSheet(selectedBatch)}
+              onClick={() => handlePrintBatchSheet(selectedBatch)}
               className="gap-1.5 text-xs text-slate-700 hover:bg-slate-100 min-h-[38px]"
             >
               <Printer className="h-4 w-4 text-slate-600" />
@@ -445,7 +445,7 @@ _إدارة العمليات الصناعية والخلط - مصنع الأسي
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintBatchSheet(selectedBatch)}
+              onClick={() => handleSavePdfBatchSheet(selectedBatch)}
               className="gap-1.5 text-xs text-sky-700 hover:bg-sky-50 min-h-[38px]"
             >
               <FileDown className="h-4 w-4 text-sky-600" />
@@ -839,7 +839,7 @@ _إدارة العمليات الصناعية والخلط - مصنع الأسي
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleSavePdfBatchSheet(batch)}
+                                onClick={() => handlePrintBatchSheet(batch)}
                                 className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                                 title={isArabic ? "طباعة كرت التشغيل A4" : "Print A4"}
                               >
@@ -848,7 +848,7 @@ _إدارة العمليات الصناعية والخلط - مصنع الأسي
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handlePrintBatchSheet(batch)}
+                                onClick={() => handleSavePdfBatchSheet(batch)}
                                 className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                                 title={isArabic ? "حفظ PDF" : "Save PDF"}
                               >
