@@ -11,12 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { 
-  Plus, 
+  Plus,
+  ArrowRight, 
   Package, 
   Layers, 
   Search, 
@@ -26,7 +26,10 @@ import {
   FlaskConical, 
   Box, 
   Sparkles,
-  History
+  History,
+  Printer,
+  FileDown,
+  Share2
 } from "lucide-react";
 
 const itemSchema = z.object({
@@ -248,6 +251,621 @@ export function ItemsPage() {
     return `${qty.toLocaleString("en-US")} حبة`;
   };
 
+  // 1. Material Design 3 In-Page Canvas View for FIFO Layers Inspection
+  if (selectedFifoItem) {
+    const totalRemaining = fifoLayers.reduce((sum, l) => sum + (l.remaining_qty || 0), 0);
+    const totalCostValue = fifoLayers.reduce((sum, l) => sum + ((l.remaining_qty || 0) * (l.unit_cost_ex_vat || 0)), 0);
+    const avgCost = totalRemaining > 0 ? (totalCostValue / totalRemaining) : 0;
+
+    const handlePrintFifoLayers = (isPdf = false) => {
+      const win = window.open("", "_blank");
+      if (!win) return;
+      const itemTitle = isAr ? selectedFifoItem.name_ar : selectedFifoItem.name_en;
+      const docTitle = isPdf ? `طبقات_FIFO_${selectedFifoItem.sku}` : `كشف طبقات التكلفة FIFO - ${selectedFifoItem.sku}`;
+
+      const rows = fifoLayers.map((l, idx) => `
+        <tr>
+          <td style="text-align: center;">${idx + 1}</td>
+          <td class="tabular font-bold">${l.batch_number || "-"}</td>
+          <td class="tabular" style="text-align: center;">${l.layer_date || "-"}</td>
+          <td class="tabular" style="text-align: center;">${l.expiry_date || "-"}</td>
+          <td class="tabular" style="text-align: center; font-weight: bold;">${l.remaining_qty?.toLocaleString("en-US")}</td>
+          <td class="tabular" style="text-align: right;">${Number(l.unit_cost_ex_vat || 0).toFixed(4)} ر.س</td>
+          <td class="tabular font-bold" style="text-align: right;">${((l.remaining_qty || 0) * (l.unit_cost_ex_vat || 0)).toFixed(2)} ر.س</td>
+        </tr>
+      `).join("") || `
+        <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">لا توجد طبقات تكلفة مسجلة</td></tr>
+      `;
+
+      win.document.write(`
+        <!DOCTYPE html>
+        <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
+          <head>
+            <meta charset="utf-8" />
+            <title>${docTitle}</title>
+            <style>
+              @page { size: A4 portrait; margin: 12mm; }
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "IBM Plex Sans Arabic", sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 0; font-size: 12px; }
+              .header-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+              .badge { display: inline-block; padding: 4px 14px; background: #0f172a; color: #fff; font-weight: bold; font-size: 15px; border-radius: 4px; }
+              .meta-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; background: #f8fafc; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+              th { border: 1px solid #cbd5e1; background: #f1f5f9; padding: 8px; font-size: 11px; font-weight: bold; }
+              td { border: 1px solid #cbd5e1; padding: 8px; font-size: 12px; }
+              .tabular { font-family: monospace; font-variant-numeric: tabular-nums; }
+              .totals-box { margin-top: 20px; margin-right: auto; width: 340px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; padding: 12px; font-size: 12px; }
+              .totals-row { display: flex; justify-content: space-between; padding: 4px 0; }
+              .totals-row.grand { border-top: 2px solid #0f172a; margin-top: 6px; padding-top: 8px; font-weight: bold; font-size: 14px; }
+              .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; margin-top: 40px; text-align: center; }
+              .sig-box { border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 11px; }
+            </style>
+          </head>
+          <body>
+            <div class="header-grid">
+              <div style="text-align: ${isAr ? "right" : "left"};">
+                <div style="font-weight: bold; font-size: 15px;">مصنع الأسياح للمنتجات الكيميائية</div>
+                <div style="font-size: 11px; color: #64748b;">سجل تجاري: 1010000000 | الرقم الضريبي: 300000000000003</div>
+                <div style="font-size: 11px; color: #64748b;">إدارة المستودعات ومراقبة المخزون</div>
+              </div>
+              <div style="text-align: center;">
+                <div class="badge">كشف طبقات التكلفة الوارد أولاً يُصرف أولاً (FIFO)</div>
+                <div style="font-size: 13px; font-family: monospace; font-weight: bold; margin-top: 4px;">${selectedFifoItem.sku}</div>
+              </div>
+              <div style="text-align: ${isAr ? "left" : "right"}; direction: ltr;">
+                <div style="font-weight: bold; font-size: 14px;">Al-Asyah Chemical Factory</div>
+                <div style="font-size: 11px; color: #64748b;">FIFO Layers Inventory Report</div>
+                <div style="font-size: 11px; color: #64748b;">Date: ${new Date().toISOString().split("T")[0]}</div>
+              </div>
+            </div>
+
+            <div class="meta-card">
+              <div><strong>الصنف:</strong> <span>${itemTitle}</span></div>
+              <div><strong>رمز الصنف (SKU):</strong> <span class="tabular font-bold">${selectedFifoItem.sku}</span></div>
+              <div><strong>الوحدة الأساسية:</strong> <span>${selectedFifoItem.base_unit === "gram" ? "جرام" : "حبة"}</span></div>
+              <div><strong>إجمالي الرصيد الفعلي المتوفر:</strong> <span class="tabular font-bold">${formatQuantity(totalRemaining, selectedFifoItem.base_unit)}</span></div>
+              <div><strong>متوسط تكلفة الوحدة:</strong> <span class="tabular font-bold">${avgCost.toFixed(4)} ر.س</span></div>
+              <div><strong>إجمالي القيمة التقديرية للمخزون:</strong> <span class="tabular font-bold text-emerald-700">${totalCostValue.toFixed(2)} ر.س</span></div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 35px; text-align: center;">#</th>
+                  <th>رقم التشغيلة / الشحنة (Batch #)</th>
+                  <th style="width: 90px; text-align: center;">تاريخ الطبقة</th>
+                  <th style="width: 90px; text-align: center;">تاريخ الانتهاء</th>
+                  <th style="width: 90px; text-align: center;">الكمية المتبقية</th>
+                  <th style="width: 100px; text-align: right;">تكلفة الوحدة</th>
+                  <th style="width: 120px; text-align: right;">القيمة الإجمالية</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+
+            <div class="totals-box">
+              <div class="totals-row">
+                <span>إجمالي الكمية المتوفرة:</span>
+                <span class="tabular">${totalRemaining.toLocaleString("en-US")}</span>
+              </div>
+              <div class="totals-row">
+                <span>متوسط التكلفة المرجح:</span>
+                <span class="tabular">${avgCost.toFixed(4)} ر.س</span>
+              </div>
+              <div class="totals-row grand">
+                <span>إجمالي تقييم الطبقات:</span>
+                <span class="tabular">${totalCostValue.toFixed(2)} ر.س</span>
+              </div>
+            </div>
+
+            <div class="signatures">
+              <div class="sig-box">
+                <div style="font-weight: bold; margin-bottom: 35px;">أمين المستودع</div>
+                <div>التوقيع: ............................</div>
+              </div>
+              <div class="sig-box">
+                <div style="font-weight: bold; margin-bottom: 35px;">محاسب التكاليف</div>
+                <div>التوقيع: ............................</div>
+              </div>
+              <div class="sig-box">
+                <div style="font-weight: bold; margin-bottom: 35px;">اعتماد المدير المالي</div>
+                <div>الختم والتوقيع: ............................</div>
+              </div>
+            </div>
+
+            <script>
+              window.onload = function() { window.print(); window.close(); };
+            </script>
+          </body>
+        </html>
+      `);
+      win.document.close();
+    };
+
+    const handleShareFifoWhatsApp = () => {
+      const itemTitle = isAr ? selectedFifoItem.name_ar : selectedFifoItem.name_en;
+      const msg = `*تقرير طبقات التكلفة FIFO - مصنع الأسياح للمنظفات*
+الصنف: ${itemTitle} (${selectedFifoItem.sku})
+الرصيد الفعلي الحالي: ${formatQuantity(selectedFifoItem.current_stock, selectedFifoItem.base_unit)}
+عدد الطبقات المسجلة: ${fifoLayers.length}
+متوسط التكلفة: ${avgCost.toFixed(4)} ر.س
+إجمالي القيمة التقديرية للمخزون: ${totalCostValue.toFixed(2)} ر.س`;
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
+    };
+
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setSelectedFifoItem(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لدليل الأصناف" : "Back to Items"}</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5 text-purple-600" />
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                  {isAr ? "سجل طبقات التكلفة (FIFO Layers)" : "FIFO Cost Layers"}
+                </h1>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {selectedFifoItem.sku}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isAr ? selectedFifoItem.name_ar : selectedFifoItem.name_en} • {getItemTypeBadge(selectedFifoItem.item_type)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="filled"
+              size="sm"
+              onClick={() => handlePrintFifoLayers(false)}
+              className="min-h-[36px] px-3 gap-1.5 shadow-sm text-xs"
+              title={isAr ? "طباعة تقرير الطبقات A4" : "Print Layers Report A4"}
+            >
+              <Printer className="h-3.5 w-3.5 text-sky-400" />
+              <span>{isAr ? "طباعة A4" : "Print A4"}</span>
+            </Button>
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => handlePrintFifoLayers(true)}
+              className="min-h-[36px] px-3 gap-1.5 text-xs font-semibold"
+              title={isAr ? "حفظ التقرير بصيغة PDF" : "Save as PDF"}
+            >
+              <FileDown className="h-3.5 w-3.5 text-sky-700" />
+              <span>{isAr ? "حفظ PDF" : "Save PDF"}</span>
+            </Button>
+            <Button
+              variant="emerald"
+              size="sm"
+              onClick={handleShareFifoWhatsApp}
+              className="min-h-[36px] px-3 gap-1.5 text-xs"
+              title={isAr ? "مشاركة عبر واتساب" : "Share via WhatsApp"}
+            >
+              <Share2 className="h-3.5 w-3.5 text-emerald-100" />
+              <span>{isAr ? "واتساب" : "WhatsApp"}</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setSelectedFifoItem(null)}>
+              {isAr ? "إغلاق" : "Close"}
+            </Button>
+          </div>
+        </div>
+
+        {/* 3 Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="p-4 border-slate-200 shadow-sm">
+            <span className="text-xs text-slate-500 font-medium block mb-1">
+              {isAr ? "إجمالي الرصيد الفعلي المتوفر" : "Total Remaining Stock"}
+            </span>
+            <span className="text-lg font-bold font-mono text-slate-900 tabular-nums">
+              {formatQuantity(totalRemaining, selectedFifoItem.base_unit)}
+            </span>
+          </Card>
+          <Card className="p-4 border-slate-200 shadow-sm">
+            <span className="text-xs text-slate-500 font-medium block mb-1">
+              {isAr ? "متوسط تكلفة الوحدة التقديري" : "Average Unit Cost"}
+            </span>
+            <span className="text-lg font-bold font-mono text-slate-900 tabular-nums">
+              {avgCost.toFixed(4)} ر.س
+            </span>
+          </Card>
+          <Card className="p-4 border-slate-200 shadow-sm">
+            <span className="text-xs text-slate-500 font-medium block mb-1">
+              {isAr ? "إجمالي القيمة التقديرية للطبقات" : "Total Valuation"}
+            </span>
+            <span className="text-lg font-bold font-mono text-emerald-700 tabular-nums">
+              {totalCostValue.toFixed(2)} ر.س
+            </span>
+          </Card>
+        </div>
+
+        {/* FIFO Layers Table */}
+        <Card className="border-slate-200 shadow-sm overflow-hidden">
+          <CardHeader className="py-3 px-4 border-b border-slate-100 bg-slate-50">
+            <CardTitle className="text-sm font-bold text-slate-800">
+              {isAr ? `الطبقات المسجلة للصنف (${fifoLayers.length} طبقة)` : `Registered Layers (${fifoLayers.length})`}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-100/75">
+                    <TableHead>{isAr ? "رقم التشغيلة (Batch #)" : "Batch #"}</TableHead>
+                    <TableHead>{isAr ? "تاريخ التوريد" : "Layer Date"}</TableHead>
+                    <TableHead className="text-end">{isAr ? "الكمية الأصلية" : "Initial Qty"}</TableHead>
+                    <TableHead className="text-end">{isAr ? "الكمية المتبقية" : "Remaining Qty"}</TableHead>
+                    <TableHead className="text-end">{isAr ? "تكلفة الوحدة" : "Unit Cost"}</TableHead>
+                    <TableHead className="text-end">{isAr ? "إجمالي القيمة" : "Total Value"}</TableHead>
+                    <TableHead>{isAr ? "تاريخ الانتهاء" : "Expiry Date"}</TableHead>
+                    <TableHead className="text-center">{isAr ? "الحالة" : "Status"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingFifo ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={8}><Skeleton className="h-6 w-full" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : fifoLayers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-slate-400">
+                        {isAr ? "لا توجد طبقات FIFO مسجلة لهذا الصنف حتى الآن" : "No FIFO layers recorded yet"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    fifoLayers.map((layer) => {
+                      const isDepleted = layer.remaining_qty <= 0;
+                      return (
+                        <TableRow key={layer.id} className={isDepleted ? "opacity-50 bg-slate-50/50" : ""}>
+                          <TableCell className="font-mono font-bold text-slate-900">{layer.batch_number}</TableCell>
+                          <TableCell className="font-mono text-slate-600">{layer.layer_date}</TableCell>
+                          <TableCell className="text-end font-mono tabular-nums">
+                            {formatQuantity(layer.initial_qty, selectedFifoItem.base_unit)}
+                          </TableCell>
+                          <TableCell className="text-end font-mono tabular-nums font-bold text-slate-900">
+                            {formatQuantity(layer.remaining_qty, selectedFifoItem.base_unit)}
+                          </TableCell>
+                          <TableCell className="text-end font-mono tabular-nums">
+                            {layer.unit_cost_ex_vat.toFixed(4)} ر.س
+                          </TableCell>
+                          <TableCell className="text-end font-mono tabular-nums font-semibold text-emerald-700">
+                            {(layer.remaining_qty * layer.unit_cost_ex_vat).toFixed(2)} ر.س
+                          </TableCell>
+                          <TableCell className="font-mono text-slate-600">{layer.expiry_date || "-"}</TableCell>
+                          <TableCell className="text-center">
+                            {isDepleted ? (
+                              <Badge variant="outline" className="text-[10px] text-slate-400">
+                                {isAr ? "مستنفذة" : "Depleted"}
+                              </Badge>
+                            ) : (
+                              <Badge variant="emerald" className="text-[10px]">
+                                {isAr ? "متاحة للسحب" : "Available"}
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // 2. Material Design 3 In-Page Canvas View for Item Creation & Editing
+  if (isAddOpen) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              type="button"
+              onClick={() => {
+                setIsAddOpen(false);
+                setEditingItem(null);
+                form.reset();
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لدليل الأصناف" : "Back to Items"}</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-sky-600" />
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                  {editingItem
+                    ? isAr
+                      ? `تعديل بيانات الصنف: ${editingItem.name_ar}`
+                      : `Edit Item: ${editingItem.name_en}`
+                    : isAr
+                    ? "إضافة صنف ومادة جديدة"
+                    : "Add New Item"}
+                </h1>
+                {editingItem && (
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {editingItem.sku}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isAr
+                  ? "تعريف الصنف بدقة وتحديد الوحدة الأساسية والكثافة ومستودع التخزين وحد الطلب"
+                  : "Define SKU, base units, chemical density, and stock parameters"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => {
+                setIsAddOpen(false);
+                setEditingItem(null);
+                form.reset();
+              }}
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              size="sm"
+              disabled={saveMutation.isPending}
+              onClick={form.handleSubmit((data) => saveMutation.mutate(data))}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[38px] px-5 gap-1.5 font-bold shadow-sm"
+            >
+              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <span>
+                {saveMutation.isPending
+                  ? isAr
+                    ? "جاري الحفظ..."
+                    : "Saving..."
+                  : editingItem
+                  ? isAr
+                    ? "تحديث بيانات الصنف"
+                    : "Update Item"
+                  : isAr
+                  ? "حفظ الصنف في الدليل"
+                  : "Save Item"}
+              </span>
+            </Button>
+          </div>
+        </div>
+
+        {/* In-Page Form Cards */}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left 2 Cols: Main Item Properties */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Basic Identification Card */}
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Package className="h-4 w-4 text-sky-600" />
+                    <span>{isAr ? "البيانات التعريفية والتصنيف" : "Identification & Category"}</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500">
+                    {isAr ? "كود الصنف والاسم بالعربية والإنجليزية وتصنيف الاستخدام بالمصنع" : "Item code, names, and factory categorization"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-xs font-semibold">{isAr ? "رمز الصنف (SKU) *" : "SKU *"}</Label>
+                      <Input
+                        placeholder="مثال: RM-001, FG-100"
+                        {...form.register("sku")}
+                        className="mt-1 font-mono uppercase bg-white"
+                      />
+                      {form.formState.errors.sku && (
+                        <p className="text-rose-600 text-[11px] mt-1">{form.formState.errors.sku.message}</p>
+                      )}
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <Label className="text-xs font-semibold">{isAr ? "تصنيف الصنف بالمصنع *" : "Item Category *"}</Label>
+                      <select
+                        {...form.register("item_type")}
+                        className="mt-1 w-full h-10 px-3 py-2 text-xs rounded-md border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      >
+                        <option value="raw_material">خامة كيميائية أولية (Raw Material)</option>
+                        <option value="packaging">مواد تعبئة وتغليف (Packaging Material)</option>
+                        <option value="bulk_in_tank">سائل كيميائي سائب في تانك (Bulk in Tank)</option>
+                        <option value="finished_good">منتج تام معبأ وجاهز للبيع (Finished Good)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-semibold">{isAr ? "اسم الصنف (بالعربية) *" : "Arabic Name *"}</Label>
+                      <Input
+                        placeholder="مثال: حمض السلفونيك 96%"
+                        {...form.register("name_ar")}
+                        className="mt-1 bg-white"
+                      />
+                      {form.formState.errors.name_ar && (
+                        <p className="text-rose-600 text-[11px] mt-1">{form.formState.errors.name_ar.message}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-semibold">{isAr ? "اسم الصنف (بالإنجليزية) *" : "English Name *"}</Label>
+                      <Input
+                        placeholder="e.g. Linear Alkylbenzene Sulphonic Acid"
+                        {...form.register("name_en")}
+                        className="mt-1 bg-white font-sans"
+                      />
+                      {form.formState.errors.name_en && (
+                        <p className="text-rose-600 text-[11px] mt-1">{form.formState.errors.name_en.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">{isAr ? "مستودع التخزين الافتراضي" : "Default Warehouse"}</Label>
+                    <select
+                      {...form.register("default_warehouse_id")}
+                      className="mt-1 w-full h-10 px-3 py-2 text-xs rounded-md border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="">{isAr ? "-- اختر المستودع الافتراضي للصنف --" : "-- Select Warehouse --"}</option>
+                      {warehouses.map((w) => (
+                        <option key={w.id} value={w.id}>
+                          {isAr ? w.name_ar : w.name_en} ({w.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Technical & Chemical Properties Card */}
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <FlaskConical className="h-4 w-4 text-purple-600" />
+                    <span>{isAr ? "المقاييس الفنية والكيميائية ومعايير التعبئة" : "Technical & Packaging Specifications"}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-semibold">{isAr ? "الوحدة الأساسية بالمخزون *" : "Base Inventory Unit *"}</Label>
+                      <select
+                        {...form.register("base_unit")}
+                        className="mt-1 w-full h-10 px-3 py-2 text-xs rounded-md border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      >
+                        <option value="gram">جرام (للسوائل والمساحيق والخامات الكيميائية)</option>
+                        <option value="piece">حبة / قطعة (للكراتين والعبوات والأغطية)</option>
+                      </select>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {isAr ? "ملاحظة: 1 كجم = 1,000 جم، 1 طن = 1,000,000 جم" : "1 kg = 1,000 g, 1 ton = 1,000,000 g"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-semibold">{isAr ? "الكثافة النوعية (Density g/cm³)" : "Specific Density (g/cm³)"}</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        {...form.register("density")}
+                        className="mt-1 font-mono tabular-nums bg-white"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {isAr ? "تستخدم للتحويل بين الوزن (كجم) والحجم (لتر) في التنكات" : "Used for volume to weight conversion in tanks"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                    <div>
+                      <Label className="text-xs font-semibold">{isAr ? "عدد الحبات في الكرتون (للمنتج التام)" : "Pieces per Carton"}</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        {...form.register("pieces_per_carton")}
+                        className="mt-1 font-mono tabular-nums bg-white"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {isAr ? "افتراضي: 1 للقطع الفردية، أو عدد العبوات في كل كرتون شحن" : "E.g. 12 bottles per master carton"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-semibold">{isAr ? "وزن / حجم العبوة الفردية (بالجرام)" : "Volume per unit (Grams)"}</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        {...form.register("volume_per_unit_grams")}
+                        className="mt-1 font-mono tabular-nums bg-white"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {isAr ? "مثال: عبوة 1 لتر منظف تزن حوالي 1050 جرام" : "Single bottle net weight in grams"}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right 1 Col: Stock Alerts & Shelf Life */}
+            <div className="space-y-6">
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <span>{isAr ? "إدارة المخزون والتنبيهات" : "Stock & Reorder Parameters"}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div>
+                    <Label className="text-xs font-semibold">{isAr ? "حد إعادة الطلب (Reorder Point)" : "Reorder Point"}</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      {...form.register("reorder_point")}
+                      className="mt-1 font-mono tabular-nums bg-white font-bold"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {isAr
+                        ? "يظهر النظام تنبيهاً باللون البرتقالي عندما يقل الرصيد عن هذا الحد"
+                        : "Trigger warning badge when stock drops below this level"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">{isAr ? "مدة الصلاحية (بالأشهر)" : "Shelf Life (Months)"}</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      {...form.register("shelf_life_months")}
+                      className="mt-1 font-mono tabular-nums bg-white"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {isAr ? "تستخدم لحساب تاريخ انتهاء التشغيلات آلياً (افتراضي 24 شهر)" : "Auto calculates batch expiry date (default 24m)"}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-slate-800">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>{isAr ? "قواعد إدارة المخزون" : "Inventory Rule"}</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      {isAr
+                        ? "يتم تتبع تكلفة هذا الصنف بنظام الوارد أولاً صادر أولاً (FIFO) الصارم، ولا يمكن بيع أو استهلاك الصنف بسعر أقل من تكلفته دون تنبيه."
+                        : "Strict FIFO cost layers are automatically maintained for every GRN and Batch."}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -379,7 +997,7 @@ export function ItemsPage() {
                   filteredItems.map((item) => {
                     const isLowStock = item.reorder_point > 0 && item.current_stock <= item.reorder_point;
                     return (
-                      <TableRow key={item.id} className="hover:bg-slate-50/80">
+<TableRow key={item.id} className="hover:bg-slate-50/80">
                         <TableCell className="font-mono font-medium text-slate-900 tabular-nums">
                           {item.sku}
                         </TableCell>
@@ -460,280 +1078,6 @@ export function ItemsPage() {
         </CardContent>
       </Card>
 
-      {/* Add / Edit Item Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingItem
-                ? isAr ? "تعديل بيانات الصنف" : "Edit Item"
-                : isAr ? "إضافة صنف جديد لدليل المواد" : "Add New Item"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* SKU */}
-              <div className="space-y-1.5">
-                <Label htmlFor="sku">{isAr ? "رمز الصنف (SKU) *" : "SKU *"}</Label>
-                <Input
-                  id="sku"
-                  placeholder="e.g. RM-LABSA, PKG-GAL-5L"
-                  {...form.register("sku")}
-                  disabled={!!editingItem}
-                  className="font-mono uppercase"
-                />
-                {form.formState.errors.sku && (
-                  <p className="text-xs text-rose-600">{form.formState.errors.sku.message}</p>
-                )}
-              </div>
-
-              {/* Item Type */}
-              <div className="space-y-1.5">
-                <Label htmlFor="item_type">{isAr ? "نوع الصنف *" : "Item Type *"}</Label>
-                <select
-                  id="item_type"
-                  {...form.register("item_type")}
-                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  <option value="raw_material">{isAr ? "خامة كيميائية (Raw Material)" : "Raw Material"}</option>
-                  <option value="packaging">{isAr ? "مواد تعبئة وتغليف (Packaging)" : "Packaging"}</option>
-                  <option value="bulk_in_tank">{isAr ? "سائل سائب في التانك (Bulk WIP)" : "Bulk WIP"}</option>
-                  <option value="finished_good">{isAr ? "منتج تام جاهز للبيع (Finished Good)" : "Finished Good"}</option>
-                </select>
-              </div>
-
-              {/* Name AR */}
-              <div className="space-y-1.5">
-                <Label htmlFor="name_ar">{isAr ? "الاسم بالعربية *" : "Arabic Name *"}</Label>
-                <Input id="name_ar" placeholder="سائل غسيل صحون الأسياح 5 لتر" {...form.register("name_ar")} />
-                {form.formState.errors.name_ar && (
-                  <p className="text-xs text-rose-600">{form.formState.errors.name_ar.message}</p>
-                )}
-              </div>
-
-              {/* Name EN */}
-              <div className="space-y-1.5">
-                <Label htmlFor="name_en">{isAr ? "الاسم بالإنجليزية *" : "English Name *"}</Label>
-                <Input id="name_en" placeholder="Al-Asyah Dishwashing Liquid 5L" {...form.register("name_en")} />
-                {form.formState.errors.name_en && (
-                  <p className="text-xs text-rose-600">{form.formState.errors.name_en.message}</p>
-                )}
-              </div>
-
-              {/* Base Unit */}
-              <div className="space-y-1.5">
-                <Label htmlFor="base_unit">{isAr ? "وحدة القياس الأساسية *" : "Base Unit *"}</Label>
-                <select
-                  id="base_unit"
-                  {...form.register("base_unit")}
-                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  <option value="gram">{isAr ? "جرام (Gram) - للخامات والسوائل 1 لتر = 1 كجم = 1000 جم" : "Gram (Liquids/Powder)"}</option>
-                  <option value="piece">{isAr ? "حبة / قطعة (Piece) - للعبوات والكراتين والتام" : "Piece (Containers/Finished)"}</option>
-                </select>
-              </div>
-
-              {/* Density */}
-              <div className="space-y-1.5">
-                <Label htmlFor="density">
-                  {isAr ? "الكثافة النوعية (Density - كجم/لتر)" : "Density (Kg/L)"}
-                </Label>
-                <Input
-                  id="density"
-                  type="number"
-                  step="0.001"
-                  placeholder="1.000"
-                  {...form.register("density")}
-                />
-              </div>
-
-              {/* Pieces per carton */}
-              {watchItemType === "finished_good" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="pieces_per_carton">
-                    {isAr ? "عدد الحبات في الكرتون" : "Pieces Per Carton"}
-                  </Label>
-                  <Input
-                    id="pieces_per_carton"
-                    type="number"
-                    min="1"
-                    placeholder="4"
-                    {...form.register("pieces_per_carton")}
-                  />
-                </div>
-              )}
-
-              {/* Volume per unit (grams) */}
-              {watchItemType === "finished_good" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="volume_per_unit_grams">
-                    {isAr ? "وزن/حجم العبوة الواحدة (جرام)" : "Volume per unit (grams)"}
-                  </Label>
-                  <Input
-                    id="volume_per_unit_grams"
-                    type="number"
-                    step="1"
-                    placeholder="5000"
-                    {...form.register("volume_per_unit_grams")}
-                  />
-                </div>
-              )}
-
-              {/* Reorder Point */}
-              <div className="space-y-1.5">
-                <Label htmlFor="reorder_point">
-                  {isAr ? "حد إعادة الطلب (Reorder Alert)" : "Reorder Point Alert"}
-                </Label>
-                <Input
-                  id="reorder_point"
-                  type="number"
-                  step="any"
-                  placeholder="0"
-                  {...form.register("reorder_point")}
-                />
-              </div>
-
-              {/* Shelf Life Months */}
-              <div className="space-y-1.5">
-                <Label htmlFor="shelf_life_months">
-                  {isAr ? "فترة الصلاحية (أشهر)" : "Shelf Life (Months)"}
-                </Label>
-                <Input
-                  id="shelf_life_months"
-                  type="number"
-                  min="1"
-                  placeholder="24"
-                  {...form.register("shelf_life_months")}
-                />
-              </div>
-
-              {/* Default Warehouse */}
-              <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="default_warehouse_id">
-                  {isAr ? "المستودع الافتراضي للصنف" : "Default Warehouse"}
-                </Label>
-                <select
-                  id="default_warehouse_id"
-                  {...form.register("default_warehouse_id")}
-                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  <option value="">{isAr ? "-- اختر المستودع الافتراضي --" : "-- Select Warehouse --"}</option>
-                  {warehouses.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {isAr ? w.name_ar : w.name_en} ({w.warehouse_type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-slate-100">
-              <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                {isAr ? "إلغاء" : "Cancel"}
-              </Button>
-              <Button type="submit" disabled={saveMutation.isPending} className="bg-slate-900 text-white gap-2">
-                {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{editingItem ? (isAr ? "حفظ التعديلات" : "Update Item") : (isAr ? "إضافة الصنف" : "Create Item")}</span>
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* FIFO Layers Viewer Dialog */}
-      <Dialog open={!!selectedFifoItem} onOpenChange={(open) => !open && setSelectedFifoItem(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-sky-600" />
-              <span>
-                {isAr ? "طبقات التكلفة (FIFO Layers) للصنف:" : "FIFO Cost Layers:"}{" "}
-                <span className="font-mono text-sky-700">{selectedFifoItem?.sku}</span>
-              </span>
-            </DialogTitle>
-            <p className="text-sm text-slate-500">
-              {isAr ? selectedFifoItem?.name_ar : selectedFifoItem?.name_en}
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="rounded-md border border-slate-200 overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="font-semibold">{isAr ? "رقم الباتش" : "Batch #"}</TableHead>
-                    <TableHead className="font-semibold">{isAr ? "المستودع" : "Warehouse"}</TableHead>
-                    <TableHead className="font-semibold">{isAr ? "تاريخ الطبقة" : "Layer Date"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isAr ? "الكمية المتبقية" : "Remaining"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isAr ? "سعر الوحدة (بدون ضريبة)" : "Unit Cost (ex VAT)"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isAr ? "إجمالي قيمة الطبقة" : "Total Value"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isAr ? "الحالة" : "Status"}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoadingFifo ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-6">
-                        <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400" />
-                      </TableCell>
-                    </TableRow>
-                  ) : fifoLayers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
-                        {isAr ? "لا توجد طبقات FIFO مسجلة لهذا الصنف بعد" : "No FIFO layers recorded yet"}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    fifoLayers.map((layer) => {
-                      const totalVal = layer.remaining_qty * layer.unit_cost_ex_vat;
-                      return (
-                        <TableRow key={layer.id} className={layer.is_closed ? "opacity-60 bg-slate-50/50" : ""}>
-                          <TableCell className="font-mono font-medium text-slate-900">
-                            {layer.batch_number}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {(layer as any).warehouse?.name_ar || "-"}
-                          </TableCell>
-                          <TableCell className="text-xs text-slate-500">
-                            {new Date(layer.layer_date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
-                          </TableCell>
-                          <TableCell className="text-end font-semibold tabular-nums text-slate-900">
-                            {formatQuantity(layer.remaining_qty, selectedFifoItem?.base_unit || "gram")}
-                          </TableCell>
-                          <TableCell className="text-end font-mono tabular-nums text-slate-700">
-                            {layer.unit_cost_ex_vat.toFixed(4)} ر.س
-                          </TableCell>
-                          <TableCell className="text-end font-mono font-semibold tabular-nums text-emerald-700">
-                            {totalVal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {layer.is_closed || layer.remaining_qty <= 0 ? (
-                              <Badge variant="outline" className="text-slate-400 text-xs">
-                                {isAr ? "مقفلة / مستهلكة" : "Closed"}
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-emerald-600 text-white text-xs">
-                                {isAr ? "مفتوحة" : "Active"}
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedFifoItem(null)}>
-              {isAr ? "إغلاق" : "Close"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

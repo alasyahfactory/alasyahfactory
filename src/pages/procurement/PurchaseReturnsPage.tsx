@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -22,7 +21,11 @@ import {
   Loader2, 
   FileText, 
   ArrowLeftRight,
-  Eye
+  Eye,
+  ArrowRight,
+  Printer,
+  Download,
+  Share2
 } from "lucide-react";
 
 export function PurchaseReturnsPage() {
@@ -218,6 +221,678 @@ export function PurchaseReturnsPage() {
     );
   });
 
+  // In-Page Canvas View for Debit Note Creation (Eliminating modal popup)
+  if (isCreateOpen) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setIsCreateOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لإشعارات المدين" : "Back to Debit Notes"}</span>
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                <RotateCcw className="w-5 h-5 text-amber-600" />
+                <span>{isAr ? "إصدار إشعار مدين مدمج للمورد (Debit Note)" : "Issue Integrated Debit Note"}</span>
+              </h1>
+              <p className="text-xs text-slate-500">
+                {isAr ? "مطالبة المورد بكامل القيمة وفصل الخصم المخزني الفعلي عن تعويض الجزء المستهلك" : "Claim full batch value and split inventory from defect revenue"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => submitDebitNoteMutation.mutate()}
+              disabled={submitDebitNoteMutation.isPending || !supplierId || claimedQty <= 0}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-5 gap-2"
+            >
+              {submitDebitNoteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              <span>{isAr ? "ترحيل إشعار المدين والقيد المزدوج" : "Post Debit Note"}</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Body in Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Form Fields Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">
+                  {isAr ? "بيانات المورد والخامة المعيبة" : "Supplier & Defective Material Details"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Supplier */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dn_supplier">{isAr ? "المورد *" : "Supplier *"}</Label>
+                    <select
+                      id="dn_supplier"
+                      value={supplierId}
+                      onChange={(e) => setSupplierId(e.target.value)}
+                      className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
+                    >
+                      <option value="">{isAr ? "-- اختر المورد --" : "-- Select Supplier --"}</option>
+                      {suppliers.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name_ar}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Item */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dn_item">{isAr ? "الصنف المعيب *" : "Defective Item *"}</Label>
+                    <select
+                      id="dn_item"
+                      value={selectedItemId}
+                      onChange={(e) => {
+                        setSelectedItemId(e.target.value);
+                        setSelectedLayerId("");
+                      }}
+                      className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
+                    >
+                      <option value="">{isAr ? "-- اختر الصنف --" : "-- Select Item --"}</option>
+                      {items.map((it) => (
+                        <option key={it.id} value={it.id}>
+                          {it.sku} - {it.name_ar}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Original Layer */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dn_layer">{isAr ? "طبقة الـ FIFO الأصلية للباتش" : "Original FIFO Layer"}</Label>
+                    <select
+                      id="dn_layer"
+                      value={selectedLayerId}
+                      onChange={(e) => handleLayerSelect(e.target.value)}
+                      disabled={!selectedItemId}
+                      className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
+                    >
+                      <option value="">{isAr ? "-- اختر باتش الطبقة --" : "-- Select Batch --"}</option>
+                      {layers.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.batch_number} - متبقي {l.remaining_qty.toLocaleString("en-US")} {selectedItem?.base_unit === "gram" ? "جم" : "حبة"} (سعر: {l.unit_cost_ex_vat} ر.س)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Claimed Qty */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dn_claimed">
+                      {isAr ? "إجمالي الكمية المطالب بها بالكامل *" : "Total Claimed Qty *"}
+                    </Label>
+                    <Input
+                      id="dn_claimed"
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={claimedQty || ""}
+                      onChange={(e) => setClaimedQty(Number(e.target.value))}
+                      placeholder="0"
+                      className="h-9 font-mono"
+                    />
+                  </div>
+
+                  {/* Unit Price */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dn_price">{isAr ? "سعر شراء الوحدة (بدون ضريبة) *" : "Unit Price (ex VAT) *"}</Label>
+                    <Input
+                      id="dn_price"
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={unitPriceExVat || ""}
+                      onChange={(e) => setUnitPriceExVat(Number(e.target.value))}
+                      placeholder="0.00"
+                      className="h-9 font-mono"
+                    />
+                  </div>
+
+                  {/* Defect Reason */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dn_reason">{isAr ? "سبب الإرجاع وملاحظات العيب" : "Defect Reason"}</Label>
+                    <Input
+                      id="dn_reason"
+                      value={defectReason}
+                      onChange={(e) => setDefectReason(e.target.value)}
+                      placeholder={isAr ? "ترسيب، اختلاف تركيز، كسر أغطية..." : "Defective viscosity..."}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Live Calculation Preview Card */}
+            {claimedQty > 0 && unitPriceExVat > 0 && (
+              <Card className="border-amber-200 bg-amber-50/30 shadow-sm">
+                <CardHeader className="pb-3 border-b border-amber-100">
+                  <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <ArrowLeftRight className="w-4 h-4 text-sky-600" />
+                    <span>{isAr ? "المعالجة المحاسبية التلقائية وتوزيع المطالبة (SPEC Section 6.4)" : "Accounting & Stock Split:"}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-1">
+                      <span className="text-slate-500 block font-medium">
+                        {isAr ? "الجزء الفعلي المتبقي بالمستودع (يُخصم من المخزون 1131):" : "Physical Stock Deducted (1131):"}
+                      </span>
+                      <span className="text-base font-bold font-mono text-slate-900 block tabular-nums">
+                        {physicalDeductionQty.toLocaleString("en-US")} {selectedItem?.base_unit === "gram" ? "جم" : "حبة"}
+                      </span>
+                      <span className="text-xs font-mono text-slate-500 block">
+                        = {stockDeductedValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                      </span>
+                    </div>
+
+                    <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-1">
+                      <span className="text-slate-500 block font-medium">
+                        {isAr ? "الجزء المستهلك فعلياً (تعويض في 4201 دون مساس المخزون):" : "Consumed Defect Compensation (4201):"}
+                      </span>
+                      <span className="text-base font-bold font-mono text-emerald-700 block tabular-nums">
+                        {consumedCompensationQty.toLocaleString("en-US")} {selectedItem?.base_unit === "gram" ? "جم" : "حبة"}
+                      </span>
+                      <span className="text-xs font-mono text-emerald-600 block">
+                        = {consumedCompensationValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Side Column: Total & Submit */}
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm sticky top-6">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-amber-600" />
+                  <span>{isAr ? "إجمالي المطالبة المالية" : "Total Claim"}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="p-4 bg-slate-900 text-white rounded-xl text-center space-y-1">
+                  <span className="text-xs text-slate-400 block">
+                    {isAr ? "كامل المبلغ المخصوم من ذمة المورد 2101 (شامل 15% ضريبة):" : "Total Deducted from Supplier (inc VAT):"}
+                  </span>
+                  <span className="text-2xl font-bold font-mono tabular-nums block text-amber-400">
+                    {totalClaimedIncVat.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                  </span>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <Button
+                    onClick={() => submitDebitNoteMutation.mutate()}
+                    disabled={submitDebitNoteMutation.isPending || !supplierId || claimedQty <= 0}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white min-h-[46px] font-bold gap-2"
+                  >
+                    {submitDebitNoteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                    <span>{isAr ? "ترحيل إشعار المدين والقيد المزدوج" : "Post Debit Note"}</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="w-full"
+                  >
+                    {isAr ? "إلغاء" : "Cancel"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const handlePrintDebitNote = (dn: PurchaseReturn, isPdf = false) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const docTitle = isPdf ? `إشعار_مدين_${dn.return_number}` : `إشعار مدين للمورد - ${dn.return_number}`;
+    const vat = Math.max(0, dn.total_claimed_inc_vat - (dn.stock_deducted_value + dn.consumed_compensation_value));
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
+        <head>
+          <meta charset="utf-8" />
+          <title>${docTitle}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "IBM Plex Sans Arabic", sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 0; font-size: 12px; }
+            .header-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+            .badge { display: inline-block; padding: 4px 14px; background: #0f172a; color: #fff; font-weight: bold; font-size: 15px; border-radius: 4px; }
+            .meta-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; background: #f8fafc; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { border: 1px solid #cbd5e1; background: #f1f5f9; padding: 8px; font-size: 11px; font-weight: bold; }
+            td { border: 1px solid #cbd5e1; padding: 8px; font-size: 12px; }
+            .tabular { font-family: monospace; font-variant-numeric: tabular-nums; }
+            .totals-box { margin-top: 20px; margin-right: auto; width: 340px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; padding: 12px; font-size: 12px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 4px 0; }
+            .totals-row.grand { border-top: 2px solid #0f172a; margin-top: 6px; padding-top: 8px; font-weight: bold; font-size: 14px; }
+            .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; margin-top: 40px; text-align: center; }
+            .sig-box { border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-grid">
+            <div style="text-align: ${isAr ? "right" : "left"};">
+              <div style="font-weight: bold; font-size: 15px;">مصنع الأسياح للمنتجات الكيميائية</div>
+              <div style="font-size: 11px; color: #64748b;">سجل تجاري: 1010000000 | الرقم الضريبي: 300000000000003</div>
+              <div style="font-size: 11px; color: #64748b;">إدارة المشتريات والمستودعات</div>
+            </div>
+            <div style="text-align: center;">
+              <div class="badge">إشعار مدين للمورد (Debit Note)</div>
+              <div style="font-size: 13px; font-family: monospace; font-weight: bold; margin-top: 4px;">${dn.return_number}</div>
+            </div>
+            <div style="text-align: ${isAr ? "left" : "right"}; direction: ltr;">
+              <div style="font-weight: bold; font-size: 14px;">Al-Asyah Chemical Factory</div>
+              <div style="font-size: 11px; color: #64748b;">Supplier Debit Note</div>
+              <div style="font-size: 11px; color: #64748b;">Date: ${dn.return_date}</div>
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <div><strong>المورد:</strong> <span>${dn.supplier?.name_ar || "-"}</span></div>
+            <div><strong>رقم الإشعار:</strong> <span class="tabular font-bold">${dn.return_number}</span></div>
+            <div><strong>تاريخ الإصدار:</strong> <span class="tabular">${dn.return_date}</span></div>
+            <div><strong>سبب وملاحظات الإشعار:</strong> <span>${dn.notes || "مرتجع مواد خام / بضاعة غير مطابقة للمواصفات"}</span></div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">#</th>
+                <th>البيان / الوصف</th>
+                <th style="width: 110px; text-align: right;">المخصوم مخزنياً</th>
+                <th style="width: 110px; text-align: right;">تعويض المستهلك</th>
+                <th style="width: 130px; text-align: right;">الإجمالي شامل الضريبة</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align: center;">1</td>
+                <td><strong>مطالبة مرتجع مواد وتالف قبان لحساب المورد (${dn.supplier?.name_ar || "-"})</strong></td>
+                <td class="tabular" style="text-align: right;">${dn.stock_deducted_value.toFixed(2)} ر.س</td>
+                <td class="tabular" style="text-align: right;">${dn.consumed_compensation_value.toFixed(2)} ر.س</td>
+                <td class="tabular font-bold" style="text-align: right;">${dn.total_claimed_inc_vat.toFixed(2)} ر.س</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="totals-box">
+            <div class="totals-row">
+              <span>المخصوم من المخزون (1131):</span>
+              <span class="tabular">${dn.stock_deducted_value.toFixed(2)} ر.س</span>
+            </div>
+            <div class="totals-row">
+              <span>تعويض المستهلك بالإنتاج (4201):</span>
+              <span class="tabular">${dn.consumed_compensation_value.toFixed(2)} ر.س</span>
+            </div>
+            <div class="totals-row">
+              <span>ضريبة القيمة المضافة المستردة (15%):</span>
+              <span class="tabular">${vat.toFixed(2)} ر.س</span>
+            </div>
+            <div class="totals-row grand">
+              <span>صافي المبلغ المخصوم من ذمة المورد (2101):</span>
+              <span class="tabular">${dn.total_claimed_inc_vat.toFixed(2)} ر.س</span>
+            </div>
+          </div>
+
+          <div class="signatures">
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">مسؤول المشتريات</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">أمين المستودع</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">اعتماد المدير المالي</div>
+              <div>الختم والتوقيع: ............................</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); window.close(); };
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
+  const handleShareDebitNoteWhatsapp = (dn: PurchaseReturn) => {
+    const text = encodeURIComponent(
+      `*إشعار مدين للمورد (Debit Note) - مصنع الأسياح للكيماويات*\n` +
+      `رقم الإشعار: ${dn.return_number}\n` +
+      `المورد: ${dn.supplier?.name_ar || ''}\n` +
+      `التاريخ: ${dn.return_date}\n` +
+      `المخصوم مخزنياً: ${dn.stock_deducted_value.toFixed(2)} ر.س\n` +
+      `إجمالي المطالبة شامل الضريبة: ${dn.total_claimed_inc_vat.toFixed(2)} ر.س\n` +
+      `_إدارة المشتريات والمستودعات - مصنع الأسياح_`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+  };
+
+  // In-Page Canvas View for Debit Note Details Inspection (Material Design 3)
+  if (selectedReturn) {
+    const vatAmount = selectedReturn.total_claimed_inc_vat - (selectedReturn.stock_deducted_value + selectedReturn.consumed_compensation_value);
+    const handleShareWhatsapp = () => {
+      const text = encodeURIComponent(
+        `إشعار مدين للمورد (Debit Note)\n` +
+        `رقم الإشعار: ${selectedReturn.return_number}\n` +
+        `المورد: ${selectedReturn.supplier?.name_ar || ''}\n` +
+        `تاريخ الإشعار: ${new Date(selectedReturn.return_date).toLocaleDateString("ar-SA")}\n` +
+        `إجمالي المطالبة شامل الضريبة: ${selectedReturn.total_claimed_inc_vat.toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س\n` +
+        `مصنع العاصية للمنتجات الكيميائية`
+      );
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+    };
+
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm print:hidden">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setSelectedReturn(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لسجل إشعارات المدين" : "Back to Debit Notes"}</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-bold font-mono text-slate-900">
+                  {selectedReturn.return_number}
+                </h1>
+                <Badge className="bg-emerald-600 text-white text-xs">
+                  {isAr ? "إشعار مدين مرحّل" : "Posted Debit Note"}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500">
+                {isAr ? "تفاصيل مطالبة المورد والأثر المخزني والمحاسبي المتكامل" : "Supplier claim details & integrated stock/accounting impact"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintDebitNote(selectedReturn, false)}
+              className="gap-1.5"
+            >
+              <Printer className="w-4 h-4 text-slate-600" />
+              <span>{isAr ? "طباعة A4" : "Print A4"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintDebitNote(selectedReturn, true)}
+              className="gap-1.5"
+            >
+              <Download className="w-4 h-4 text-sky-600" />
+              <span>{isAr ? "حفظ PDF" : "Save PDF"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleShareDebitNoteWhatsapp(selectedReturn)}
+              className="gap-1.5 text-emerald-700 hover:text-emerald-800"
+            >
+              <Share2 className="w-4 h-4 text-emerald-600" />
+              <span>{isAr ? "مشاركة واتساب" : "WhatsApp"}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedReturn(null)}
+            >
+              {isAr ? "إغلاق" : "Close"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Printable Document Container */}
+        <div className="space-y-6">
+          {/* Main Info Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-slate-200 shadow-sm md:col-span-2">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                  <span>{isAr ? "بيانات المورد والإشعار" : "Supplier & DN Information"}</span>
+                  <span className="text-xs font-mono font-normal text-slate-500">
+                    {new Date(selectedReturn.return_date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-xs text-slate-500 block">{isAr ? "اسم المورد:" : "Supplier:"}</span>
+                  <span className="font-bold text-slate-900 block">{selectedReturn.supplier?.name_ar}</span>
+                  {selectedReturn.supplier?.name_en && (
+                    <span className="text-xs text-slate-500 font-mono block">{selectedReturn.supplier?.name_en}</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 block">{isAr ? "الرقم الضريبي للمورد:" : "Supplier VAT #:"}</span>
+                  <span className="font-mono text-slate-800 block">
+                    {selectedReturn.supplier?.tax_number || (isAr ? "غير مسجل" : "N/A")}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 block">{isAr ? "تاريخ الإصدار والترحيل:" : "Posting Date:"}</span>
+                  <span className="text-slate-800 font-mono block">
+                    {new Date(selectedReturn.return_date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 block">{isAr ? "الحالة المحاسبية:" : "Status:"}</span>
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isAr ? "قيد اليومية متوازن ومرحّل" : "Balanced & Posted"}</span>
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm bg-slate-900 text-white">
+              <CardHeader className="pb-2 border-b border-slate-800">
+                <CardTitle className="text-sm font-bold text-slate-200">
+                  {isAr ? "صافي المطالبة المالية" : "Financial Claim Total"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div>
+                  <span className="text-xs text-slate-400 block">
+                    {isAr ? "إجمالي المبلغ المخصوم من المورد:" : "Total Deducted (Inc VAT):"}
+                  </span>
+                  <span className="text-2xl font-bold font-mono text-amber-400 block tabular-nums">
+                    {selectedReturn.total_claimed_inc_vat.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 space-y-1 text-xs">
+                  <div className="flex justify-between text-slate-300">
+                    <span>{isAr ? "خصم المخزون (1131):" : "Stock Part:"}</span>
+                    <span className="font-mono">{selectedReturn.stock_deducted_value.toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span>{isAr ? "تعويض المستهلك (4201):" : "Compensation:"}</span>
+                    <span className="font-mono">{selectedReturn.consumed_compensation_value.toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span>{isAr ? "ضريبة القيمة المضافة (15%):" : "VAT (15%):"}</span>
+                    <span className="font-mono">{Math.max(0, vatAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Lines Table Card */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-bold text-slate-800">
+                {isAr ? "الأصناف المرتجعة والمطالب بها" : "Returned & Claimed Items"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="font-semibold">{isAr ? "الصنف" : "Item"}</TableHead>
+                      <TableHead className="w-28 text-center font-semibold">{isAr ? "الكمية المطالب بها" : "Claimed Qty"}</TableHead>
+                      <TableHead className="w-28 text-center font-semibold">{isAr ? "المخصوم مخزنياً" : "Deducted Stock"}</TableHead>
+                      <TableHead className="w-28 text-center font-semibold">{isAr ? "تعويض استهلاك" : "Compensated Qty"}</TableHead>
+                      <TableHead className="w-32 text-end font-semibold">{isAr ? "سعر الشراء (غير شامل)" : "Unit Price"}</TableHead>
+                      <TableHead className="w-32 text-end font-semibold">{isAr ? "إجمالي المطالبة" : "Total Ex VAT"}</TableHead>
+                      <TableHead className="font-semibold">{isAr ? "سبب العيب والملاحظات" : "Defect Reason"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedReturn.lines && selectedReturn.lines.length > 0 ? (
+                      selectedReturn.lines.map((line) => (
+                        <TableRow key={line.id}>
+                          <TableCell>
+                            <span className="font-medium text-slate-900 block">{line.item?.name_ar}</span>
+                            <span className="text-xs font-mono text-slate-500 block">{line.item?.sku}</span>
+                          </TableCell>
+                          <TableCell className="text-center font-mono font-medium">
+                            {line.claimed_qty.toLocaleString("en-US")} {line.item?.base_unit === "gram" ? "جم" : "حبة"}
+                          </TableCell>
+                          <TableCell className="text-center font-mono text-slate-700">
+                            {line.remaining_in_stock_qty?.toLocaleString("en-US") || "0"}
+                          </TableCell>
+                          <TableCell className="text-center font-mono text-emerald-700 font-medium">
+                            {line.consumed_qty?.toLocaleString("en-US") || "0"}
+                          </TableCell>
+                          <TableCell className="text-end font-mono">
+                            {line.unit_price_ex_vat?.toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س
+                          </TableCell>
+                          <TableCell className="text-end font-mono font-bold text-slate-900">
+                            {line.total_ex_vat?.toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-600">
+                            {line.reason || (isAr ? "خامات معيبة / مطابقة المواصفات" : "Defective materials")}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6 text-slate-500">
+                          {isAr ? "لا توجد أسطر مفصلة" : "No item lines"}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Double-Entry Accounting Card (SPEC 6.4) */}
+          <Card className="border-amber-200 bg-amber-50/20 shadow-sm">
+            <CardHeader className="pb-3 border-b border-amber-100">
+              <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <ArrowLeftRight className="w-4 h-4 text-sky-600" />
+                <span>{isAr ? "الأثر المحاسبي المتوازن للإشعار المدين (قيد اليومية التلقائي)" : "Automated Double-Entry Journal Entry"}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs">
+                <div className="grid grid-cols-12 bg-slate-100 p-2.5 font-semibold text-slate-700 border-b border-slate-200">
+                  <div className="col-span-2">{isAr ? "رمز الحساب" : "Account Code"}</div>
+                  <div className="col-span-6">{isAr ? "اسم الحساب / الشرح" : "Account Name / Memo"}</div>
+                  <div className="col-span-2 text-end">{isAr ? "مدين (Debit)" : "Debit"}</div>
+                  <div className="col-span-2 text-end">{isAr ? "دائن (Credit)" : "Credit"}</div>
+                </div>
+
+                {/* Line 1: 2101 Supplier Payable Debit */}
+                <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 items-center">
+                  <div className="col-span-2 font-mono font-bold text-slate-800">2101</div>
+                  <div className="col-span-6">
+                    <span className="font-semibold text-slate-900 block">{isAr ? "ذمم الموردين (حساب المورد)" : "Accounts Payable"}</span>
+                    <span className="text-slate-500 text-[11px] block">{isAr ? "خصم كامل قيمة المطالبة شاملة الضريبة" : "Full claim deduction inc VAT"}</span>
+                  </div>
+                  <div className="col-span-2 text-end font-mono font-bold text-sky-700">
+                    {selectedReturn.total_claimed_inc_vat.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                  </div>
+                  <div className="col-span-2 text-end font-mono text-slate-400">-</div>
+                </div>
+
+                {/* Line 2: 1131 Raw Materials Stock Credit */}
+                <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 items-center bg-slate-50/50">
+                  <div className="col-span-2 font-mono font-bold text-slate-800">1131</div>
+                  <div className="col-span-6">
+                    <span className="font-semibold text-slate-900 block">{isAr ? "مخزون الخامات ومواد التعبئة" : "Raw Materials Inventory"}</span>
+                    <span className="text-slate-500 text-[11px] block">{isAr ? "تخفيض تكلفة الكمية المرتجعة فعلياً من المستودع" : "Physical stock return reduction"}</span>
+                  </div>
+                  <div className="col-span-2 text-end font-mono text-slate-400">-</div>
+                  <div className="col-span-2 text-end font-mono font-bold text-slate-900">
+                    {selectedReturn.stock_deducted_value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                  </div>
+                </div>
+
+                {/* Line 3: 4201 Defect Compensation Revenue Credit */}
+                {selectedReturn.consumed_compensation_value > 0 && (
+                  <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 items-center">
+                    <div className="col-span-2 font-mono font-bold text-slate-800">4201</div>
+                    <div className="col-span-6">
+                      <span className="font-semibold text-emerald-800 block">{isAr ? "إيرادات تعويض عيوب خامات الموردين" : "Supplier Defect Compensation Revenue"}</span>
+                      <span className="text-slate-500 text-[11px] block">{isAr ? "إثبات تعويض الجزء المستهلك بالإنتاج دون لمس المخزون" : "Consumed batch compensation without touching stock"}</span>
+                    </div>
+                    <div className="col-span-2 text-end font-mono text-slate-400">-</div>
+                    <div className="col-span-2 text-end font-mono font-bold text-emerald-700">
+                      {selectedReturn.consumed_compensation_value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                    </div>
+                  </div>
+                )}
+
+                {/* Line 4: 2110 Input VAT Recoverable Credit */}
+                <div className="grid grid-cols-12 p-2.5 items-center bg-slate-50/50">
+                  <div className="col-span-2 font-mono font-bold text-slate-800">2110</div>
+                  <div className="col-span-6">
+                    <span className="font-semibold text-slate-900 block">{isAr ? "ضريبة القيمة المضافة المستردة (مدخلات)" : "Recoverable Input VAT"}</span>
+                    <span className="text-slate-500 text-[11px] block">{isAr ? "تسوية الضريبة المستردة بنسبة 15%" : "15% Input VAT reversal"}</span>
+                  </div>
+                  <div className="col-span-2 text-end font-mono text-slate-400">-</div>
+                  <div className="col-span-2 text-end font-mono font-bold text-slate-900">
+                    {Math.max(0, vatAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -295,7 +970,7 @@ export function PurchaseReturnsPage() {
                   <TableHead className="w-36 text-end font-semibold">{isAr ? "تعويض المستهلك (4201)" : "Compensation"}</TableHead>
                   <TableHead className="w-36 text-end font-semibold">{isAr ? "إجمالي المطالبة شامل الضريبة" : "Total Claim (inc VAT)"}</TableHead>
                   <TableHead className="w-24 text-center font-semibold">{isAr ? "الحالة" : "Status"}</TableHead>
-                  <TableHead className="w-20 text-center font-semibold">{isAr ? "معاينة" : "View"}</TableHead>
+                  <TableHead className="w-36 text-center font-semibold">{isAr ? "الإجراءات" : "Actions"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -346,9 +1021,44 @@ export function PurchaseReturnsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button variant="ghost" size="sm" onClick={() => setSelectedReturn(dn)} className="text-xs text-sky-700">
-                          <Eye className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedReturn(dn)}
+                            className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900"
+                            title={isAr ? "معاينة إشعار المدين" : "View"}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintDebitNote(dn, false)}
+                            className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
+                            title={isAr ? "طباعة A4" : "Print A4"}
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintDebitNote(dn, true)}
+                            className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
+                            title={isAr ? "حفظ PDF" : "Save PDF"}
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleShareDebitNoteWhatsapp(dn)}
+                            className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
+                            title={isAr ? "مشاركة واتساب" : "WhatsApp"}
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -360,174 +1070,6 @@ export function PurchaseReturnsPage() {
       </Card>
 
       {/* Create Debit Note Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <RotateCcw className="w-5 h-5 text-amber-600" />
-              <span>{isAr ? "إصدار إشعار مدين مدمج للمورد (Debit Note)" : "Issue Integrated Debit Note"}</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-5 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Supplier */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dn_supplier">{isAr ? "المورد *" : "Supplier *"}</Label>
-                <select
-                  id="dn_supplier"
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                  className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
-                >
-                  <option value="">{isAr ? "-- اختر المورد --" : "-- Select Supplier --"}</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name_ar}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Item */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dn_item">{isAr ? "الصنف المعيب *" : "Defective Item *"}</Label>
-                <select
-                  id="dn_item"
-                  value={selectedItemId}
-                  onChange={(e) => {
-                    setSelectedItemId(e.target.value);
-                    setSelectedLayerId("");
-                  }}
-                  className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
-                >
-                  <option value="">{isAr ? "-- اختر الصنف --" : "-- Select Item --"}</option>
-                  {items.map((it) => (
-                    <option key={it.id} value={it.id}>
-                      {it.sku} - {it.name_ar}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Original Layer */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dn_layer">{isAr ? "طبقة الـ FIFO الأصلية للباتش" : "Original FIFO Layer"}</Label>
-                <select
-                  id="dn_layer"
-                  value={selectedLayerId}
-                  onChange={(e) => handleLayerSelect(e.target.value)}
-                  disabled={!selectedItemId}
-                  className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
-                >
-                  <option value="">{isAr ? "-- اختر باتش الطبقة --" : "-- Select Batch --"}</option>
-                  {layers.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.batch_number} - متبقي {l.remaining_qty.toLocaleString("en-US")} {selectedItem?.base_unit === "gram" ? "جم" : "حبة"} (سعر: {l.unit_cost_ex_vat} ر.س)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Claimed Qty */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dn_claimed">
-                  {isAr ? "إجمالي الكمية المطالب بها بالكامل *" : "Total Claimed Qty *"}
-                </Label>
-                <Input
-                  id="dn_claimed"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={claimedQty || ""}
-                  onChange={(e) => setClaimedQty(Number(e.target.value))}
-                  placeholder="0"
-                  className="h-9 font-mono"
-                />
-              </div>
-
-              {/* Unit Price */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dn_price">{isAr ? "سعر شراء الوحدة (بدون ضريبة) *" : "Unit Price (ex VAT) *"}</Label>
-                <Input
-                  id="dn_price"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={unitPriceExVat || ""}
-                  onChange={(e) => setUnitPriceExVat(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="h-9 font-mono"
-                />
-              </div>
-
-              {/* Defect Reason */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dn_reason">{isAr ? "سبب الإرجاع وملاحظات العيب" : "Defect Reason"}</Label>
-                <Input
-                  id="dn_reason"
-                  value={defectReason}
-                  onChange={(e) => setDefectReason(e.target.value)}
-                  placeholder={isAr ? "ترسيب، اختلاف تركيز، كسر أغطية..." : "Defective viscosity..."}
-                  className="h-9"
-                />
-              </div>
-            </div>
-
-            {/* Live Calculation Preview Card */}
-            {claimedQty > 0 && unitPriceExVat > 0 && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
-                <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <ArrowLeftRight className="w-4 h-4 text-sky-600" />
-                  <span>{isAr ? "المعالجة المحاسبية التلقائية وتوزيع المطالبة:" : "Accounting & Stock Split:"}</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 bg-white border border-slate-200 rounded">
-                    <span className="text-slate-500 block">{isAr ? "الجزء الفعلي المتبقي بالمستودع (يُخصم من المخزون 1131):" : "Physical Stock Deducted (1131):"}</span>
-                    <span className="text-sm font-bold font-mono text-slate-900 block mt-1 tabular-nums">
-                      {physicalDeductionQty.toLocaleString("en-US")} {selectedItem?.base_unit === "gram" ? "جم" : "حبة"}
-                      {" = "}
-                      {stockDeductedValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-white border border-slate-200 rounded">
-                    <span className="text-slate-500 block">{isAr ? "الجزء المستهلك فعلياً (تعويض في 4201 دون مساس المخزون):" : "Consumed Defect Compensation (4201):"}</span>
-                    <span className="text-sm font-bold font-mono text-emerald-700 block mt-1 tabular-nums">
-                      {consumedCompensationQty.toLocaleString("en-US")} {selectedItem?.base_unit === "gram" ? "جم" : "حبة"}
-                      {" = "}
-                      {consumedCompensationValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                    </span>
-                  </div>
-                </div>
-
-                {/* Final Claim */}
-                <div className="flex justify-between items-center p-3 bg-slate-900 text-white rounded text-xs font-mono">
-                  <span>{isAr ? "كامل المبلغ المخصوم من ذمة المورد 2101 (شامل 15% ضريبة):" : "Total Deducted from Supplier (inc VAT):"}</span>
-                  <span className="text-base font-bold tabular-nums">
-                    {totalClaimedIncVat.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="pt-4 border-t border-slate-100">
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-              {isAr ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
-              onClick={() => submitDebitNoteMutation.mutate()}
-              disabled={submitDebitNoteMutation.isPending || !supplierId || claimedQty <= 0}
-              className="bg-slate-900 text-white gap-2"
-            >
-              {submitDebitNoteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-              <span>{isAr ? "ترحيل إشعار المدين والقيد المزدوج" : "Post Debit Note"}</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

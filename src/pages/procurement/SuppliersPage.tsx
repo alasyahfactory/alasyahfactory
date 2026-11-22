@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Building2, Search, Phone, Mail, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus,
+  ArrowRight, Building2, Search, Phone, Mail, FileText, Loader2, CheckCircle2 } from "lucide-react";
 
 const supplierSchema = z.object({
   name_ar: z.string().min(2, "اسم المورد بالعربية مطلوب"),
@@ -151,6 +151,157 @@ export function SuppliersPage() {
       (s.contact_phone && s.contact_phone.includes(q))
     );
   });
+
+
+  // Full-page in-place Canvas for Adding / Editing a Supplier
+  if (isDialogOpen) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setIsDialogOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لقائمة الموردين" : "Back to Suppliers"}</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-sky-600" />
+                <span>
+                  {editingSupplier
+                    ? isAr ? "تعديل بيانات المورد" : "Edit Supplier"
+                    : isAr ? "إضافة مورد جديد" : "Add New Supplier"}
+                </span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isAr ? "بيانات المورد الرسمية، الرقم الضريبي لـ ZATCA والحد الائتماني" : "Supplier official details & tax information"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={saveMutation.isPending}
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              type="button"
+              disabled={saveMutation.isPending}
+              onClick={form.handleSubmit((d) => saveMutation.mutate(d))}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+            >
+              {saveMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+              {saveMutation.isPending
+                ? isAr ? "جاري الحفظ..." : "Saving..."
+                : editingSupplier
+                ? isAr ? "تحديث المورد" : "Update Supplier"
+                : isAr ? "حفظ المورد" : "Save Supplier"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Card */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-sky-600" />
+              <span>{isAr ? "بيانات المورد والاتصال" : "Supplier Information"}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="name_ar">{isAr ? "اسم المورد بالعربية *" : "Arabic Name *"}</Label>
+                  <Input id="name_ar" placeholder="شركة سابك للبتروكيماويات" {...form.register("name_ar")} />
+                  {form.formState.errors.name_ar && (
+                    <p className="text-xs text-rose-600">{form.formState.errors.name_ar.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="name_en">{isAr ? "اسم المورد بالإنجليزية" : "English Name"}</Label>
+                  <Input id="name_en" placeholder="SABIC Petrochemicals Co." {...form.register("name_en")} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="tax_number">{isAr ? "الرقم الضريبي (15 رقم)" : "ZATCA Tax Number"}</Label>
+                  <Input
+                    id="tax_number"
+                    placeholder="300000000000003"
+                    maxLength={15}
+                    className="font-mono"
+                    {...form.register("tax_number")}
+                  />
+                  {form.formState.errors.tax_number && (
+                    <p className="text-xs text-rose-600">{form.formState.errors.tax_number.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="contact_phone">{isAr ? "رقم الهاتف / الجوال" : "Contact Phone"}</Label>
+                  <Input id="contact_phone" placeholder="0501234567" {...form.register("contact_phone")} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="contact_email">{isAr ? "البريد الإلكتروني" : "Email"}</Label>
+                  <Input id="contact_email" placeholder="orders@supplier.com" {...form.register("contact_email")} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="credit_limit">{isAr ? "الحد الائتماني (ر.س)" : "Credit Limit (SAR)"}</Label>
+                  <Input
+                    id="credit_limit"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    {...form.register("credit_limit")}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="address">{isAr ? "العنوان أو المدينة" : "Address"}</Label>
+                <Input id="address" placeholder="الرياض، المدينة الصناعية الثانية" {...form.register("address")} />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  {isAr ? "إلغاء" : "Cancel"}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saveMutation.isPending}
+                  className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+                >
+                  {saveMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+                  {saveMutation.isPending
+                    ? isAr ? "جاري الحفظ..." : "Saving..."
+                    : editingSupplier
+                    ? isAr ? "تحديث المورد" : "Update Supplier"
+                    : isAr ? "حفظ المورد" : "Save Supplier"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -290,88 +441,6 @@ export function SuppliersPage() {
         </CardContent>
       </Card>
 
-      {/* Add / Edit Supplier Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {editingSupplier
-                ? isAr ? "تعديل بيانات المورد" : "Edit Supplier"
-                : isAr ? "إضافة مورد جديد" : "Add New Supplier"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="name_ar">{isAr ? "اسم المورد بالعربية *" : "Arabic Name *"}</Label>
-              <Input id="name_ar" placeholder="شركة سابك للبتروكيماويات" {...form.register("name_ar")} />
-              {form.formState.errors.name_ar && (
-                <p className="text-xs text-rose-600">{form.formState.errors.name_ar.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="name_en">{isAr ? "اسم المورد بالإنجليزية" : "English Name"}</Label>
-              <Input id="name_en" placeholder="SABIC Petrochemicals Co." {...form.register("name_en")} />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="tax_number">{isAr ? "الرقم الضريبي (15 رقم)" : "ZATCA Tax Number"}</Label>
-                <Input
-                  id="tax_number"
-                  placeholder="300000000000003"
-                  maxLength={15}
-                  className="font-mono"
-                  {...form.register("tax_number")}
-                />
-                {form.formState.errors.tax_number && (
-                  <p className="text-xs text-rose-600">{form.formState.errors.tax_number.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="contact_phone">{isAr ? "رقم الهاتف / الجوال" : "Contact Phone"}</Label>
-                <Input id="contact_phone" placeholder="0501234567" {...form.register("contact_phone")} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="contact_email">{isAr ? "البريد الإلكتروني" : "Email"}</Label>
-                <Input id="contact_email" placeholder="orders@supplier.com" {...form.register("contact_email")} />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="credit_limit">{isAr ? "الحد الائتماني (ر.س)" : "Credit Limit (SAR)"}</Label>
-                <Input
-                  id="credit_limit"
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="0"
-                  {...form.register("credit_limit")}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="address">{isAr ? "العنوان أو المدينة" : "Address"}</Label>
-              <Input id="address" placeholder="الرياض، المدينة الصناعية الثانية" {...form.register("address")} />
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-slate-100">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                {isAr ? "إلغاء" : "Cancel"}
-              </Button>
-              <Button type="submit" disabled={saveMutation.isPending} className="bg-slate-900 text-white gap-2">
-                {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{editingSupplier ? (isAr ? "حفظ التعديلات" : "Update") : (isAr ? "إضافة المورد" : "Add Supplier")}</span>
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

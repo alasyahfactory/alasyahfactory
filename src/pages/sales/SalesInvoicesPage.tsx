@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import QRCode from "qrcode";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -15,14 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -43,7 +36,25 @@ import {
   Trash2,
   DollarSign,
   QrCode,
+  ArrowRight,
+  Eye,
+  FileDown,
+  Share2,
 } from "lucide-react";
+
+function ZatcaQrPreview({ qrBase64 }: { qrBase64: string }) {
+  const [dataUrl, setDataUrl] = useState<string>("");
+  useEffect(() => {
+    if (qrBase64) {
+      QRCode.toDataURL(qrBase64, { width: 140, margin: 1, errorCorrectionLevel: "M" })
+        .then(setDataUrl)
+        .catch(console.error);
+    }
+  }, [qrBase64]);
+
+  if (!dataUrl) return <Skeleton className="w-[140px] h-[140px] rounded-lg" />;
+  return <img src={dataUrl} alt="ZATCA Phase 1 QR" className="w-[140px] h-[140px] object-contain mx-auto" />;
+}
 
 export function SalesInvoicesPage() {
   const { t, i18n } = useTranslation();
@@ -53,6 +64,7 @@ export function SalesInvoicesPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
 
   // Form State
   const [customerId, setCustomerId] = useState("");
@@ -206,6 +218,13 @@ export function SalesInvoicesPage() {
       if (!customerId || lines.length === 0) {
         throw new Error(isArabic ? "يرجى اختيار العميل وإضافة صنف واحد على الأقل" : "Please select customer and items");
       }
+      const invalidLine = lines.find((l) => !l.item_id || l.quantity <= 0);
+      if (invalidLine) {
+        throw new Error(isArabic ? "يرجى اختيار المنتج وتحديد كمية صالحة لجميع الأصناف" : "Please select item and valid quantity for all lines");
+      }
+      if (sourceType === "van_sale" && !vanWarehouseId) {
+        throw new Error(isArabic ? "يرجى تحديد سيارة التوزيع في حالة البيع عبر سيارة توزيع" : "Please select van warehouse for van sale");
+      }
       if (!user?.id) throw new Error("User not authenticated");
 
       // Generate ZATCA Phase 1 TLV Base64
@@ -239,19 +258,35 @@ export function SalesInvoicesPage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
       toast.success(
         isArabic
           ? `تم ترحيل الفاتورة الضريبية ${data?.invoice_number || ""} بنجاح وسحب FIFO وقيد اليومية المتوازن!`
           : `Tax Invoice ${data?.invoice_number || ""} posted successfully!`
       );
-      queryClient.invalidateQueries({ queryKey: ["sales-invoices-list"] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-invoices-list"] });
       setCreateModalOpen(false);
       // Reset form
       setCustomerId("");
       setLines([]);
       setAdvanceDeducted(0);
       setNotes("");
+
+      // Automatically transition to viewing the newly created invoice with Print / PDF / WhatsApp ready
+      if (data?.invoice_id) {
+        try {
+          const { data: inv } = await supabase
+            .from("sales_invoices")
+            .select("*, customer:customers(*), lines:sales_invoice_lines(*, item:items(*))")
+            .eq("id", data.invoice_id)
+            .single();
+          if (inv) {
+            setSelectedInvoice(inv as unknown as SalesInvoice);
+          }
+        } catch (err) {
+          console.error("Auto open invoice error:", err);
+        }
+      }
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -264,6 +299,642 @@ export function SalesInvoicesPage() {
     const custName = inv.customer?.name_ar?.toLowerCase() || "";
     return inv.invoice_number.toLowerCase().includes(term) || custName.includes(term);
   });
+
+  // Material Design 3 KPI Metrics
+  const totalSalesAll = invoices?.reduce((sum, inv) => sum + (inv.total_amount_inc_vat || 0), 0) || 0;
+  const totalVatAll = invoices?.reduce((sum, inv) => sum + (inv.vat_amount || 0), 0) || 0;
+  const totalNetDueAll = invoices?.reduce((sum, inv) => sum + (inv.net_amount_due || 0), 0) || 0;
+  const totalCountAll = invoices?.length || 0;
+
+  // In-Page Canvas View for Tax Invoice Inspection & Actions
+  if (selectedInvoice) {
+    const cust = selectedInvoice.customer;
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setSelectedInvoice(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لقائمة الفواتير" : "Back to Invoices"}</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-sky-600" />
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                  {selectedInvoice.invoice_number}
+                </h1>
+                <Badge variant="emerald" className="text-xs">
+                  {isArabic ? "فاتورة ضريبية رسمية" : "Tax Invoice"}
+                </Badge>
+                {selectedInvoice.source_type === "van_sale" && (
+                  <Badge variant="outline" className="border-amber-400 text-amber-800 bg-amber-50 text-xs">
+                    <Truck className="h-3 w-3 me-1" />
+                    مبيعات سيارة توزيع
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                تاريخ الإصدار: {selectedInvoice.invoice_date} • العميل: {cust?.name_ar || cust?.name_en || "-"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            <TaxInvoicePrint invoice={selectedInvoice} settings={settings || null} />
+            <Button variant="outline" size="sm" onClick={() => setSelectedInvoice(null)}>
+              {t("common.close")}
+            </Button>
+          </div>
+        </div>
+
+        {/* 2-Column Responsive Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Info (2 Cols) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Customer Details Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                  <span>بيانات العميل والضريبة (B2B / B2C)</span>
+                  <span className="font-mono text-xs text-slate-500 font-normal">كود: {cust?.code || "-"}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-slate-500 block mb-1">اسم المنشأة / العميل:</span>
+                  <strong className="text-slate-900 text-sm">{cust?.name_ar || cust?.name_en || "-"}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 block mb-1">الرقم الضريبي للعميل (VAT):</span>
+                  <strong className="font-mono text-slate-900 text-sm">{cust?.vat_number || "غير مسجل ضريبياً (مستهلك نهائي)"}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 block mb-1">رقم الجوال والتواصل:</span>
+                  <strong className="font-mono text-slate-800">{cust?.phone || "-"}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 block mb-1">العنوان الوطني المعتمد:</span>
+                  <span className="text-slate-800">{cust?.national_address || "-"}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Line Items Table Card */}
+            <Card className="border-slate-200 shadow-sm overflow-hidden">
+              <CardHeader className="py-3 px-4 border-b border-slate-100 bg-slate-50">
+                <CardTitle className="text-sm font-bold text-slate-800">
+                  أصناف ومنتجات الفاتورة ({selectedInvoice.lines?.length || 0} صنف)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-start">
+                    <thead className="bg-slate-100/75 text-slate-700 border-b border-slate-200 font-semibold">
+                      <tr>
+                        <th className="py-2.5 px-3 text-start">المنتج / الصنف</th>
+                        <th className="py-2.5 px-3 text-center">الكمية</th>
+                        <th className="py-2.5 px-3 text-center">الوحدة</th>
+                        <th className="py-2.5 px-3 text-end">سعر الوحدة</th>
+                        <th className="py-2.5 px-3 text-end">المجموع قبل الضريبة</th>
+                        <th className="py-2.5 px-3 text-end">الضريبة 15%</th>
+                        <th className="py-2.5 px-3 text-end">الإجمالي شامل</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {selectedInvoice.lines?.map((line, idx) => (
+                        <tr key={line.id || idx} className="hover:bg-slate-50/50">
+                          <td className="py-2.5 px-3 font-medium text-slate-900">
+                            <div>{isArabic ? line.item?.name_ar : line.item?.name_en}</div>
+                            <span className="font-mono text-[10px] text-slate-400">SKU: {line.item?.sku}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-mono font-bold">
+                            {line.quantity}
+                          </td>
+                          <td className="py-2.5 px-3 text-center text-slate-600">
+                            {line.unit_type === "carton" ? "كرتون" : "حبة"}
+                          </td>
+                          <td className="py-2.5 px-3 text-end font-mono">
+                            {line.unit_price_ex_vat.toFixed(2)} ر.س
+                          </td>
+                          <td className="py-2.5 px-3 text-end font-mono">
+                            {line.total_price_ex_vat.toFixed(2)} ر.س
+                          </td>
+                          <td className="py-2.5 px-3 text-end font-mono text-slate-600">
+                            {line.vat_amount.toFixed(2)} ر.س
+                          </td>
+                          <td className="py-2.5 px-3 text-end font-mono font-bold text-slate-900">
+                            {line.total_line_inc_vat.toFixed(2)} ر.س
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side Column: Totals & ZATCA QR (1 Col) */}
+          <div className="space-y-6">
+            {/* Totals Summary Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">الملخص المالي والضريبي</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3 text-xs">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>المجموع الخاضع للضريبة:</span>
+                  <span className="font-mono font-semibold text-slate-900">{selectedInvoice.total_amount_ex_vat.toFixed(2)} ر.س</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>ضريبة القيمة المضافة (15%):</span>
+                  <span className="font-mono font-semibold text-slate-900">{selectedInvoice.vat_amount.toFixed(2)} ر.س</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600 pt-1 border-t border-slate-100 font-bold">
+                  <span>الإجمالي شامل الضريبة:</span>
+                  <span className="font-mono text-slate-900">{selectedInvoice.total_amount_inc_vat.toFixed(2)} ر.س</span>
+                </div>
+                {selectedInvoice.advance_deducted > 0 && (
+                  <div className="flex justify-between items-center text-sky-700">
+                    <span>العربون المخصوم:</span>
+                    <span className="font-mono font-bold">-{selectedInvoice.advance_deducted.toFixed(2)} ر.س</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm font-bold mt-2">
+                  <span className="text-emerald-950">صافي المستحق للسداد:</span>
+                  <span className="font-mono text-emerald-700 text-base">{selectedInvoice.net_amount_due.toFixed(2)} ر.س</span>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
+                  <div className="flex justify-between">
+                    <span>حالة السداد:</span>
+                    <span className="font-semibold text-slate-800">
+                      {selectedInvoice.payment_status === "paid" ? "مسددة بالكامل" : selectedInvoice.payment_status === "partially_paid" ? "مسددة جزئياً" : "غير مسددة (آجل)"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>سجل طباعة الفاتورة:</span>
+                    <span className="font-mono">{selectedInvoice.print_count} مرات</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ZATCA QR Card */}
+            <Card className="border-slate-200 shadow-sm p-4 text-center space-y-3">
+              <span className="text-xs font-bold text-slate-700 block">رمز الاستجابة السريع للفوترة (ZATCA QR)</span>
+              <div className="flex justify-center p-2 bg-white rounded-lg border border-slate-100 shadow-inner">
+                {selectedInvoice.zatca_qr_base64 ? (
+                  <ZatcaQrPreview qrBase64={selectedInvoice.zatca_qr_base64} />
+                ) : (
+                  <div className="text-slate-400 text-xs p-4">لا يتوفر كود QR مشفر</div>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight">
+                مشفر بتقنية TLV ومتوافق مع متطلبات هيئة الزكاة والضريبة والجمارك المرحلة الأولى
+              </p>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // In-Page Canvas View for Invoice Creation (Eliminating modal popup)
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* In-page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لقائمة الفواتير" : "Back to Invoices"}</span>
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-sky-600" />
+                <span>{t("sales.createInvoice")}</span>
+              </h1>
+              <p className="text-xs text-slate-500">
+                إصدار فاتورة ضريبية رسمية متوافقة مع ZATCA Phase 1 مع سحب المخزون وقيد اليومية
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={createInvoiceMutation.isPending}
+              onClick={() => createInvoiceMutation.mutate()}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-5"
+            >
+              {createInvoiceMutation.isPending ? t("common.saving") : "ترحيل وإصدار الفاتورة الضريبية"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Body in Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Column: Details & Line Items */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Customer & Logistics Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <Building className="h-4 w-4 text-sky-600" />
+                  <span>بيانات العميل والشحن</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">العميل *</Label>
+                    <Select value={customerId} onValueChange={setCustomerId}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="اختر العميل..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers?.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {isArabic ? c.name_ar : c.name_en} ({c.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">{t("sales.invoiceDate")} *</Label>
+                    <Input
+                      type="date"
+                      value={invoiceDate}
+                      onChange={(e) => setInvoiceDate(e.target.value)}
+                      className="mt-1 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">فترة السداد (أيام)</Label>
+                    <Input
+                      type="number"
+                      value={dueDays}
+                      onChange={(e) => setDueDays(Number(e.target.value))}
+                      min={0}
+                      className="mt-1 font-mono tabular-nums"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <div>
+                    <Label className="text-xs font-semibold">{t("sales.sourceType")} *</Label>
+                    <Select
+                      value={sourceType}
+                      onValueChange={(val: "direct" | "van_sale") => setSourceType(val)}
+                    >
+                      <SelectTrigger className="mt-1 bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="direct">مستودع المصنع الرئيسي</SelectItem>
+                        <SelectItem value="van_sale">سيارة توزيع مندوب</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {sourceType === "van_sale" && (
+                    <div>
+                      <Label className="text-xs font-semibold">سيارة التوزيع *</Label>
+                      <Select value={vanWarehouseId} onValueChange={setVanWarehouseId}>
+                        <SelectTrigger className="mt-1 bg-white">
+                          <SelectValue placeholder="اختر سيارة التوزيع..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vans?.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              {v.name_ar} ({v.code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label className="text-xs font-semibold">مندوب المبيعات (للعمولة)</Label>
+                    <Select value={assignedRepId} onValueChange={setAssignedRepId}>
+                      <SelectTrigger className="mt-1 bg-white">
+                        <SelectValue placeholder="اختر المندوب..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {reps?.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Line Items Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Receipt className="h-4 w-4 text-sky-600" />
+                    <span>أصناف الفاتورة والكميات والأسعار</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500 mt-0.5">
+                    إدراج المنتجات التامة مع مراقبة حارس الهامش اللحظي (FIFO Margin Guard)
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() =>
+                    setLines([
+                      ...lines,
+                      {
+                        item_id: "",
+                        quantity: 10,
+                        unit_type: "carton",
+                        unit_price_ex_vat: 65.0,
+                        is_bonus_or_sample: false,
+                      },
+                    ])
+                  }
+                  className="text-xs text-sky-700 border-sky-300 hover:bg-sky-50"
+                >
+                  <Plus className="me-1 h-3.5 w-3.5" />
+                  إضافة صنف
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {lines.length === 0 ? (
+                  <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
+                    <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-slate-600">لا توجد أصناف في الفاتورة بعد</p>
+                    <p className="text-xs text-slate-400 mt-1">اضغط زر "إضافة صنف" أعلاه لإدراج المنتجات التامة والكميات</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {lines.map((line, idx) => {
+                      const selectedItem = finishedGoods?.find((fg) => fg.id === line.item_id);
+                      const activeLayer = selectedItem?.fifo_layers?.find((l: any) => l.remaining_qty > 0) || selectedItem?.fifo_layers?.[0];
+                      const itemCost = activeLayer?.unit_cost_ex_vat ? Number(activeLayer.unit_cost_ex_vat) : 0;
+                      const isBelowCost = line.unit_price_ex_vat > 0 && itemCost > 0 && line.unit_price_ex_vat < itemCost && !line.is_bonus_or_sample;
+                      const marginPercent = line.unit_price_ex_vat > 0 && itemCost > 0
+                        ? (((line.unit_price_ex_vat - itemCost) / line.unit_price_ex_vat) * 100).toFixed(0)
+                        : null;
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-xl border transition-all ${
+                            isBelowCost
+                              ? "bg-rose-50/80 border-rose-300 ring-1 ring-rose-300"
+                              : "bg-slate-50 border-slate-200"
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            {/* Product Selection */}
+                            <div className="flex-1">
+                              <Label className="text-[11px] text-slate-500 mb-1 block">المنتج التام *</Label>
+                              <Select
+                                value={line.item_id}
+                                onValueChange={(val) => {
+                                  const updated = [...lines];
+                                  updated[idx].item_id = val;
+                                  setLines(updated);
+                                }}
+                              >
+                                <SelectTrigger className="bg-white">
+                                  <SelectValue placeholder="اختر المنتج التام..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {finishedGoods?.map((item) => (
+                                    <SelectItem key={item.id} value={item.id}>
+                                      {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Quantity */}
+                            <div className="w-full sm:w-28">
+                              <Label className="text-[11px] text-slate-500 mb-1 block">الكمية *</Label>
+                              <Input
+                                type="number"
+                                value={line.quantity || ""}
+                                onChange={(e) => {
+                                  const updated = [...lines];
+                                  updated[idx].quantity = Number(e.target.value);
+                                  setLines(updated);
+                                }}
+                                min={1}
+                                className="font-mono tabular-nums bg-white text-center"
+                              />
+                            </div>
+
+                            {/* Unit */}
+                            <div className="w-full sm:w-28">
+                              <Label className="text-[11px] text-slate-500 mb-1 block">الوحدة *</Label>
+                              <Select
+                                value={line.unit_type}
+                                onValueChange={(val: "carton" | "piece") => {
+                                  const updated = [...lines];
+                                  updated[idx].unit_type = val;
+                                  setLines(updated);
+                                }}
+                              >
+                                <SelectTrigger className="bg-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="carton">كرتون</SelectItem>
+                                  <SelectItem value="piece">حبة / مفرد</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Price Ex VAT */}
+                            <div className="w-full sm:w-36">
+                              <Label className="text-[11px] text-slate-500 mb-1 block">السعر (ر.س قبل الضريبة) *</Label>
+                              <Input
+                                type="number"
+                                value={line.unit_price_ex_vat || ""}
+                                onChange={(e) => {
+                                  const updated = [...lines];
+                                  updated[idx].unit_price_ex_vat = Number(e.target.value);
+                                  setLines(updated);
+                                }}
+                                min={0}
+                                step="0.5"
+                                disabled={line.is_bonus_or_sample}
+                                className="font-mono tabular-nums bg-white text-center font-bold"
+                              />
+                            </div>
+
+                            {/* Free Sample Checkbox */}
+                            <div className="flex items-center gap-1.5 pt-5 sm:pt-4">
+                              <input
+                                type="checkbox"
+                                id={`bonus-${idx}`}
+                                checked={line.is_bonus_or_sample}
+                                onChange={(e) => {
+                                  const updated = [...lines];
+                                  updated[idx].is_bonus_or_sample = e.target.checked;
+                                  if (e.target.checked) updated[idx].unit_price_ex_vat = 0;
+                                  setLines(updated);
+                                }}
+                                className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 h-4 w-4"
+                              />
+                              <Label htmlFor={`bonus-${idx}`} className="text-xs cursor-pointer text-slate-700 whitespace-nowrap">
+                                عينة مجانية
+                              </Label>
+                            </div>
+
+                            {/* Delete Line */}
+                            <div className="pt-5 sm:pt-4">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                type="button"
+                                onClick={() => {
+                                  const updated = lines.filter((_, i) => i !== idx);
+                                  setLines(updated);
+                                }}
+                                className="text-rose-500 hover:bg-rose-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Live Margin Guard Feedback */}
+                          {isBelowCost && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 mt-2 rounded-lg bg-rose-100 text-rose-800 text-xs font-semibold border border-rose-300">
+                              <AlertTriangle className="h-4 w-4 text-rose-600 flex-shrink-0 animate-pulse" />
+                              <span>
+                                {isArabic
+                                  ? `حارس الهامش: السعر (${line.unit_price_ex_vat} ر.س) أقل من آخر تكلفة FIFO (${itemCost.toFixed(2)} ر.س) — هامش ربح سالب!`
+                                  : `Margin Guard Alert: Price (${line.unit_price_ex_vat} SAR) is below FIFO cost (${itemCost.toFixed(2)} SAR)!`}
+                              </span>
+                            </div>
+                          )}
+                          {!isBelowCost && marginPercent && !line.is_bonus_or_sample && (
+                            <div className="flex items-center gap-2 mt-2 px-1 text-xs text-emerald-700">
+                              <span>{isArabic ? "هامش ربح إيجابي:" : "Profit Margin:"}</span>
+                              <span className="font-mono font-bold">+{marginPercent}%</span>
+                              <span className="text-slate-400 text-[11px]">
+                                ({isArabic ? "تكلفة الوحدة:" : "Unit Cost:"} {itemCost.toFixed(2)} ر.س)
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side Column: Summary & Advance Deposit */}
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm sticky top-6">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                  <span>الملخص المالي والضريبة</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {/* Advance Deposit Deduction */}
+                <div className="bg-sky-50 p-3 rounded-xl border border-sky-100 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-sky-900 text-xs">خصم العربون / الدفعة المقدمة:</span>
+                  </div>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={advanceDeducted || ""}
+                    onChange={(e) => setAdvanceDeducted(Number(e.target.value))}
+                    className="bg-white font-mono text-end font-bold"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    إذا كان للعميل رصيد دائن في حساب 2102 يتم تسويته مباشرة
+                  </p>
+                </div>
+
+                {/* Calculation breakdown */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2.5">
+                  <div className="flex justify-between text-slate-600">
+                    <span>الإجمالي قبل الضريبة:</span>
+                    <span className="font-mono font-bold tabular-nums text-slate-900">{subtotalExVat.toFixed(2)} ر.س</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>ضريبة القيمة المضافة (15%):</span>
+                    <span className="font-mono font-bold tabular-nums text-slate-900">{vatTotal.toFixed(2)} ر.س</span>
+                  </div>
+                  {advanceDeducted > 0 && (
+                    <div className="flex justify-between text-sky-700">
+                      <span>خصم الدفعة المقدمة:</span>
+                      <span className="font-mono font-bold tabular-nums">-{advanceDeducted.toFixed(2)} ر.س</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-sm font-bold text-slate-900">
+                    <span>المجموع شامل الضريبة:</span>
+                    <span className="font-mono tabular-nums">{totalIncVat.toFixed(2)} ر.س</span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-extrabold text-emerald-700">
+                    <span>صافي المستحق للسداد:</span>
+                    <span className="font-mono tabular-nums">{netDue.toFixed(2)} ر.س</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <Button
+                    disabled={createInvoiceMutation.isPending}
+                    onClick={() => createInvoiceMutation.mutate()}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white min-h-[46px] font-bold"
+                  >
+                    {createInvoiceMutation.isPending ? t("common.saving") : "ترحيل وإصدار الفاتورة الضريبية"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreateModalOpen(false)}
+                    className="w-full"
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -288,6 +959,45 @@ export function SalesInvoicesPage() {
             <span>{t("sales.createInvoice")}</span>
           </Button>
         )}
+      </div>
+
+      {/* Material Design 3 KPI Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card variant="elevated" className="p-4 border-slate-100">
+          <span className="text-xs text-slate-500 font-medium block mb-1">
+            {isArabic ? "إجمالي المبيعات شامل الضريبة" : "Total Sales (Inc. VAT)"}
+          </span>
+          <span className="text-lg sm:text-xl font-bold font-mono text-slate-900 tabular-nums">
+            {totalSalesAll.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+          </span>
+        </Card>
+
+        <Card variant="elevated" className="p-4 border-slate-100">
+          <span className="text-xs text-slate-500 font-medium block mb-1">
+            {isArabic ? "ضريبة القيمة المضافة (15%)" : "Total VAT (15%)"}
+          </span>
+          <span className="text-lg sm:text-xl font-bold font-mono text-sky-700 tabular-nums">
+            {totalVatAll.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+          </span>
+        </Card>
+
+        <Card variant="elevated" className="p-4 border-slate-100">
+          <span className="text-xs text-slate-500 font-medium block mb-1">
+            {isArabic ? "صافي المستحق للتحصيل" : "Net Due Amount"}
+          </span>
+          <span className="text-lg sm:text-xl font-bold font-mono text-emerald-700 tabular-nums">
+            {totalNetDueAll.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+          </span>
+        </Card>
+
+        <Card variant="elevated" className="p-4 border-slate-100">
+          <span className="text-xs text-slate-500 font-medium block mb-1">
+            {isArabic ? "إجمالي عدد الفواتير" : "Total Invoices Count"}
+          </span>
+          <span className="text-lg sm:text-xl font-bold font-mono text-slate-800 tabular-nums">
+            {totalCountAll} {isArabic ? "فاتورة" : "Invoices"}
+          </span>
+        </Card>
       </div>
 
       {/* Search Bar */}
@@ -325,7 +1035,7 @@ export function SalesInvoicesPage() {
                   <th scope="col" className="py-2.5 px-3 text-end">العربون</th>
                   <th scope="col" className="py-2.5 px-3 text-end">صافي المستحق</th>
                   <th scope="col" className="py-2.5 px-3 text-center">{t("common.status")}</th>
-                  <th scope="col" className="py-2.5 px-3 text-center">طباعة A4</th>
+                  <th scope="col" className="py-2.5 px-3 text-center">إجراءات الفاتورة</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -346,8 +1056,16 @@ export function SalesInvoicesPage() {
                 ) : (
                   filteredInvoices?.map((inv) => (
                     <tr key={inv.id} className="hover:bg-slate-50/80">
-                      <td className="py-2.5 px-3 font-mono font-bold text-sky-700">
-                        {inv.invoice_number}
+                      <td className="py-2.5 px-3 font-mono font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedInvoice(inv)}
+                          className="text-sky-700 hover:text-sky-900 hover:underline flex items-center gap-1.5 cursor-pointer text-start"
+                          title={isArabic ? "معاينة الفاتورة بالتفصيل" : "View Invoice Details"}
+                        >
+                          <Eye className="h-3.5 w-3.5 text-sky-500" />
+                          <span>{inv.invoice_number}</span>
+                        </button>
                       </td>
                       <td className="py-2.5 px-3 font-mono text-slate-600">
                         {inv.invoice_date}
@@ -383,7 +1101,19 @@ export function SalesInvoicesPage() {
                         </Badge>
                       </td>
                       <td className="py-2.5 px-3 text-center">
-                        <TaxInvoicePrint invoice={inv} settings={settings || null} />
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedInvoice(inv)}
+                            className="h-8 px-2 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+                            title="معاينة الفاتورة كاملة"
+                          >
+                            <Eye className="h-3.5 w-3.5 me-1" />
+                            <span>معاينة</span>
+                          </Button>
+                          <TaxInvoicePrint invoice={inv} settings={settings || null} compact />
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -394,347 +1124,6 @@ export function SalesInvoicesPage() {
         </CardContent>
       </Card>
 
-      {/* Create Sales Invoice Dialog */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Receipt className="h-5 w-5 text-sky-600" />
-              <span>{t("sales.createInvoice")}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              إصدار فاتورة ضريبية رسمية متوافقة مع ZATCA Phase 1 مع سحب المخزون وقيد اليومية
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            {/* Customer & Dates */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">العميل *</Label>
-                <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر العميل..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {isArabic ? c.name_ar : c.name_en} ({c.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">{t("sales.invoiceDate")} *</Label>
-                <Input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                  className="mt-1 font-mono"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">فترة السداد (أيام)</Label>
-                <Input
-                  type="number"
-                  value={dueDays}
-                  onChange={(e) => setDueDays(Number(e.target.value))}
-                  min={0}
-                  className="mt-1 font-mono tabular-nums"
-                />
-              </div>
-            </div>
-
-            {/* Source & Delivery Van */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-              <div>
-                <Label className="text-xs font-semibold">{t("sales.sourceType")} *</Label>
-                <Select
-                  value={sourceType}
-                  onValueChange={(val: "direct" | "van_sale") => setSourceType(val)}
-                >
-                  <SelectTrigger className="mt-1 bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="direct">مستودع المصنع الرئيسي</SelectItem>
-                    <SelectItem value="van_sale">سيارة توزيع مندوب</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {sourceType === "van_sale" && (
-                <div>
-                  <Label className="text-xs font-semibold">سيارة التوزيع *</Label>
-                  <Select value={vanWarehouseId} onValueChange={setVanWarehouseId}>
-                    <SelectTrigger className="mt-1 bg-white">
-                      <SelectValue placeholder="اختر سيارة التوزيع..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vans?.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.name_ar} ({v.code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div>
-                <Label className="text-xs font-semibold">مندوب المبيعات (للعمولة)</Label>
-                <Select value={assignedRepId} onValueChange={setAssignedRepId}>
-                  <SelectTrigger className="mt-1 bg-white">
-                    <SelectValue placeholder="اختر المندوب..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {reps?.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        {r.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Line Items */}
-            <div className="pt-2 border-t border-slate-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-800 text-xs">أصناف الفاتورة:</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  type="button"
-                  onClick={() =>
-                    setLines([
-                      ...lines,
-                      {
-                        item_id: "",
-                        quantity: 10,
-                        unit_type: "carton",
-                        unit_price_ex_vat: 65.0,
-                        is_bonus_or_sample: false,
-                      },
-                    ])
-                  }
-                  className="text-xs text-sky-700 border-sky-300"
-                >
-                  <Plus className="me-1 h-3.5 w-3.5" />
-                  إضافة صنف
-                </Button>
-              </div>
-
-              {lines.length === 0 ? (
-                <div className="text-center py-6 border border-dashed rounded-lg text-slate-400">
-                  اضغط "إضافة صنف" لإدراج المنتجات التامة والكميات
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {lines.map((line, idx) => {
-                    const selectedItem = finishedGoods?.find((fg) => fg.id === line.item_id);
-                    const activeLayer = selectedItem?.fifo_layers?.find((l: any) => l.remaining_qty > 0) || selectedItem?.fifo_layers?.[0];
-                    const itemCost = activeLayer?.unit_cost_ex_vat ? Number(activeLayer.unit_cost_ex_vat) : 0;
-                    const isBelowCost = line.unit_price_ex_vat > 0 && itemCost > 0 && line.unit_price_ex_vat < itemCost && !line.is_bonus_or_sample;
-                    const marginPercent = line.unit_price_ex_vat > 0 && itemCost > 0
-                      ? (((line.unit_price_ex_vat - itemCost) / line.unit_price_ex_vat) * 100).toFixed(0)
-                      : null;
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-2.5 rounded-lg border transition-all ${
-                          isBelowCost
-                            ? "bg-rose-50/80 border-rose-300 ring-1 ring-rose-300"
-                            : "bg-slate-50 border-slate-200"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <Select
-                              value={line.item_id}
-                              onValueChange={(val) => {
-                                const updated = [...lines];
-                                updated[idx].item_id = val;
-                                setLines(updated);
-                              }}
-                            >
-                              <SelectTrigger className="bg-white">
-                                <SelectValue placeholder="اختر المنتج..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {finishedGoods?.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="w-20">
-                            <Input
-                              type="number"
-                              placeholder="الكمية"
-                              value={line.quantity || ""}
-                              onChange={(e) => {
-                                const updated = [...lines];
-                                updated[idx].quantity = Number(e.target.value);
-                                setLines(updated);
-                              }}
-                              className="font-mono tabular-nums bg-white text-center text-xs"
-                            />
-                          </div>
-
-                          <div className="w-24">
-                            <Select
-                              value={line.unit_type}
-                              onValueChange={(val: "carton" | "piece") => {
-                                const updated = [...lines];
-                                updated[idx].unit_type = val;
-                                setLines(updated);
-                              }}
-                            >
-                              <SelectTrigger className="bg-white text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="carton">كرتون</SelectItem>
-                                <SelectItem value="piece">حبة</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="w-24">
-                            <Input
-                              type="number"
-                              placeholder="السعر"
-                              disabled={line.is_bonus_or_sample}
-                              value={line.is_bonus_or_sample ? 0 : line.unit_price_ex_vat || ""}
-                              onChange={(e) => {
-                                const updated = [...lines];
-                                updated[idx].unit_price_ex_vat = Number(e.target.value);
-                                setLines(updated);
-                              }}
-                              className={`font-mono tabular-nums bg-white text-center text-xs ${
-                                isBelowCost ? "border-rose-400 text-rose-700 font-bold" : ""
-                              }`}
-                            />
-                          </div>
-
-                          <div className="flex items-center gap-1 ps-1">
-                            <Checkbox
-                              id={`bonus_${idx}`}
-                              checked={line.is_bonus_or_sample}
-                              onCheckedChange={(c: any) => {
-                                const updated = [...lines];
-                                updated[idx].is_bonus_or_sample = !!c;
-                                setLines(updated);
-                              }}
-                            />
-                            <Label htmlFor={`bonus_${idx}`} className="text-[10px] text-amber-700 cursor-pointer">
-                              بونص
-                            </Label>
-                          </div>
-
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            type="button"
-                            onClick={() => {
-                              const updated = lines.filter((_, i) => i !== idx);
-                              setLines(updated);
-                            }}
-                            className="text-rose-500 hover:bg-rose-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        {/* Live Margin Guard Feedback (SPEC v3.1 Section 8.2) */}
-                        {isBelowCost && (
-                          <div className="flex items-center gap-1.5 px-2 py-1 mt-1.5 rounded bg-rose-100 text-rose-800 text-[11px] font-semibold border border-rose-300">
-                            <AlertTriangle className="h-3.5 w-3.5 text-rose-600 flex-shrink-0 animate-pulse" />
-                            <span>
-                              {isArabic
-                                ? `حارس الهامش: السعر (${line.unit_price_ex_vat} ر.س) أقل من آخر تكلفة FIFO (${itemCost.toFixed(2)} ر.س) — هامش ربح سالب!`
-                                : `Margin Guard Alert: Price (${line.unit_price_ex_vat} SAR) is below FIFO cost (${itemCost.toFixed(2)} SAR)!`}
-                            </span>
-                          </div>
-                        )}
-                        {!isBelowCost && marginPercent && !line.is_bonus_or_sample && (
-                          <div className="flex items-center gap-2 mt-1 px-1 text-[11px] text-emerald-700">
-                            <span>{isArabic ? "هامش ربح إيجابي:" : "Profit Margin:"}</span>
-                            <span className="font-mono font-bold">+{marginPercent}%</span>
-                            <span className="text-slate-400 text-[10px]">
-                              ({isArabic ? "تكلفة الوحدة:" : "Unit Cost:"} {itemCost.toFixed(2)} ر.س)
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Advance Deposit Deduction */}
-            <div className="bg-sky-50 p-3 rounded-lg border border-sky-100 flex items-center justify-between">
-              <div>
-                <span className="font-bold text-sky-900 block text-xs">خصم الدفعة المقدمة (عربون العميل):</span>
-                <span className="text-[11px] text-slate-600">
-                  إذا كان للعميل رصيد دائن في حساب 2102 يتم تسويته مباشرة
-                </span>
-              </div>
-              <div className="w-36">
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  value={advanceDeducted || ""}
-                  onChange={(e) => setAdvanceDeducted(Number(e.target.value))}
-                  className="bg-white font-mono text-end font-bold"
-                />
-              </div>
-            </div>
-
-            {/* Totals Summary */}
-            <div className="bg-slate-100 p-3 rounded-lg border border-slate-200 text-xs space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-slate-600">الإجمالي قبل الضريبة:</span>
-                <span className="font-mono font-bold tabular-nums">{subtotalExVat.toFixed(2)} ر.س</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">ضريبة القيمة المضافة (15%):</span>
-                <span className="font-mono font-bold tabular-nums">{vatTotal.toFixed(2)} ر.س</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-200 pt-1 text-sm font-bold text-slate-900">
-                <span>المجموع شامل الضريبة:</span>
-                <span className="font-mono tabular-nums">{totalIncVat.toFixed(2)} ر.س</span>
-              </div>
-              <div className="flex justify-between text-emerald-700 font-bold">
-                <span>صافي المستحق للسداد:</span>
-                <span className="font-mono tabular-nums">{netDue.toFixed(2)} ر.س</span>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              disabled={createInvoiceMutation.isPending}
-              onClick={() => createInvoiceMutation.mutate()}
-              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[44px]"
-            >
-              {createInvoiceMutation.isPending ? t("common.saving") : "ترحيل وإصدار الفاتورة الضريبية"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

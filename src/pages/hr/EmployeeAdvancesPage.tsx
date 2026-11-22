@@ -6,25 +6,27 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Banknote,
+  Calculator,
+  ArrowRight,
   Plus,
   Search,
   CheckCircle2,
   Clock,
   Calendar,
   AlertCircle,
+  Eye,
+  Printer,
+  FileDown,
+  Share2,
+  Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
 import type { EmployeeAdvance, Employee, Account } from "@/types/database";
 
 export function EmployeeAdvancesPage() {
@@ -35,6 +37,7 @@ export function EmployeeAdvancesPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedAdvance, setSelectedAdvance] = useState<EmployeeAdvance | null>(null);
 
   // Form State
   const [employeeId, setEmployeeId] = useState("");
@@ -58,17 +61,21 @@ export function EmployeeAdvancesPage() {
     },
   });
 
-  // Fetch Employees
+  // Fetch Active Employees
   const { data: employees } = useQuery<Employee[]>({
-    queryKey: ["employees_for_advances"],
+    queryKey: ["active_employees_advances"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("employees").select("*").eq("is_active", true);
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("is_active", true)
+        .order("name_ar", { ascending: true });
       if (error) throw error;
       return (data || []) as Employee[];
     },
   });
 
-  // Fetch Advances
+  // Fetch Advances List
   const { data: advances, isLoading } = useQuery<EmployeeAdvance[]>({
     queryKey: ["employee_advances_list"],
     queryFn: async () => {
@@ -76,7 +83,7 @@ export function EmployeeAdvancesPage() {
         .from("employee_advances")
         .select(`
           *,
-          employee:employees(emp_code, name_ar, phone, department, basic_salary)
+          employee:employees(*)
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -161,12 +168,420 @@ export function EmployeeAdvancesPage() {
 
   const monthlyDeductionCalc = amount > 0 && installmentMonths > 0 ? (amount / installmentMonths).toFixed(2) : "0.00";
 
+  const handlePrintAdvance = (adv: EmployeeAdvance, isPdf = false) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+
+    const docTitle = isPdf ? `سند_سلفة_${adv.advance_number}` : `سند وإقرار سلفة موظف - ${adv.advance_number}`;
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
+        <head>
+          <meta charset="utf-8" />
+          <title>${docTitle}</title>
+          <style>
+            @page { size: A4 portrait; margin: 15mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "IBM Plex Sans Arabic", sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 0; font-size: 13px; line-height: 1.6; }
+            .header-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+            .badge-title { display: inline-block; padding: 4px 14px; background: #0f172a; color: #fff; font-weight: bold; font-size: 16px; border-radius: 4px; }
+            .meta-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; background: #f8fafc; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12.5px; }
+            .amount-box { border: 2px solid #0f172a; background: #f1f5f9; padding: 16px; border-radius: 6px; text-align: center; margin-bottom: 20px; }
+            .tabular { font-family: monospace; font-variant-numeric: tabular-nums; }
+            .statement { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 16px; margin-bottom: 30px; font-size: 13px; line-height: 1.8; text-align: justify; }
+            .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 40px; text-align: center; }
+            .sig-box { border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-grid">
+            <div style="text-align: ${isArabic ? "right" : "left"};">
+              <div style="font-weight: bold; font-size: 15px;">مصنع الأسياح للمنتجات الكيميائية</div>
+              <div style="font-size: 11px; color: #64748b;">سجل تجاري: 1010000000 | الرقم الضريبي: 300000000000003</div>
+              <div style="font-size: 11px; color: #64748b;">إدارة الموارد البشرية وشؤون الموظفين</div>
+            </div>
+            <div style="text-align: center;">
+              <div class="badge-title">سند وإقرار صرف سلفة موظف</div>
+              <div style="font-size: 13px; font-family: monospace; font-weight: bold; margin-top: 4px;">${adv.advance_number}</div>
+            </div>
+            <div style="text-align: ${isArabic ? "left" : "right"}; direction: ltr;">
+              <div style="font-weight: bold; font-size: 14px;">Al-Asyah Chemical Factory</div>
+              <div style="font-size: 11px; color: #64748b;">Employee Advance Voucher</div>
+              <div style="font-size: 11px; color: #64748b;">Date: ${adv.advance_date}</div>
+            </div>
+          </div>
+
+          <div class="amount-box">
+            <span style="font-size: 12px; color: #64748b; font-weight: bold;">مبلغ السلفة المعتمد والمصروف:</span>
+            <div style="font-size: 24px; font-weight: bold; margin-top: 4px;">
+              <span class="tabular">${adv.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span> ريال سعودي
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <div>
+              <span style="color: #64748b; display: block;">اسم الموظف المستفيد:</span>
+              <strong style="font-size: 14px;">${adv.employee?.name_ar || "-"}</strong>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">الرقم الوظيفي: <span class="tabular">${adv.employee?.emp_code || "-"}</span> | القسم: ${adv.employee?.department || "-"}</div>
+            </div>
+            <div>
+              <span style="color: #64748b; display: block;">تاريخ الصرف:</span>
+              <strong class="tabular" style="font-size: 13px;">${adv.advance_date}</strong>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">الآيبان البنكي: <span class="tabular">${adv.employee?.iban || "محول نقداً"}</span></div>
+            </div>
+            <div>
+              <span style="color: #64748b; display: block;">خطة السداد والاستقطاع:</span>
+              <strong>${adv.installment_months} أشهر (القسط الشهري: <span class="tabular">${adv.monthly_deduction.toFixed(2)} ر.س</span>)</strong>
+            </div>
+            <div>
+              <span style="color: #64748b; display: block;">المتبقي بذمة الموظف:</span>
+              <strong class="tabular" style="color: #b91c1c;">${adv.remaining_balance.toFixed(2)} ريال سعودي</strong>
+            </div>
+          </div>
+
+          <div class="statement">
+            <strong>إقرار وتفويض استقطاع:</strong><br />
+            أقر أنا الموظف الموقع أدناه بأنني قد استلمت كامل مبلغ السلفة الموضح أعلاه وقدره (${adv.amount.toFixed(2)} ريال سعودي)، وأفوض إدارة المصنع تفويضاً لا رجعة فيه بخصم القسط الشهري البالغ (${adv.monthly_deduction.toFixed(2)} ريال سعودي) من راتبي ومستحقاتي الشهرية بمسير الرواتب حتى سداد كامل مبلغ السلفة، وفي حال انتهاء خدماتي لأي سبب قبل تمام السداد، يُخصم الرصيد المتبقي دفعة واحدة من مستحقات نهاية الخدمة.
+          </div>
+
+          <div class="signatures">
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">الموظف المستفيد (المقر بما فيه)</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">إدارة الموارد البشرية</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">اعتماد المحاسبة المالية</div>
+              <div>الختم والتوقيع: ............................</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); window.close(); };
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
+  const handleShareWhatsapp = (adv: EmployeeAdvance) => {
+    const empName = adv.employee?.name_ar || "";
+    const msg = `*إشعار صرف سلفة موظف (سند مالي)*
+الموظف: ${empName}
+رقم السلفة: ${adv.advance_number}
+تاريخ الصرف: ${adv.advance_date}
+مبلغ السلفة: ${adv.amount.toFixed(2)} ريال سعودي
+عدد الأقساط: ${adv.installment_months} شهر
+القسط الشهري المستقطع بالراتب: ${adv.monthly_deduction.toFixed(2)} ريال سعودي
+المتبقي بذمتكم: ${adv.remaining_balance.toFixed(2)} ريال سعودي
+_مصنع الأسياح للمنتجات الكيميائية - الموارد البشرية والشؤون المالية_`;
+
+    const encoded = encodeURIComponent(msg);
+    const phone = adv.employee?.phone?.replace(/[^0-9]/g, "") || "";
+    const waUrl = phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   const filteredAdvances = advances?.filter((adv) => {
     return (
       adv.advance_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       adv.employee?.name_ar.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
+
+  // In-Page Canvas View for Advance Creation (Replacing modal popup)
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لسجل السلف" : "Back to Advances"}</span>
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                {isArabic ? "صرف سلفة موظف جديدة" : "Issue New Employee Advance"}
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                إنشاء السلفة المالية وجدولة الأقساط وترحيل القيد المحاسبي التلقائي (1120 مدين / الخزينة دائن)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+              {isArabic ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              disabled={createMutation.isPending || !employeeId || amount <= 0 || !paymentAccount}
+              onClick={() => createMutation.mutate()}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6 font-semibold"
+            >
+              {createMutation.isPending ? "جاري الترحيل..." : "تأكيد وصرف السلفة"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-6">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">بيانات السلفة والموظف</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div>
+                  <Label className="text-xs font-semibold">الموظف المستفيد *</Label>
+                  <select
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(e.target.value)}
+                    className="mt-1 w-full h-10 px-3 py-2 text-xs rounded-md border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    <option value="">-- اختر الموظف --</option>
+                    {employees?.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name_ar} ({emp.emp_code} - {emp.department})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-semibold">تاريخ الصرف *</Label>
+                    <Input
+                      type="date"
+                      value={advanceDate}
+                      onChange={(e) => setAdvanceDate(e.target.value)}
+                      className="mt-1 font-mono text-xs bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">حساب الخزينة / البنك المصروف منه *</Label>
+                    <select
+                      value={paymentAccount}
+                      onChange={(e) => setPaymentAccount(e.target.value)}
+                      className="mt-1 w-full h-10 px-3 py-2 text-xs rounded-md border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="">-- اختر حساب الصرف --</option>
+                      {treasuryAccounts?.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.code} - {acc.name_ar}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-semibold">مبلغ السلفة الإجمالي (ر.س) *</Label>
+                    <Input
+                      type="number"
+                      step="50"
+                      min="1"
+                      value={amount || ""}
+                      onChange={(e) => setAmount(Number(e.target.value))}
+                      placeholder="0.00"
+                      className="mt-1 font-mono text-center font-bold text-base bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">عدد أشهر الاستقطاع (الأقساط) *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="36"
+                      value={installmentMonths}
+                      onChange={(e) => setInstallmentMonths(Math.max(1, Number(e.target.value)))}
+                      className="mt-1 font-mono text-center font-bold text-base bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">البيان والشرح / سبب السلفة</Label>
+                  <Input
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="سلفة طارئة، زواج، إيجار..."
+                    className="mt-1 text-xs bg-white"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-emerald-600" />
+                  <span>جدولة الاستقطاع الشهري</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3 text-xs">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>إجمالي السلفة:</span>
+                  <span className="font-mono font-bold text-slate-900">{amount.toFixed(2)} ر.س</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>فترة السداد:</span>
+                  <span className="font-mono font-bold text-slate-800">{installmentMonths} أشهر</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm font-bold mt-2">
+                  <span className="text-emerald-950">الخصم الشهري بالراتب:</span>
+                  <span className="font-mono text-emerald-700 text-base">{monthlyDeductionCalc} ر.س</span>
+                </div>
+                <div className="pt-2 text-[11px] text-slate-500 leading-relaxed">
+                  * سيقوم النظام تلقائياً بخصم هذا القسط شهرياً عند تشغيل مسير الرواتب حتى سداد كامل الرصيد.
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // In-Page Canvas View for Selected Employee Advance Details & Actions
+  if (selectedAdvance) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setSelectedAdvance(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لسجل السلف" : "Back to Advances"}</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-sky-600" />
+                <h1 className="text-lg sm:text-xl font-bold font-mono text-slate-900">
+                  {selectedAdvance.advance_number}
+                </h1>
+                <Badge variant={selectedAdvance.status === "settled" ? "emerald" : "amber"} className="text-xs">
+                  {selectedAdvance.status === "settled" ? "تم السداد بالكامل" : "جارٍ الاستقطاع"}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                الموظف: {selectedAdvance.employee?.name_ar} • تاريخ الصرف: {selectedAdvance.advance_date}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintAdvance(selectedAdvance, false)}
+              className="gap-1.5"
+            >
+              <Printer className="w-4 h-4 text-slate-600" />
+              <span>{isArabic ? "طباعة A4" : "Print A4"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintAdvance(selectedAdvance, true)}
+              className="gap-1.5"
+            >
+              <FileDown className="w-4 h-4 text-sky-600" />
+              <span>{isArabic ? "حفظ PDF" : "Save PDF"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleShareWhatsapp(selectedAdvance)}
+              className="gap-1.5 text-emerald-700 hover:text-emerald-800"
+            >
+              <Share2 className="w-4 h-4 text-emerald-600" />
+              <span>{isArabic ? "مشاركة واتساب" : "WhatsApp"}</span>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedAdvance(null)}>
+              {isArabic ? "إغلاق" : "Close"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Details Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-bold text-slate-800">بيانات الموظف والسلفة</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">اسم الموظف:</span>
+                <strong className="text-slate-900 text-sm">{selectedAdvance.employee?.name_ar}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">الرقم الوظيفي:</span>
+                <span className="font-mono text-slate-800">{selectedAdvance.employee?.emp_code}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">القسم / الوظيفة:</span>
+                <span className="text-slate-800">{selectedAdvance.employee?.department || "-"} - {selectedAdvance.employee?.job_title || "-"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">تاريخ الصرف:</span>
+                <span className="font-mono text-slate-800">{selectedAdvance.advance_date}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">الآيبان البنكي:</span>
+                <span className="font-mono text-slate-800">{selectedAdvance.employee?.iban || "استلام نقدي"}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-bold text-slate-800">الملخص المالي وخطة الاستقطاع</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3 text-xs">
+              <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <span className="text-slate-600 font-medium">مبلغ السلفة الإجمالي:</span>
+                <strong className="font-mono text-slate-900 text-base">{selectedAdvance.amount.toFixed(2)} ر.س</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">مدة التقسيط:</span>
+                <span className="font-mono font-bold text-slate-800">{selectedAdvance.installment_months} أشهر</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">القسط الشهري المستقطع:</span>
+                <span className="font-mono font-bold text-sky-700">{selectedAdvance.monthly_deduction.toFixed(2)} ر.س / شهر</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">إجمالي المسترد حتى الآن:</span>
+                <span className="font-mono font-bold text-emerald-700">{selectedAdvance.recovered_amount.toFixed(2)} ر.س</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                <span className="text-slate-700 font-bold">المتبقي بذمة الموظف:</span>
+                <strong className="font-mono text-rose-700 text-base">{selectedAdvance.remaining_balance.toFixed(2)} ر.س</strong>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -229,20 +644,21 @@ export function EmployeeAdvancesPage() {
                   <th className="py-2.5 px-3 text-end">المسترد بالرواتب</th>
                   <th className="py-2.5 px-3 text-end">المتبقي للتحصيل</th>
                   <th className="py-2.5 px-3 text-center">الحالة</th>
+                  <th className="py-2.5 px-3 text-center">الإجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-industrial-border">
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
-                      <td colSpan={9} className="p-3">
+                      <td colSpan={10} className="p-3">
                         <Skeleton className="h-6 w-full" />
                       </td>
                     </tr>
                   ))
                 ) : filteredAdvances?.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-8 text-center text-slate-400">
+                    <td colSpan={10} className="py-8 text-center text-slate-400">
                       {isArabic ? "لا توجد سلف مسجلة حالياً" : "No advances recorded"}
                     </td>
                   </tr>
@@ -250,7 +666,14 @@ export function EmployeeAdvancesPage() {
                   filteredAdvances?.map((adv) => (
                     <tr key={adv.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
-                        {adv.advance_number}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAdvance(adv)}
+                          className="text-sky-700 hover:text-sky-900 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Wallet className="h-3.5 w-3.5" />
+                          <span>{adv.advance_number}</span>
+                        </button>
                       </td>
                       <td className="py-2.5 px-3 text-slate-900 font-medium">
                         {adv.employee?.name_ar}
@@ -287,6 +710,47 @@ export function EmployeeAdvancesPage() {
                           </Badge>
                         )}
                       </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedAdvance(adv)}
+                            className="h-7 px-2 text-xs text-sky-700 hover:bg-sky-50"
+                            title="معاينة السلفة"
+                          >
+                            <Eye className="h-3.5 w-3.5 me-1" />
+                            <span>معاينة</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintAdvance(adv, false)}
+                            className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
+                            title="طباعة A4"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintAdvance(adv, true)}
+                            className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
+                            title="حفظ PDF"
+                          >
+                            <FileDown className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleShareWhatsapp(adv)}
+                            className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
+                            title="مشاركة واتساب"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -295,128 +759,6 @@ export function EmployeeAdvancesPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Issue Advance Modal */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Plus className="h-4 w-4 text-industrial-accent" />
-              <span>صرف سلفة مالية لموظف</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 pt-2 text-xs">
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">الموظف المستفيد *</label>
-              <select
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                className="w-full h-8 px-2 rounded border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800"
-              >
-                <option value="">اختر الموظف...</option>
-                {employees?.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name_ar} ({emp.emp_code} - راتب: {emp.basic_salary} ر.س)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">تاريخ الصرف *</label>
-                <Input
-                  type="date"
-                  value={advanceDate}
-                  onChange={(e) => setAdvanceDate(e.target.value)}
-                  className="h-8 text-xs font-mono bg-slate-50 border-industrial-border"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">حساب الصرف (الصندوق/البنك) *</label>
-                <select
-                  value={paymentAccount}
-                  onChange={(e) => setPaymentAccount(e.target.value)}
-                  className="w-full h-8 px-2 rounded border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800"
-                >
-                  <option value="">اختر الحساب...</option>
-                  {treasuryAccounts?.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.code} - {acc.name_ar}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">مبلغ السلفة (SAR) *</label>
-                <Input
-                  type="number"
-                  min="1"
-                  step="0.01"
-                  value={amount || ""}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="h-8 text-xs font-mono text-end font-bold text-slate-900 bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">عدد أشهر الاستقطاع *</label>
-                <select
-                  value={installmentMonths}
-                  onChange={(e) => setInstallmentMonths(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800"
-                >
-                  <option value={1}>شهر واحد (كامل السلفة من الراتب القادم)</option>
-                  <option value={2}>شهران (قسطان)</option>
-                  <option value={3}>3 أشهر</option>
-                  <option value={4}>4 أشهر</option>
-                  <option value={6}>6 أشهر</option>
-                  <option value={10}>10 أشهر</option>
-                  <option value={12}>12 شهراً</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="p-2.5 bg-emerald-50 rounded border border-emerald-200 flex justify-between font-bold text-emerald-900">
-              <span>القسط الشهري المستقطع:</span>
-              <span className="font-mono text-sm">{monthlyDeductionCalc} ر.س / شهرياً</span>
-            </div>
-
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">ملاحظات / سبب السلفة</label>
-              <Input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="مثال: ظرف طارئ / مساعدة زواج..."
-                className="h-8 text-xs bg-slate-50 border-industrial-border"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="pt-3 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateModalOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!employeeId || !paymentAccount || amount <= 0 || createMutation.isPending}
-              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold"
-            >
-              {createMutation.isPending ? "جاري الصرف..." : "صرف السلفة وترحيل القيد"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

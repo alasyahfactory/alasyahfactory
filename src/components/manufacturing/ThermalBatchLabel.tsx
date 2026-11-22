@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, FileDown, Share2 } from "lucide-react";
 
 interface ThermalBatchLabelProps {
   productNameAr: string;
@@ -12,6 +12,7 @@ interface ThermalBatchLabelProps {
   sku: string;
   widthMm?: number;
   heightMm?: number;
+  compact?: boolean;
 }
 
 export function ThermalBatchLabel({
@@ -23,23 +24,29 @@ export function ThermalBatchLabel({
   sku,
   widthMm = 50,
   heightMm = 30,
+  compact = false,
 }: ThermalBatchLabelProps) {
   const { i18n } = useTranslation();
   const printRef = useRef<HTMLDivElement>(null);
   const isAr = i18n.language === "ar";
 
-  const handlePrint = () => {
+  const handlePrint = (isPdf = false) => {
     const printContent = printRef.current;
     if (!printContent) return;
 
     const win = window.open("", "_blank");
     if (!win) return;
 
+    const docTitle = isPdf
+      ? `ملصق_باتش_${batchNumber}`
+      : `ملصق باركود الباتش - ${batchNumber}`;
+
     win.document.write(`
       <!DOCTYPE html>
-      <html dir="${isAr ? "rtl" : "ltr"}">
+      <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
-          <title>طباعة ملصق الباتش - ${batchNumber}</title>
+          <meta charset="utf-8" />
+          <title>${docTitle}</title>
           <style>
             @page {
               size: ${widthMm}mm ${heightMm}mm;
@@ -119,6 +126,20 @@ export function ThermalBatchLabel({
     win.document.close();
   };
 
+  const handleShareWhatsApp = () => {
+    const msg = `*بيانات ملصق تشغيل الباتش*
+المنتج: ${productNameAr}
+رقم الباتش: ${batchNumber}
+رمز الصنف (SKU): ${sku}
+تاريخ الإنتاج: ${productionDate}
+تاريخ الانتهاء: ${expiryDate}
+_مصنع الأسياح للمنتجات الكيميائية_`;
+
+    const encoded = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   return (
     <div className="space-y-3">
       {/* Visual Preview on Screen */}
@@ -157,10 +178,43 @@ export function ThermalBatchLabel({
         </div>
       </div>
 
-      <Button onClick={handlePrint} size="sm" variant="outline" className="w-full gap-2 text-xs">
-        <Printer className="w-4 h-4" />
-        <span>{isAr ? `طباعة الملصق الحراري (${widthMm}×${heightMm} مم)` : `Print Label (${widthMm}x${heightMm} mm)`}</span>
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        {/* 1. Print Button */}
+        <Button
+          onClick={() => handlePrint(false)}
+          size="sm"
+          variant="outline"
+          className="flex-1 min-w-[120px] gap-1.5 text-xs h-8 border-slate-300 text-slate-800 hover:bg-slate-100"
+          title={isAr ? `طباعة الملصق الحراري (${widthMm}×${heightMm} مم)` : `Print Label (${widthMm}x${heightMm} mm)`}
+        >
+          <Printer className="w-3.5 h-3.5 text-slate-600" />
+          <span>{compact ? "طباعة" : isAr ? `طباعة حرارية` : `Print Label`}</span>
+        </Button>
+
+        {/* 2. Save PDF Button */}
+        <Button
+          onClick={() => handlePrint(true)}
+          size="sm"
+          variant="tonal"
+          className="h-8 px-2.5 gap-1.5 text-xs font-semibold"
+          title="حفظ الملصق كملف PDF"
+        >
+          <FileDown className="w-3.5 h-3.5 text-sky-700" />
+          <span>PDF</span>
+        </Button>
+
+        {/* 3. Share WhatsApp Button */}
+        <Button
+          onClick={handleShareWhatsApp}
+          size="sm"
+          variant="emerald"
+          className="h-8 px-2.5 gap-1.5 text-xs"
+          title="مشاركة تفاصيل الملصق عبر واتساب"
+        >
+          <Share2 className="w-3.5 h-3.5 text-emerald-100" />
+          <span>واتساب</span>
+        </Button>
+      </div>
     </div>
   );
 }

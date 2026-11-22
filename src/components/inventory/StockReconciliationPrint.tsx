@@ -1,28 +1,33 @@
 import React, { useRef } from "react";
-import { Printer, FileCheck } from "lucide-react";
+import { Printer, FileCheck, FileDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { StocktakingSession, FactorySettings } from "@/types/database";
 
 interface StockReconciliationPrintProps {
   session: StocktakingSession;
   settings: FactorySettings | null;
+  compact?: boolean;
 }
 
-export const StockReconciliationPrint: React.FC<StockReconciliationPrintProps> = ({ session, settings }) => {
+export const StockReconciliationPrint: React.FC<StockReconciliationPrintProps> = ({ session, settings, compact = false }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = () => {
+  const handlePrint = (isPdf = false) => {
     const printContent = printRef.current;
     if (!printContent) return;
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    const docTitle = isPdf
+      ? `محضر_مطابقة_وعجز_الجرد_${session.session_number}`
+      : `${session.session_number} - تقرير مطابقة وعجز الجرد`;
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
-          <title>${session.session_number} - تقرير مطابقة وعجز الجرد</title>
+          <title>${docTitle}</title>
           <meta charset="utf-8" />
           <style>
             @page {
@@ -114,17 +119,63 @@ export const StockReconciliationPrint: React.FC<StockReconciliationPrintProps> =
     printWindow.document.close();
   };
 
+  const handleShareWhatsApp = () => {
+    const factory = settings?.name_ar || "مصنع الأسياح للمنتجات الكيميائية";
+    const netVariance = session.net_variance_cost || 0;
+    const varianceDesc = netVariance < 0 ? `عجز بقيمة ${Math.abs(netVariance).toFixed(2)} ر.س` : netVariance > 0 ? `فائض بقيمة ${netVariance.toFixed(2)} ر.س` : "مطابق تماماً (0.00 ر.س)";
+    const msg = `*محضر مطابقة الجرد الفعلي وتسوية الفروقات المخزنية*
+رقم جلسة الجرد: ${session.session_number}
+المستودع: ${session.warehouse?.name_ar || "المستودع الرئيسي"}
+التاريخ: ${session.session_date}
+صافي الفارق المالي: ${varianceDesc}
+حالة القيد المحاسبي: ${session.journal_entry_id ? "مرحّل محاسبياً" : "معتمد"}
+_صادر ومعتمد من إدارة الرقابة المخزنية والمالية - ${factory}_`;
+
+    const encoded = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   return (
     <div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handlePrint}
-        className="h-8 gap-1.5 text-xs font-semibold text-emerald-800 border-emerald-300 hover:bg-emerald-50"
-      >
-        <FileCheck className="h-3.5 w-3.5" />
-        <span>تقرير مطابقة وعجز الجرد (A4)</span>
-      </Button>
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        {/* 1. Print A4 Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePrint(false)}
+          className={compact ? "h-7 px-2 text-xs gap-1 text-emerald-800 border-emerald-300 hover:bg-emerald-50" : "h-8 px-2.5 gap-1.5 text-xs font-semibold text-emerald-800 border-emerald-300 hover:bg-emerald-50"}
+          title="طباعة محضر مطابقة الجرد A4"
+        >
+          <Printer className="h-3.5 w-3.5" />
+          <FileCheck className="h-3.5 w-3.5" />
+          <span>{compact ? "طباعة" : "تقرير مطابقة الجرد A4"}</span>
+        </Button>
+
+        {/* 2. Save PDF Button */}
+        <Button
+          variant="tonal"
+          size="sm"
+          onClick={() => handlePrint(true)}
+          className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "h-8 px-2.5 gap-1.5 text-xs font-semibold"}
+          title="حفظ تقرير المطابقة كملف PDF"
+        >
+          <FileDown className="h-3.5 w-3.5 text-sky-700" />
+          <span>{compact ? "PDF" : "حفظ PDF"}</span>
+        </Button>
+
+        {/* 3. Share WhatsApp Button */}
+        <Button
+          variant="emerald"
+          size="sm"
+          onClick={handleShareWhatsApp}
+          className={compact ? "h-7 px-2 text-xs gap-1" : "h-8 px-2.5 gap-1.5 text-xs"}
+          title="مشاركة محضر الجرد عبر واتساب"
+        >
+          <Share2 className="h-3.5 w-3.5 text-emerald-100" />
+          <span>واتساب</span>
+        </Button>
+      </div>
 
       {/* Hidden print template */}
       <div style={{ display: "none" }}>

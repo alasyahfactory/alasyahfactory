@@ -16,13 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 
 export function YearEndClosingPage() {
   const { user, isOwner } = useAuth();
@@ -87,6 +80,67 @@ export function YearEndClosingPage() {
       toast.error(err.message || (isArabic ? "فشل تنفيذ الإقفال السنوي" : "Year-end closing failed"));
     },
   });
+
+  // Full-page in-place Canvas for Confirmation
+  if (confirmModalOpen) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-rose-200 dark:border-rose-950 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setConfirmModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لمعالج الإقفال</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-rose-700 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span>تأكيد الإقفال السنوي لعام {selectedYear}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                تأكيد الإقفال النهائي وترحيل صافي الأرباح لحساب 3201
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmModalOpen(false)}
+              disabled={closingMutation.isPending}
+            >
+              إلغاء التراجع
+            </Button>
+            <Button
+              onClick={() => closingMutation.mutate()}
+              disabled={closingMutation.isPending}
+              className="bg-rose-700 hover:bg-rose-800 text-white min-h-[40px] px-6 font-semibold"
+            >
+              {closingMutation.isPending ? "جاري الإقفال..." : "تأكيد الإقفال وترحيل الأرباح"}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-rose-200 shadow-sm p-6 space-y-4 bg-white dark:bg-slate-900">
+          <div className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed space-y-3">
+            <p>
+              أنت على وشك تنفيذ الإقفال النهائي للسنة المالية <strong>{selectedYear}</strong> بتاريخ <strong>{closingDate}</strong>.
+            </p>
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl font-mono text-center font-bold text-rose-900 dark:text-rose-200 text-lg">
+              صافي الربح المرحل لحساب الأرباح المبقاة: {closingPreview?.netProfit.toFixed(2)} ر.س
+            </div>
+            <p className="text-rose-600 dark:text-rose-400 font-semibold text-xs">
+              تنبيه: سيتم تصفير حسابات الإيرادات والمصروفات وقفل فترات السنة لمنع التعديل. هل أنت متأكد من المتابعة؟
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -212,47 +266,6 @@ export function YearEndClosingPage() {
           </div>
         </Card>
       </div>
-
-      {/* Confirmation Modal */}
-      <Dialog open={confirmModalOpen} onOpenChange={setConfirmModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2 text-rose-700">
-              <AlertTriangle className="h-5 w-5" />
-              <span>تأكيد الإقفال السنوي لعام {selectedYear}</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 pt-2 text-xs text-slate-700 leading-relaxed">
-            <p>
-              أنت على وشك تنفيذ الإقفال النهائي للسنة المالية <strong>{selectedYear}</strong> بتاريخ <strong>{closingDate}</strong>.
-            </p>
-            <div className="p-2.5 bg-slate-100 rounded border font-mono text-center font-bold text-slate-900">
-              صافي الربح المرحل: {closingPreview?.netProfit.toFixed(2)} ر.س
-            </div>
-            <p className="text-rose-600 font-semibold">
-              هل أنت متأكد من المتابعة وقفل كافة القيود والفترات المالية لهذه السنة؟
-            </p>
-          </div>
-
-          <DialogFooter className="pt-3 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfirmModalOpen(false)}
-            >
-              إلغاء التراجع
-            </Button>
-            <Button
-              onClick={() => closingMutation.mutate()}
-              disabled={closingMutation.isPending}
-              className="gap-2 bg-rose-700 hover:bg-rose-800 text-white font-semibold"
-            >
-              {closingMutation.isPending ? "جاري الإقفال..." : "تأكيد الإقفال وترحيل الأرباح"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

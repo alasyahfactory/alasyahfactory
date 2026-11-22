@@ -63,7 +63,7 @@ export function BottomNav() {
   if (navItems.length === 0) return null;
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-industrial-border pb-safe">
+    <nav aria-label={isArabic ? "التنقل السريع للجوال" : "Quick Navigation"} className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-industrial-border pb-safe">
       <div className="flex items-center justify-around h-16 px-1">
         {navItems.map((item) => {
           const Icon = item.icon;

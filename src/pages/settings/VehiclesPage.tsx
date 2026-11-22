@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Truck, Search, User, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, Truck,
+  ArrowRight, Search, User, Loader2, CheckCircle2 } from "lucide-react";
 
 const vehicleSchema = z.object({
   plate_number: z.string().min(2, "رقم لوحة السيارة مطلوب"),
@@ -158,6 +158,114 @@ export function VehiclesPage() {
     );
   });
 
+
+  // Full-page in-place Canvas for Adding / Editing Vehicle
+  if (isDialogOpen) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setIsDialogOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لأسطول السيارات" : "Back to Vehicles"}</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Truck className="h-5 w-5 text-sky-600" />
+                <span>
+                  {editingVehicle
+                    ? isAr ? "تعديل بيانات السيارة" : "Edit Vehicle"
+                    : isAr ? "إضافة سيارة جديدة للأسطول" : "Add New Vehicle"}
+                </span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={saveMutation.isPending}
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              type="button"
+              disabled={saveMutation.isPending}
+              onClick={form.handleSubmit((d) => saveMutation.mutate(d))}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+            >
+              {saveMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+              <span>{editingVehicle ? (isAr ? "حفظ التعديلات" : "Update") : (isAr ? "إضافة السيارة" : "Add Vehicle")}</span>
+            </Button>
+          </div>
+        </div>
+
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-base font-semibold">{isAr ? "بيانات تسجيل وتخصيص السيارة" : "Vehicle Registration"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="plate_number">{isAr ? "رقم لوحة السيارة *" : "Plate Number *"}</Label>
+                <Input
+                  id="plate_number"
+                  placeholder="أ ب ج 1234"
+                  className="font-mono text-sm h-10"
+                  {...form.register("plate_number")}
+                />
+                {form.formState.errors.plate_number && (
+                  <p className="text-xs text-rose-600">{form.formState.errors.plate_number.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="veh_name">{isAr ? "اسم ونوع السيارة *" : "Vehicle Name / Model *"}</Label>
+                <Input id="veh_name" placeholder="فان إيسوزو ديماكس 2024" className="h-10" {...form.register("name")} />
+                {form.formState.errors.name && (
+                  <p className="text-xs text-rose-600">{form.formState.errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="assigned_rep_id">{isAr ? "المندوب المسؤول" : "Assigned Sales Rep"}</Label>
+                <select
+                  id="assigned_rep_id"
+                  {...form.register("assigned_rep_id")}
+                  className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm focus:ring-1 focus:ring-slate-900"
+                >
+                  <option value="">{isAr ? "-- بدون مندوب حالياً --" : "-- None --"}</option>
+                  {salesReps.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.full_name} ({r.phone})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  {isAr ? "إلغاء" : "Cancel"}
+                </Button>
+                <Button type="submit" disabled={saveMutation.isPending} className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6">
+                  {saveMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+                  <span>{editingVehicle ? (isAr ? "حفظ التعديلات" : "Update") : (isAr ? "إضافة السيارة" : "Add Vehicle")}</span>
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -278,66 +386,6 @@ export function VehiclesPage() {
       </Card>
 
       {/* Add / Edit Vehicle Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingVehicle
-                ? isAr ? "تعديل بيانات السيارة" : "Edit Vehicle"
-                : isAr ? "إضافة سيارة جديدة للأسطول" : "Add New Vehicle"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="plate_number">{isAr ? "رقم لوحة السيارة *" : "Plate Number *"}</Label>
-              <Input
-                id="plate_number"
-                placeholder="أ ب ج 1234"
-                {...form.register("plate_number")}
-                className="font-mono"
-              />
-              {form.formState.errors.plate_number && (
-                <p className="text-xs text-rose-600">{form.formState.errors.plate_number.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="veh_name">{isAr ? "اسم ونوع السيارة *" : "Vehicle Name / Model *"}</Label>
-              <Input id="veh_name" placeholder="فان إيسوزو ديماكس 2024" {...form.register("name")} />
-              {form.formState.errors.name && (
-                <p className="text-xs text-rose-600">{form.formState.errors.name.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="assigned_rep_id">{isAr ? "المندوب المسؤول" : "Assigned Sales Rep"}</Label>
-              <select
-                id="assigned_rep_id"
-                {...form.register("assigned_rep_id")}
-                className="w-full h-10 rounded border border-slate-200 bg-white px-3 text-sm focus:ring-1 focus:ring-slate-900"
-              >
-                <option value="">{isAr ? "-- بدون مندوب حالياً --" : "-- None --"}</option>
-                {salesReps.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.full_name} ({r.phone})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-slate-100">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                {isAr ? "إلغاء" : "Cancel"}
-              </Button>
-              <Button type="submit" disabled={saveMutation.isPending} className="bg-slate-900 text-white gap-2">
-                {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{editingVehicle ? (isAr ? "حفظ التعديلات" : "Update") : (isAr ? "إضافة السيارة" : "Add Vehicle")}</span>
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

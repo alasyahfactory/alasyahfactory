@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import {
   Users,
+  ArrowRight,
   Plus,
   Search,
   Phone,
@@ -17,15 +18,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
 import type { Employee, UserProfile } from "@/types/database";
 
 export function EmployeesPage() {
@@ -265,177 +261,6 @@ export function EmployeesPage() {
         )}
       </div>
 
-      {/* Add Employee Dialog */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Plus className="h-4 w-4 text-industrial-accent" />
-              <span>إضافة موظف جديد للكادر الصناعي</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 pt-2 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">الاسم بالعربية *</label>
-                <Input
-                  value={nameAr}
-                  onChange={(e) => setNameAr(e.target.value)}
-                  placeholder="الاسم الرباعي للموظف"
-                  className="h-8 text-xs bg-slate-50 border-industrial-border"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">الاسم بالإنجليزية</label>
-                <Input
-                  value={nameEn}
-                  onChange={(e) => setNameEn(e.target.value)}
-                  placeholder="Full English Name"
-                  className="h-8 text-xs bg-slate-50 border-industrial-border"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">رقم الجوال *</label>
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="05XXXXXXXX"
-                  className="h-8 text-xs font-mono bg-slate-50 border-industrial-border"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">رقم الهوية / الإقامة *</label>
-                <Input
-                  value={nationalId}
-                  onChange={(e) => setNationalId(e.target.value)}
-                  placeholder="10 خانات"
-                  className="h-8 text-xs font-mono bg-slate-50 border-industrial-border"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">المسمى الوظيفي *</label>
-                <Input
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="مشغل خط إنتاج / أمين مستودع..."
-                  className="h-8 text-xs bg-slate-50 border-industrial-border"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">القسم / الإدارة *</label>
-                <select
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full h-8 px-2 rounded border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800"
-                >
-                  <option value="production">صالة الإنتاج والخلط</option>
-                  <option value="warehouse">المستودعات والتوريد</option>
-                  <option value="sales">المبيعات والتوزيع</option>
-                  <option value="accounting">المحاسبة والمالية</option>
-                  <option value="management">الإدارة العامة</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Financials */}
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">الراتب الأساسي (SAR) *</label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={basicSalary || ""}
-                  onChange={(e) => setBasicSalary(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="h-8 text-xs font-mono text-end bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">بدل السكن (SAR)</label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={housingAllowance || ""}
-                  onChange={(e) => setHousingAllowance(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="h-8 text-xs font-mono text-end bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">بدل النقل (SAR)</label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={transportAllowance || ""}
-                  onChange={(e) => setTransportAllowance(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="h-8 text-xs font-mono text-end bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">الآيبان البنكي (IBAN)</label>
-                <Input
-                  value={iban}
-                  onChange={(e) => setIban(e.target.value)}
-                  placeholder="SA0000000000000000000000"
-                  className="h-8 text-xs font-mono bg-slate-50 border-industrial-border"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">ربط بمستخدم النظام (اختياري)</label>
-                <select
-                  value={userProfileId}
-                  onChange={(e) => setUserProfileId(e.target.value)}
-                  className="w-full h-8 px-2 rounded border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800"
-                >
-                  <option value="">غير مربوط بمستخدم</option>
-                  {userProfiles?.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.full_name} ({u.role})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-3 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateModalOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!nameAr || !phone || !nationalId || basicSalary <= 0 || createMutation.isPending}
-              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold"
-            >
-              {createMutation.isPending ? "جاري الإضافة..." : "حفظ الموظف"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

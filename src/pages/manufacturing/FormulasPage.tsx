@@ -13,14 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -40,6 +32,7 @@ import {
   ShoppingCart,
   Trash2,
   Droplet,
+  ArrowRight,
 } from "lucide-react";
 
 interface PreCheckItem {
@@ -331,6 +324,667 @@ export function FormulasPage() {
     );
   });
 
+  // In-Page Canvas View for Formula Creation (Eliminating modal popup)
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لقائمة التركيبات" : "Back to Formulas"}</span>
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                <FlaskConical className="h-5 w-5 text-sky-600" />
+                <span>{t("manufacturing.createFormula")}</span>
+              </h1>
+              <p className="text-xs text-slate-500">
+                أدخل بيانات الخلطة الكيميائية ونسب المواد ونطاقات الفحص المخبري
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={createFormulaMutation.isPending}
+              onClick={() => createFormulaMutation.mutate()}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-5 font-semibold"
+            >
+              {createFormulaMutation.isPending ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Body in Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Formula Metadata Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">بيانات التركيبة الأساسية</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.formulaCode")} *</Label>
+                    <Input
+                      placeholder="مثال: BOM-DW-5T"
+                      value={formulaCode}
+                      onChange={(e) => setFormulaCode(e.target.value)}
+                      className="mt-1 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.formulaNameAr")} *</Label>
+                    <Input
+                      placeholder="صابون سائل للأيدي 5 طن"
+                      value={nameAr}
+                      onChange={(e) => setNameAr(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.formulaNameEn")}</Label>
+                    <Input
+                      placeholder="Hand Soap 5T Bulk"
+                      value={nameEn}
+                      onChange={(e) => setNameEn(e.target.value)}
+                      className="mt-1 font-sans"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.batchSizeKg")} *</Label>
+                    <Input
+                      type="number"
+                      value={batchSizeKg}
+                      onChange={(e) => setBatchSizeKg(Number(e.target.value))}
+                      min={100}
+                      step={500}
+                      className="mt-1 font-mono tabular-nums text-center font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.bulkItem")}</Label>
+                    <Select value={bulkItemId} onValueChange={setBulkItemId}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="اختر السائل السائب المستهدف..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bulkItems?.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quality Specs Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">معايير الجودة والفحص المخبري (QC Ranges)</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.phMin")}</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={targetPhMin}
+                      onChange={(e) => setTargetPhMin(Number(e.target.value))}
+                      className="mt-1 font-mono text-center bg-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.phMax")}</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={targetPhMax}
+                      onChange={(e) => setTargetPhMax(Number(e.target.value))}
+                      className="mt-1 font-mono text-center bg-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.viscMin")}</Label>
+                    <Input
+                      type="number"
+                      value={targetViscosityMin}
+                      onChange={(e) => setTargetViscosityMin(Number(e.target.value))}
+                      className="mt-1 font-mono text-center bg-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">{t("manufacturing.viscMax")}</Label>
+                    <Input
+                      type="number"
+                      value={targetViscosityMax}
+                      onChange={(e) => setTargetViscosityMax(Number(e.target.value))}
+                      className="mt-1 font-mono text-center bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">{t("manufacturing.instructions")}</Label>
+                  <Input
+                    placeholder="تعليمات التشغيل: ترتيب الإضافة وسرعة الخلاط ودرجة الحرارة..."
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Formula Lines Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800">
+                    {t("manufacturing.rawMaterialsLines")}
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500 mt-0.5">
+                    إدراج المواد الخام مع تحديد خطوة الإضافة والوزن بالكيلوجرام
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() =>
+                    setFormulaLines([
+                      ...formulaLines,
+                      { item_id: "", qty_kg: 50, step: formulaLines.length + 1, instructions: "" },
+                    ])
+                  }
+                  className="text-xs text-sky-700 border-sky-300 hover:bg-sky-50"
+                >
+                  <Plus className="me-1 h-3.5 w-3.5" />
+                  {t("manufacturing.addLine")}
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {formulaLines.length === 0 ? (
+                  <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
+                    <FlaskConical className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-slate-600">لا توجد مواد مضافة بعد</p>
+                    <p className="text-xs text-slate-400 mt-1">اضغط زر "إضافة مادة خام" أعلاه لتحديد نسب التركيبة</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {formulaLines.map((line, idx) => (
+                      <div
+                        key={idx}
+                        className="flex flex-col sm:flex-row sm:items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200"
+                      >
+                        <div className="w-full sm:w-24">
+                          <Label className="text-[11px] text-slate-500 mb-1 block">الخطوة</Label>
+                          <Input
+                            type="number"
+                            value={line.step}
+                            onChange={(e) => {
+                              const updated = [...formulaLines];
+                              updated[idx].step = Number(e.target.value);
+                              setFormulaLines(updated);
+                            }}
+                            className="font-mono text-center bg-white"
+                          />
+                        </div>
+
+                        <div className="flex-1">
+                          <Label className="text-[11px] text-slate-500 mb-1 block">المادة الخام *</Label>
+                          <Select
+                            value={line.item_id}
+                            onValueChange={(val) => {
+                              const updated = [...formulaLines];
+                              updated[idx].item_id = val;
+                              setFormulaLines(updated);
+                            }}
+                          >
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="اختر المادة الخام..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {rawItems?.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="w-full sm:w-32">
+                          <Label className="text-[11px] text-slate-500 mb-1 block">الوزن (كجم) *</Label>
+                          <Input
+                            type="number"
+                            value={line.qty_kg || ""}
+                            onChange={(e) => {
+                              const updated = [...formulaLines];
+                              updated[idx].qty_kg = Number(e.target.value);
+                              setFormulaLines(updated);
+                            }}
+                            className="font-mono tabular-nums bg-white text-center font-bold"
+                          />
+                        </div>
+
+                        <div className="pt-5 sm:pt-4">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            type="button"
+                            onClick={() => {
+                              const updated = formulaLines.filter((_, i) => i !== idx);
+                              setFormulaLines(updated);
+                            }}
+                            className="text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side Column: Summary */}
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm sticky top-6">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">إجمالي التركيبة</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2.5">
+                  <div className="flex justify-between text-slate-600">
+                    <span>حجم التشغيلة المستهدف:</span>
+                    <span className="font-mono font-bold text-slate-900">{batchSizeKg} كجم</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>مجموع أوزان المواد المضافة:</span>
+                    <span className="font-mono font-bold text-sky-700">
+                      {formulaLines.reduce((sum, l) => sum + (l.qty_kg || 0), 0)} كجم
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-slate-600">
+                    <span>عدد المواد في الخلطة:</span>
+                    <span className="font-mono font-bold text-slate-900">{formulaLines.length}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <Button
+                    disabled={createFormulaMutation.isPending}
+                    onClick={() => createFormulaMutation.mutate()}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white min-h-[46px] font-bold"
+                  >
+                    {createFormulaMutation.isPending ? t("common.saving") : t("common.save")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreateModalOpen(false)}
+                    className="w-full"
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
+  // Full-page in-place Canvas for Formula Specification Sheet
+  if (selectedFormula) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setSelectedFormula(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لدليل التركيبات</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <FlaskConical className="h-5 w-5 text-sky-600" />
+                <span>{isArabic ? selectedFormula.name_ar : selectedFormula.name_en}</span>
+                <span className="font-mono text-xs text-slate-500 font-normal">
+                  ({selectedFormula.code})
+                </span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                المواصفات الكيميائية الدقيقة، نسب المواد الخام وخطوات الإضافة المعيارية
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelectedFormula(null)}>
+              {t("common.close")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Chem Specs Quick Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-slate-500 block mb-1">{t("manufacturing.batchSize")}</span>
+            <span className="text-xl font-black font-mono text-slate-900 dark:text-slate-100">
+              {(selectedFormula.batch_size_grams / 1000).toLocaleString()} كجم
+            </span>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-slate-500 block mb-1">{t("manufacturing.targetPh")}</span>
+            <span className="text-xl font-black font-mono text-sky-700">
+              {selectedFormula.target_ph_min} - {selectedFormula.target_ph_max}
+            </span>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-slate-500 block mb-1">{t("manufacturing.targetViscosity")}</span>
+            <span className="text-xl font-black font-mono text-emerald-700">
+              {selectedFormula.target_viscosity_min} - {selectedFormula.target_viscosity_max} cPs
+            </span>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-slate-500 block mb-1">الكثافة القياسية</span>
+            <span className="text-xl font-black font-mono text-amber-700">
+              {selectedFormula.density || 1.0} كجم/لتر
+            </span>
+          </Card>
+        </div>
+
+        {/* Operating Instructions */}
+        {selectedFormula.instructions && (
+          <Card className="shadow-sm border-sky-100 bg-sky-50/30 dark:bg-slate-900">
+            <CardHeader className="pb-2 border-b border-sky-100 dark:border-slate-800">
+              <CardTitle className="text-sm font-semibold text-sky-900 dark:text-sky-300">
+                تعليمات الخلط والملاحظات الصناعية:
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-line">
+              {selectedFormula.instructions}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* BOM Ingredients Table Card */}
+        <Card className="shadow-sm overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+            <CardTitle className="text-base font-semibold">جدول المكونات وخطوات الإضافة المعيارية (BOM)</CardTitle>
+            <span className="text-xs font-mono text-slate-500">
+              {selectedFormula.formula_lines?.length} مكونات كيميائية
+            </span>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 font-semibold">
+                  <tr>
+                    <th className="py-3 px-3 text-start">الخطوة</th>
+                    <th className="py-3 px-3 text-start">المادة الكيميائية</th>
+                    <th className="py-3 px-3 text-end">الوزن القياسي (كجم)</th>
+                    <th className="py-3 px-3 text-end">النسبة المئوية (%)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {selectedFormula.formula_lines?.map((line: FormulaLine, idx: number) => (
+                    <tr key={line.id || idx} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="py-3 px-3 font-mono font-bold text-slate-500">
+                        #{line.addition_step}
+                      </td>
+                      <td className="py-3 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                        {line.item ? (isArabic ? line.item.name_ar : line.item.name_en) : line.item_id}
+                      </td>
+                      <td className="py-3 px-3 text-end font-mono tabular-nums">
+                        {canViewFormulaDetails ? (
+                          `${(line.qty_grams / 1000).toLocaleString()} كجم`
+                        ) : (
+                          <span className="text-slate-400 font-normal">*** محمي ***</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-end font-mono tabular-nums font-bold text-sky-700">
+                        {canViewFormulaDetails ? (
+                          `${line.percentage}%`
+                        ) : (
+                          <span className="text-slate-400 font-normal">***</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bottom Actions */}
+        <div className="flex justify-end pt-2">
+          <Button variant="outline" onClick={() => setSelectedFormula(null)}>
+            {t("common.close")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Full-page in-place Canvas for Pre-Production Stock Sufficiency Check
+  if (preCheckModalOpen && preCheckFormula) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => {
+                setPreCheckModalOpen(false);
+                setPreCheckFormula(null);
+                setPreCheckResult(null);
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لدليل التركيبات</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <FlaskConical className="h-5 w-5 text-sky-600" />
+                <span>{t("manufacturing.preCheckTitle")}</span>
+                <span className="font-mono text-xs text-slate-500 font-normal">
+                  ({isArabic ? preCheckFormula.name_ar : preCheckFormula.name_en})
+                </span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t("manufacturing.preCheckDesc")}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {preCheckResult && !preCheckResult.can_produce && (
+              <Button
+                variant="default"
+                disabled={isCreatingPO}
+                onClick={handleCreateDraftPO}
+                className="bg-amber-600 hover:bg-amber-700 text-white min-h-[40px] px-4 font-semibold"
+              >
+                <ShoppingCart className="me-2 h-4 w-4" />
+                <span>{isCreatingPO ? t("common.loading") : t("manufacturing.createPoForMissing")}</span>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPreCheckModalOpen(false);
+                setPreCheckFormula(null);
+                setPreCheckResult(null);
+              }}
+            >
+              {t("common.close")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Batch Weight Input & Overall Result */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-2 border-slate-200 shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-bold text-slate-800">حجم التشغيلة المراد فحص كفايتها</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    {isArabic ? "حجم التشغيلة المطلوب فحصها (كجم):" : "Target Batch Weight (Kg):"}
+                  </Label>
+                  <Input
+                    type="number"
+                    value={plannedBatchKg}
+                    onChange={(e) => setPlannedBatchKg(Number(e.target.value))}
+                    min={100}
+                    step={100}
+                    className="font-mono tabular-nums text-sm bg-white mt-1"
+                  />
+                </div>
+                <div className="pt-5">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={isCheckingPreProd}
+                    onClick={() => preCheckFormula && handleRunPreCheck(preCheckFormula, plannedBatchKg)}
+                    className="min-h-[40px] px-5 font-semibold"
+                  >
+                    {isCheckingPreProd ? t("common.loading") : isArabic ? "إعادة الفحص الآني" : "Re-Check"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-sm flex flex-col justify-center items-center p-6 text-center">
+            <span className="text-xs text-slate-500 block mb-2 font-medium">النتيجة الإجمالية للجاهزية</span>
+            {preCheckResult ? (
+              preCheckResult.can_produce ? (
+                <Badge variant="emerald" className="py-1.5 px-4 text-sm font-bold">
+                  <CheckCircle2 className="me-1.5 h-4 w-4" />
+                  {t("manufacturing.canProduce")}
+                </Badge>
+              ) : (
+                <Badge variant="rose" className="py-1.5 px-4 text-sm font-bold">
+                  <AlertTriangle className="me-1.5 h-4 w-4" />
+                  {t("manufacturing.cannotProduce")}
+                </Badge>
+              )
+            ) : (
+              <span className="text-xs text-slate-400">جاري احتساب الأرصدة...</span>
+            )}
+          </Card>
+        </div>
+
+        {/* Raw Materials Sufficiency Table */}
+        {preCheckResult && (
+          <Card className="border-slate-200 shadow-sm overflow-hidden">
+            <CardHeader className="py-3 px-4 border-b border-slate-100 bg-slate-50">
+              <CardTitle className="text-sm font-bold text-slate-800">
+                تقرير فحص توافر الخامات بالمستودعات
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-start">
+                  <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 font-semibold">
+                    <tr>
+                      <th className="py-2.5 px-3">{t("common.code")}</th>
+                      <th className="py-2.5 px-3">{isArabic ? "المادة الخام" : "Material"}</th>
+                      <th className="py-2.5 px-3 text-end">{isArabic ? "المطلوب (كجم)" : "Required"}</th>
+                      <th className="py-2.5 px-3 text-end">{isArabic ? "المتاح بالمخزن" : "Stock"}</th>
+                      <th className="py-2.5 px-3 text-end">{isArabic ? "العجز" : "Shortage"}</th>
+                      <th className="py-2.5 px-3 text-center">{t("common.status")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {preCheckResult.items.map((item) => {
+                      const reqKg = (item.required_qty / 1000).toFixed(2);
+                      const stockKg = (item.available_stock / 1000).toFixed(2);
+                      const missKg = (item.missing_qty / 1000).toFixed(2);
+
+                      return (
+                        <tr
+                          key={item.item_id}
+                          className={item.is_sufficient ? "hover:bg-slate-50" : "bg-rose-50/50"}
+                        >
+                          <td className="py-2.5 px-3 font-mono font-medium text-slate-600">
+                            {item.sku}
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">
+                            {isArabic ? item.name_ar : item.name_en}
+                          </td>
+                          <td className="py-2.5 px-3 text-end font-mono tabular-nums">{reqKg}</td>
+                          <td className="py-2.5 px-3 text-end font-mono tabular-nums text-slate-700">
+                            {stockKg}
+                          </td>
+                          <td className="py-2.5 px-3 text-end font-mono tabular-nums font-bold text-rose-600">
+                            {Number(missKg) > 0 ? missKg : "-"}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            {item.is_sufficient ? (
+                              <span className="inline-flex items-center text-emerald-700 text-[11px] font-semibold">
+                                <CheckCircle2 className="h-3.5 w-3.5 me-1 text-emerald-600" />
+                                متاح
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center text-rose-700 text-[11px] font-semibold">
+                                <AlertTriangle className="h-3.5 w-3.5 me-1 text-rose-600" />
+                                عجز
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -474,475 +1128,6 @@ export function FormulasPage() {
           })}
         </div>
       )}
-
-      {/* 1. Pre-Production Check Dialog */}
-      <Dialog open={preCheckModalOpen} onOpenChange={setPreCheckModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
-              <FlaskConical className="h-5 w-5 text-sky-600" />
-              <span>{t("manufacturing.preCheckTitle")}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              {t("manufacturing.preCheckDesc")} • {isArabic ? preCheckFormula?.name_ar : preCheckFormula?.name_en}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2">
-            <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-              <div className="flex-1">
-                <Label className="text-xs font-semibold text-slate-700">
-                  {isArabic ? "حجم التشغيلة المطلوب فحصها (كجم):" : "Target Batch Weight (Kg):"}
-                </Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Input
-                    type="number"
-                    value={plannedBatchKg}
-                    onChange={(e) => setPlannedBatchKg(Number(e.target.value))}
-                    min={100}
-                    step={100}
-                    className="font-mono tabular-nums text-sm bg-white"
-                  />
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={isCheckingPreProd}
-                    onClick={() => preCheckFormula && handleRunPreCheck(preCheckFormula, plannedBatchKg)}
-                    className="shrink-0"
-                  >
-                    {isCheckingPreProd ? t("common.loading") : isArabic ? "إعادة الفحص" : "Re-Check"}
-                  </Button>
-                </div>
-              </div>
-
-              {preCheckResult && (
-                <div className="shrink-0 text-center ps-3 border-s border-slate-200">
-                  <span className="text-[11px] text-slate-500 block mb-1">النتيجة الإجمالية</span>
-                  {preCheckResult.can_produce ? (
-                    <Badge variant="emerald" className="py-1 px-3 text-xs">
-                      <CheckCircle2 className="me-1 h-3.5 w-3.5" />
-                      {t("manufacturing.canProduce")}
-                    </Badge>
-                  ) : (
-                    <Badge variant="rose" className="py-1 px-3 text-xs">
-                      <AlertTriangle className="me-1 h-3.5 w-3.5" />
-                      {t("manufacturing.cannotProduce")}
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Items Table */}
-            {preCheckResult && (
-              <div className="border border-industrial-border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-start">
-                    <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 font-semibold">
-                      <tr>
-                        <th className="py-2.5 px-3">{t("common.code")}</th>
-                        <th className="py-2.5 px-3">{isArabic ? "المادة الخام" : "Material"}</th>
-                        <th className="py-2.5 px-3 text-end">{isArabic ? "المطلوب (كجم)" : "Required"}</th>
-                        <th className="py-2.5 px-3 text-end">{isArabic ? "المتاح بالمخزن" : "Stock"}</th>
-                        <th className="py-2.5 px-3 text-end">{isArabic ? "العجز" : "Shortage"}</th>
-                        <th className="py-2.5 px-3 text-center">{t("common.status")}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {preCheckResult.items.map((item) => {
-                        const reqKg = (item.required_qty / 1000).toFixed(2);
-                        const stockKg = (item.available_stock / 1000).toFixed(2);
-                        const missKg = (item.missing_qty / 1000).toFixed(2);
-
-                        return (
-                          <tr
-                            key={item.item_id}
-                            className={item.is_sufficient ? "hover:bg-slate-50" : "bg-rose-50/50"}
-                          >
-                            <td className="py-2.5 px-3 font-mono font-medium text-slate-600">
-                              {item.sku}
-                            </td>
-                            <td className="py-2.5 px-3 font-semibold text-slate-900">
-                              {isArabic ? item.name_ar : item.name_en}
-                            </td>
-                            <td className="py-2.5 px-3 text-end font-mono tabular-nums">{reqKg}</td>
-                            <td className="py-2.5 px-3 text-end font-mono tabular-nums text-slate-700">
-                              {stockKg}
-                            </td>
-                            <td className="py-2.5 px-3 text-end font-mono tabular-nums font-bold text-rose-600">
-                              {Number(missKg) > 0 ? missKg : "-"}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              {item.is_sufficient ? (
-                                <span className="inline-flex items-center text-emerald-700 text-[11px] font-semibold">
-                                  <CheckCircle2 className="h-3.5 w-3.5 me-1 text-emerald-600" />
-                                  متاح
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center text-rose-700 text-[11px] font-semibold">
-                                  <AlertTriangle className="h-3.5 w-3.5 me-1 text-rose-600" />
-                                  عجز
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            {preCheckResult && !preCheckResult.can_produce && (
-              <Button
-                variant="default"
-                disabled={isCreatingPO}
-                onClick={handleCreateDraftPO}
-                className="bg-amber-600 hover:bg-amber-700 text-white min-h-[44px]"
-              >
-                <ShoppingCart className="me-2 h-4 w-4" />
-                <span>{isCreatingPO ? t("common.loading") : t("manufacturing.createPoForMissing")}</span>
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => setPreCheckModalOpen(false)}>
-              {t("common.close")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 2. Formula Details Modal */}
-      <Dialog open={!!selectedFormula} onOpenChange={() => setSelectedFormula(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <FlaskConical className="h-5 w-5 text-sky-600" />
-              <span>{isArabic ? selectedFormula?.name_ar : selectedFormula?.name_en}</span>
-              <span className="font-mono text-xs text-slate-500 font-normal">
-                ({selectedFormula?.code})
-              </span>
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedFormula && (
-            <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div>
-                  <span className="text-slate-500 block text-[11px]">{t("manufacturing.batchSize")}</span>
-                  <span className="font-bold tabular-nums font-mono text-slate-900">
-                    {(selectedFormula.batch_size_grams / 1000).toLocaleString()} كجم
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">{t("manufacturing.targetPh")}</span>
-                  <span className="font-bold tabular-nums font-mono text-slate-900">
-                    {selectedFormula.target_ph_min} - {selectedFormula.target_ph_max}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">{t("manufacturing.targetViscosity")}</span>
-                  <span className="font-bold tabular-nums font-mono text-slate-900">
-                    {selectedFormula.target_viscosity_min} - {selectedFormula.target_viscosity_max}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">الكثافة القياسية</span>
-                  <span className="font-bold tabular-nums font-mono text-slate-900">
-                    {selectedFormula.density || 1.0}
-                  </span>
-                </div>
-              </div>
-
-              {selectedFormula.instructions && (
-                <div className="bg-sky-50/50 p-3 rounded border border-sky-100 text-slate-700">
-                  <span className="font-semibold block mb-1 text-sky-900">تعليمات الخلط والتشغيل:</span>
-                  <p className="whitespace-pre-line leading-relaxed">{selectedFormula.instructions}</p>
-                </div>
-              )}
-
-              {/* Formulation breakdown */}
-              <div className="space-y-2">
-                <h4 className="font-bold text-slate-900 text-sm flex items-center justify-between">
-                  <span>جدول المكونات وخطوات الإضافة (BOM)</span>
-                  <span className="text-xs font-normal text-slate-500">
-                    {selectedFormula.formula_lines?.length} مكونات
-                  </span>
-                </h4>
-
-                <div className="border border-industrial-border rounded-lg overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-100 text-slate-700 border-b border-slate-200">
-                      <tr>
-                        <th className="py-2 px-3 text-start">الخطوة</th>
-                        <th className="py-2 px-3 text-start">المادة الكيميائية</th>
-                        <th className="py-2 px-3 text-end">الوزن (كجم)</th>
-                        <th className="py-2 px-3 text-end">النسبة المئوية</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {selectedFormula.formula_lines?.map((line: FormulaLine, idx: number) => (
-                        <tr key={line.id || idx}>
-                          <td className="py-2 px-3 font-mono font-bold text-slate-500">
-                            #{line.addition_step}
-                          </td>
-                          <td className="py-2 px-3 font-semibold text-slate-800">
-                            {line.item ? (isArabic ? line.item.name_ar : line.item.name_en) : line.item_id}
-                          </td>
-                          <td className="py-2 px-3 text-end font-mono tabular-nums">
-                            {canViewFormulaDetails ? (
-                              `${(line.qty_grams / 1000).toLocaleString()} كجم`
-                            ) : (
-                              <span className="text-slate-400 font-normal">*** محمي ***</span>
-                            )}
-                          </td>
-                          <td className="py-2 px-3 text-end font-mono tabular-nums font-bold text-sky-700">
-                            {canViewFormulaDetails ? (
-                              `${line.percentage}%`
-                            ) : (
-                              <span className="text-slate-400 font-normal">***</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedFormula(null)}>
-              {t("common.close")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 3. Create Formula Dialog (Owner Only) */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <FlaskConical className="h-5 w-5 text-sky-600" />
-              <span>{t("manufacturing.createFormula")}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              أدخل بيانات الخلطة الكيميائية ونسب المواد ونطاقات الفحص المخبري
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">{t("manufacturing.formulaCode")} *</Label>
-                <Input
-                  placeholder="مثال: BOM-DW-5T"
-                  value={formulaCode}
-                  onChange={(e) => setFormulaCode(e.target.value)}
-                  className="mt-1 font-mono uppercase"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("common.arabicName")} *</Label>
-                <Input
-                  placeholder="مثال: خلطة صابون صحون ليمون 5 طن"
-                  value={nameAr}
-                  onChange={(e) => setNameAr(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("common.englishName")}</Label>
-                <Input
-                  placeholder="Dishwashing Lemon 5T Formula"
-                  value={nameEn}
-                  onChange={(e) => setNameEn(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">السائل السائب الناتج بالتانك</Label>
-                <Select value={bulkItemId} onValueChange={setBulkItemId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر سائل التانك..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bulkItems?.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">حجم الباتش القياسي (كجم)</Label>
-                <Input
-                  type="number"
-                  value={batchSizeKg}
-                  onChange={(e) => setBatchSizeKg(Number(e.target.value))}
-                  className="mt-1 font-mono"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">نطاق pH المستهدف</Label>
-                <div className="flex items-center gap-1 mt-1">
-                  <Input
-                    type="number"
-                    step="0.1"
-                    placeholder="Min"
-                    value={targetPhMin}
-                    onChange={(e) => setTargetPhMin(Number(e.target.value))}
-                    className="font-mono text-center"
-                  />
-                  <span>-</span>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    placeholder="Max"
-                    value={targetPhMax}
-                    onChange={(e) => setTargetPhMax(Number(e.target.value))}
-                    className="font-mono text-center"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">نطاق اللزوجة (cP)</Label>
-                <div className="flex items-center gap-1 mt-1">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={targetViscosityMin}
-                    onChange={(e) => setTargetViscosityMin(Number(e.target.value))}
-                    className="font-mono text-center"
-                  />
-                  <span>-</span>
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={targetViscosityMax}
-                    onChange={(e) => setTargetViscosityMax(Number(e.target.value))}
-                    className="font-mono text-center"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Dynamic Formula Lines */}
-            <div className="space-y-2 pt-2 border-t border-slate-200">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-800 text-xs">مكونات الخلطة (Raw Materials)</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  type="button"
-                  onClick={() =>
-                    setFormulaLines([
-                      ...formulaLines,
-                      { item_id: "", qty_kg: 0, step: formulaLines.length + 1, instructions: "" },
-                    ])
-                  }
-                  className="text-xs text-sky-700 border-sky-300"
-                >
-                  <Plus className="me-1 h-3.5 w-3.5" />
-                  إضافة مادة
-                </Button>
-              </div>
-
-              {formulaLines.length === 0 ? (
-                <div className="text-center py-6 border border-dashed rounded-lg text-slate-400">
-                  اضغط "إضافة مادة" لإدراج المكونات الكيميائية والأوزان
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {formulaLines.map((line, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"
-                    >
-                      <span className="font-mono font-bold text-slate-500 w-8 text-center">
-                        #{line.step}
-                      </span>
-
-                      <div className="flex-1">
-                        <Select
-                          value={line.item_id}
-                          onValueChange={(val) => {
-                            const updated = [...formulaLines];
-                            updated[idx].item_id = val;
-                            setFormulaLines(updated);
-                          }}
-                        >
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="اختر المادة الخام..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {rawItems?.map((item) => (
-                              <SelectItem key={item.id} value={item.id}>
-                                {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="w-28">
-                        <Input
-                          type="number"
-                          placeholder="الوزن كجم"
-                          value={line.qty_kg || ""}
-                          onChange={(e) => {
-                            const updated = [...formulaLines];
-                            updated[idx].qty_kg = Number(e.target.value);
-                            setFormulaLines(updated);
-                          }}
-                          className="font-mono tabular-nums bg-white text-center"
-                        />
-                      </div>
-
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        type="button"
-                        onClick={() => {
-                          const updated = formulaLines.filter((_, i) => i !== idx);
-                          setFormulaLines(updated);
-                        }}
-                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              disabled={createFormulaMutation.isPending}
-              onClick={() => createFormulaMutation.mutate()}
-              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[44px]"
-            >
-              {createFormulaMutation.isPending ? t("common.saving") : t("common.save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

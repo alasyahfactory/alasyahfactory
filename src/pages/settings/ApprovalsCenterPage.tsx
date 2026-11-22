@@ -21,19 +21,12 @@ import {
   AlertTriangle,
   Send,
   Plus,
+  ArrowRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -214,6 +207,216 @@ export function ApprovalsCenterPage() {
         return "bg-slate-100 text-slate-800 border-slate-200";
     }
   };
+
+
+  // Full-page in-place Canvas for Submitting Approval Request
+  if (createDialogOpen) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateDialogOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لمركز الموافقات" : "Back to Approvals"}</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Plus className="h-5 w-5 text-industrial-accent" />
+                <span>{isAr ? "رفع طلب اعتماد إداري جديد" : "Submit Approval Request"}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isAr
+                  ? "إرسال طلب خاص يتطلب توقيع واعتماد المدير العام بموجب لائحة الصلاحيات."
+                  : "Submit a request requiring General Manager authorization per factory bylaws."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCreateDialogOpen(false)}
+              disabled={createMutation.isPending}
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => createMutation.mutate()}
+              disabled={!newReason.trim() || createMutation.isPending}
+              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold min-h-[40px] px-6"
+            >
+              {createMutation.isPending ? (isAr ? "جاري الإرسال..." : "Submitting...") : (isAr ? "إرسال الطلب للاعتماد" : "Submit")}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-base font-semibold">تفاصيل الطلب ومبررات الاستثناء</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4 text-xs">
+            <div>
+              <label className="font-semibold text-slate-700 block mb-1">
+                {isAr ? "نوع الطلب" : "Request Type"}
+              </label>
+              <Select
+                value={newRequestType}
+                onValueChange={(val: any) => setNewRequestType(val)}
+              >
+                <SelectTrigger className="h-10 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_limit_override">{isAr ? "تجاوز حد ائتماني لعميل" : "Credit Limit Override"}</SelectItem>
+                  <SelectItem value="discount_override">{isAr ? "خصم بيع استثنائي" : "Discount Override"}</SelectItem>
+                  <SelectItem value="manual_journal_entry">{isAr ? "قيد يومية تسوية يدوي" : "Manual JV"}</SelectItem>
+                  <SelectItem value="spoilage_write_off">{isAr ? "إتلاف / هالك مخزني" : "Spoilage Write-Off"}</SelectItem>
+                  <SelectItem value="purchase_order">{isAr ? "طلب شراء استثنائي" : "Purchase Order"}</SelectItem>
+                  <SelectItem value="payroll_approval">{isAr ? "اعتماد مسير رواتب" : "Payroll"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  {isAr ? "رقم المرجع / المعرف" : "Reference Number"}
+                </label>
+                <Input
+                  value={newReferenceNumber}
+                  onChange={(e) => setNewReferenceNumber(e.target.value)}
+                  placeholder={isAr ? "مثال: CUST-104 / PO-2026-004" : "e.g., CUST-104"}
+                  className="h-10 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  {isAr ? "المبلغ المعني (ر.س) - اختياري" : "Amount (SAR) - Optional"}
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={newAmount}
+                  onChange={(e) => setNewAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="h-10 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="font-semibold text-slate-700 block mb-1">
+                {isAr ? "المبررات والتفاصيل (إلزامي)" : "Justification & Details (Required)"}
+              </label>
+              <textarea
+                value={newReason}
+                onChange={(e) => setNewReason(e.target.value)}
+                placeholder={isAr ? "اشرح سبب الاستثناء ومبرراته للإدارة..." : "Explain reason..."}
+                className="w-full h-28 p-3 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-industrial-accent focus:outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateDialogOpen(false)}
+                disabled={createMutation.isPending}
+              >
+                {isAr ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button
+                onClick={() => createMutation.mutate()}
+                disabled={!newReason.trim() || createMutation.isPending}
+                className="gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold min-h-[40px] px-6"
+              >
+                {createMutation.isPending ? (isAr ? "جاري الإرسال..." : "Submitting...") : (isAr ? "إرسال الطلب للاعتماد" : "Submit")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Full-page in-place Canvas for Rejecting an Approval Request
+  if (rejectDialogItem) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-rose-200 dark:border-rose-950 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setRejectDialogItem(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة للطلبات" : "Back"}</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-rose-700 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span>{isAr ? "رفض طلب الاعتماد" : "Reject Request"}</span>
+                <span className="font-mono text-xs text-slate-500 font-normal">
+                  ({rejectDialogItem.reference_number})
+                </span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isAr
+                  ? `يرجى توضيح سبب رفض الطلب لإشعار مقدم الطلب.`
+                  : `Please specify rejection reason for the requester.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRejectDialogItem(null)}
+              disabled={respondMutation.isPending}
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              size="sm"
+              disabled={!rejectionReason.trim() || respondMutation.isPending}
+              onClick={() => {
+                respondMutation.mutate({
+                  requestId: rejectDialogItem.id,
+                  decision: "rejected",
+                  reason: rejectionReason.trim(),
+                });
+              }}
+              className="bg-rose-700 hover:bg-rose-800 text-white font-semibold min-h-[40px] px-6"
+            >
+              {respondMutation.isPending ? (isAr ? "جاري الرفض..." : "Rejecting...") : (isAr ? "تأكيد الرفض" : "Confirm Reject")}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-rose-200 shadow-sm p-6 bg-white dark:bg-slate-900">
+          <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-2">
+            {isAr ? "سبب الرفض وملاحظات الإدارة (إلزامي) *" : "Rejection Reason (Required) *"}
+          </label>
+          <textarea
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder={isAr ? "مثال: تجاوز الميزانية المخصصة للشهر الحالي، أو يرجى مراجعة الأسعار أولاً..." : "Enter reason..."}
+            className="w-full h-32 p-3 text-xs border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none bg-slate-50 dark:bg-slate-800"
+          />
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -532,161 +735,6 @@ export function ApprovalsCenterPage() {
           ))}
         </div>
       )}
-
-      {/* Reject Modal */}
-      <Dialog open={!!rejectDialogItem} onOpenChange={(open) => !open && setRejectDialogItem(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-rose-700 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              <span>{isAr ? "رفض طلب الاعتماد" : "Reject Request"}</span>
-            </DialogTitle>
-            <DialogDescription>
-              {isAr
-                ? `هل أنت متأكد من رفض الطلب رقم (${rejectDialogItem?.reference_number})؟ يرجى توضيح سبب الرفض لإشعار مقدم الطلب.`
-                : `Are you sure you want to reject request (${rejectDialogItem?.reference_number})? Please specify rejection reason.`}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-2 space-y-2">
-            <label className="text-xs font-semibold text-slate-700">
-              {isAr ? "سبب الرفض (إلزامي)" : "Rejection Reason (Required)"}
-            </label>
-            <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder={isAr ? "مثال: تجاوز الميزانية المخصصة للشهر الحالي، أو يرجى مراجعة الأسعار أولاً..." : "Enter reason..."}
-              className="w-full h-24 p-2 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-rose-500 focus:outline-none"
-            />
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setRejectDialogItem(null)}
-              disabled={respondMutation.isPending}
-            >
-              {isAr ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
-              size="sm"
-              disabled={!rejectionReason.trim() || respondMutation.isPending}
-              onClick={() => {
-                if (rejectDialogItem) {
-                  respondMutation.mutate({
-                    requestId: rejectDialogItem.id,
-                    decision: "rejected",
-                    reason: rejectionReason.trim(),
-                  });
-                }
-              }}
-              className="bg-rose-600 hover:bg-rose-700 text-white"
-            >
-              {isAr ? "تأكيد الرفض" : "Confirm Rejection"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Manual Request Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-industrial-accent" />
-              <span>{isAr ? "رفع طلب اعتماد إداري جديد" : "Submit Approval Request"}</span>
-            </DialogTitle>
-            <DialogDescription>
-              {isAr
-                ? "إرسال طلب خاص يتطلب توقيع واعتماد المدير العام بموجب لائحة الصلاحيات."
-                : "Submit a request requiring General Manager authorization per factory bylaws."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2 text-xs">
-            <div>
-              <label className="font-semibold text-slate-700 mb-1 block">
-                {isAr ? "نوع الطلب" : "Request Type"}
-              </label>
-              <Select
-                value={newRequestType}
-                onValueChange={(val: any) => setNewRequestType(val)}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit_limit_override">{isAr ? "تجاوز حد ائتماني لعميل" : "Credit Limit Override"}</SelectItem>
-                  <SelectItem value="discount_override">{isAr ? "خصم بيع استثنائي" : "Discount Override"}</SelectItem>
-                  <SelectItem value="manual_journal_entry">{isAr ? "قيد يومية تسوية يدوي" : "Manual JV"}</SelectItem>
-                  <SelectItem value="spoilage_write_off">{isAr ? "إتلاف / هالك مخزني" : "Spoilage Write-Off"}</SelectItem>
-                  <SelectItem value="purchase_order">{isAr ? "طلب شراء استثنائي" : "Purchase Order"}</SelectItem>
-                  <SelectItem value="payroll_approval">{isAr ? "اعتماد مسير رواتب" : "Payroll"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="font-semibold text-slate-700 mb-1 block">
-                {isAr ? "رقم المرجع / المعرف" : "Reference Number"}
-              </label>
-              <Input
-                value={newReferenceNumber}
-                onChange={(e) => setNewReferenceNumber(e.target.value)}
-                placeholder={isAr ? "مثال: CUST-104 / PO-2026-004" : "e.g., CUST-104"}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold text-slate-700 mb-1 block">
-                {isAr ? "المبلغ المعني (ر.س) - اختياري" : "Amount (SAR) - Optional"}
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                value={newAmount}
-                onChange={(e) => setNewAmount(e.target.value)}
-                placeholder="0.00"
-                className="h-9 text-xs font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold text-slate-700 mb-1 block">
-                {isAr ? "المبررات والتفاصيل (إلزامي)" : "Justification & Details (Required)"}
-              </label>
-              <textarea
-                value={newReason}
-                onChange={(e) => setNewReason(e.target.value)}
-                placeholder={isAr ? "اشرح سبب الاستثناء ومبرراته للإدارة..." : "Explain reason..."}
-                className="w-full h-24 p-2 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-industrial-accent focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateDialogOpen(false)}
-              disabled={createMutation.isPending}
-            >
-              {isAr ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending}
-              className="bg-industrial-primary hover:bg-industrial-accent text-white"
-            >
-              <Send className="me-1.5 h-3.5 w-3.5" />
-              <span>{isAr ? "إرسال للاعتماد" : "Submit"}</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

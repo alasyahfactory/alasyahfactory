@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Coins,
+  ArrowRight,
   Plus,
   Search,
   CheckCircle2,
@@ -17,15 +18,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
 import { PayrollSlipPrint } from "@/components/accounting/PayrollSlipPrint";
 import type { PayrollRun, PayrollRunLine, Employee, FactorySettings } from "@/types/database";
 
@@ -352,164 +348,6 @@ export function PayrollRunsPage() {
         </CardContent>
       </Card>
 
-      {/* Prepare Payroll Run Modal */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center justify-between">
-              <span>إعداد مسير رواتب العاملين لشهر: {selectedMonth}/{selectedYear}</span>
-              <span className="text-xs font-mono font-normal text-slate-400">
-                {draftLines.length} موظفاً
-              </span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2 text-xs">
-            {/* Run Controls */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">الشهر *</label>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded border border-industrial-border bg-white text-xs font-medium text-slate-800"
-                >
-                  {Array.from({ length: 12 }).map((_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      شهر {i + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">السنة المالية *</label>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded border border-industrial-border bg-white text-xs font-medium text-slate-800"
-                >
-                  <option value={2024}>2024</option>
-                  <option value={2025}>2025</option>
-                  <option value={2026}>2026</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">تاريخ استحقاق المسير *</label>
-                <Input
-                  type="date"
-                  value={payrollDate}
-                  onChange={(e) => setPayrollDate(e.target.value)}
-                  className="h-8 text-xs font-mono bg-white"
-                />
-              </div>
-            </div>
-
-            {/* Editable Lines Table */}
-            <div className="border border-industrial-border rounded-lg overflow-hidden">
-              <table className="w-full text-xs text-start border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-industrial-border text-slate-700 font-semibold">
-                    <th className="py-2 px-2 text-start">الموظف</th>
-                    <th className="py-2 px-2 text-end">الأساسي</th>
-                    <th className="py-2 px-2 text-end">البدلات</th>
-                    <th className="py-2 px-2 text-end">عمولة المندوب</th>
-                    <th className="py-2 px-2 text-end">إضافي / مكافأة</th>
-                    <th className="py-2 px-2 text-end text-rose-700">خصم السلف</th>
-                    <th className="py-2 px-2 text-end text-rose-700">خصم غياب/جزاء</th>
-                    <th className="py-2 px-2 text-end font-bold">صافي الراتب</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-industrial-border">
-                  {draftLines.map((line, idx) => (
-                    <tr key={line.employee_id} className="bg-white hover:bg-slate-50/50">
-                      <td className="p-2 font-medium text-slate-900">
-                        {line.employee_name}
-                        <span className="block font-mono text-[10px] text-slate-400">
-                          {line.emp_code} - {line.department}
-                        </span>
-                      </td>
-                      <td className="p-1.5 text-end font-mono tabular-nums text-slate-800">
-                        {line.basic_salary.toFixed(2)}
-                      </td>
-                      <td className="p-1.5 text-end font-mono tabular-nums text-slate-800">
-                        {(line.housing_allowance + line.transport_allowance + line.other_allowance).toFixed(2)}
-                      </td>
-                      <td className="p-1.5 text-end font-mono tabular-nums text-emerald-700 font-bold">
-                        {line.commission_amount.toFixed(2)}
-                      </td>
-                      <td className="p-1.5 w-24">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={line.overtime_amount || ""}
-                          onChange={(e) => handleUpdateLine(idx, "overtime_amount", Number(e.target.value))}
-                          placeholder="0.00"
-                          className="h-7 text-xs font-mono text-end"
-                        />
-                      </td>
-                      <td className="p-1.5 w-24 text-end font-mono font-bold text-rose-700">
-                        {line.advance_deduction.toFixed(2)}
-                      </td>
-                      <td className="p-1.5 w-24">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={line.penalty_deduction || ""}
-                          onChange={(e) => handleUpdateLine(idx, "penalty_deduction", Number(e.target.value))}
-                          placeholder="0.00"
-                          className="h-7 text-xs font-mono text-end border-rose-200"
-                        />
-                      </td>
-                      <td className="p-1.5 text-end font-mono font-bold text-slate-900 text-sm">
-                        {line.net_salary.toFixed(2)} ر.س
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Totals Summary Footer */}
-            <div className="bg-slate-900 text-white p-3 rounded-lg flex items-center justify-between text-xs">
-              <div className="flex items-center gap-6">
-                <div>
-                  إجمالي الاستحقاق: <strong className="font-mono text-emerald-400 text-sm">{totalGrossDraft.toFixed(2)} ر.س</strong>
-                </div>
-                <div>
-                  إجمالي استرداد السلف: <strong className="font-mono text-rose-400 text-sm">({totalAdvancesDraft.toFixed(2)}) ر.س</strong>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-300">صافي الرواتب المستحقة للصرف:</span>
-                <span className="font-mono font-black text-lg text-emerald-400">
-                  {totalNetPayableDraft.toFixed(2)} ر.س
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-3 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateModalOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={draftLines.length === 0 || createMutation.isPending}
-              className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold"
-            >
-              {createMutation.isPending ? "جاري الترحيل..." : "ترحيل مسير الرواتب وقيد الاستحقاق"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -1,28 +1,33 @@
 import React, { useRef } from "react";
-import { Printer } from "lucide-react";
+import { Printer, FileDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PayrollRun, FactorySettings } from "@/types/database";
 
 interface PayrollSlipPrintProps {
   payrollRun: PayrollRun;
   settings: FactorySettings | null;
+  compact?: boolean;
 }
 
-export const PayrollSlipPrint: React.FC<PayrollSlipPrintProps> = ({ payrollRun, settings }) => {
+export const PayrollSlipPrint: React.FC<PayrollSlipPrintProps> = ({ payrollRun, settings, compact = false }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = () => {
+  const handlePrint = (isPdf = false) => {
     const printContent = printRef.current;
     if (!printContent) return;
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    const docTitle = isPdf
+      ? `مسير_رواتب_${payrollRun.month}_${payrollRun.year}_${payrollRun.run_number}`
+      : `${payrollRun.run_number} - مسير رواتب ${payrollRun.month}/${payrollRun.year}`;
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
-          <title>${payrollRun.run_number} - مسير رواتب ${payrollRun.month}/${payrollRun.year}</title>
+          <title>${docTitle}</title>
           <meta charset="utf-8" />
           <style>
             @page {
@@ -111,17 +116,62 @@ export const PayrollSlipPrint: React.FC<PayrollSlipPrintProps> = ({ payrollRun, 
     printWindow.document.close();
   };
 
+  const handleShareWhatsApp = () => {
+    const factory = settings?.name_ar || "مصنع الأسياح للمنتجات الكيميائية";
+    const msg = `*كشف مسير رواتب معتمد - شهر ${payrollRun.month}/${payrollRun.year}*
+رقم المسير: ${payrollRun.run_number}
+تاريخ الإصدار: ${payrollRun.payroll_date}
+إجمالي الرواتب الأساسية: ${payrollRun.total_basic.toFixed(2)} ر.س
+إجمالي الاستحقاقات الشاملة: ${(payrollRun.total_basic + payrollRun.total_allowances + payrollRun.total_commissions + payrollRun.total_overtime).toFixed(2)} ر.س
+إجمالي الاستقطاعات والسلف: ${payrollRun.total_deductions.toFixed(2)} ر.س
+صافي الرواتب المستحقة للتحويل: ${payrollRun.net_payable.toFixed(2)} ر.س
+عدد الموظفين في المسير: ${payrollRun.lines?.length || 0} موظف
+_صادر ومعتمد من إدارة الرواتب والشؤون المالية - ${factory}_`;
+
+    const encoded = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   return (
     <div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handlePrint}
-        className="h-8 gap-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-      >
-        <Printer className="h-3.5 w-3.5" />
-        <span>طباعة المسير A4</span>
-      </Button>
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        {/* 1. Print A4 Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePrint(false)}
+          className={compact ? "h-7 px-2 text-xs gap-1 border-slate-300 text-slate-800 hover:bg-slate-100" : "h-8 px-2.5 gap-1.5 text-xs font-medium text-slate-800 border-slate-300 hover:bg-slate-100"}
+          title="طباعة المسير A4"
+        >
+          <Printer className="h-3.5 w-3.5 text-slate-600" />
+          <span>{compact ? "طباعة" : "طباعة المسير A4"}</span>
+        </Button>
+
+        {/* 2. Save PDF Button */}
+        <Button
+          variant="tonal"
+          size="sm"
+          onClick={() => handlePrint(true)}
+          className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "h-8 px-2.5 gap-1.5 text-xs font-semibold"}
+          title="حفظ المسير كملف PDF"
+        >
+          <FileDown className="h-3.5 w-3.5 text-sky-700" />
+          <span>{compact ? "PDF" : "حفظ PDF"}</span>
+        </Button>
+
+        {/* 3. Share WhatsApp Button */}
+        <Button
+          variant="emerald"
+          size="sm"
+          onClick={handleShareWhatsApp}
+          className={compact ? "h-7 px-2 text-xs gap-1" : "h-8 px-2.5 gap-1.5 text-xs"}
+          title="مشاركة ملخص المسير عبر واتساب"
+        >
+          <Share2 className="h-3.5 w-3.5 text-emerald-100" />
+          <span>واتساب</span>
+        </Button>
+      </div>
 
       {/* Hidden print template */}
       <div style={{ display: "none" }}>

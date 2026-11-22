@@ -22,20 +22,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BookOpen, Plus, Search, Shield, ChevronDown, ChevronRight } from "lucide-react";
+import { BookOpen,
+  ArrowRight, Plus, Search, Shield, ChevronDown, ChevronRight } from "lucide-react";
 
 const subAccountSchema = z.object({
   code: z.string().min(4, "كود الحساب يجب أن يتكون من 4 أرقام على الأقل").regex(/^\d+$/, "كود الحساب يجب أن يحتوي على أرقام فقط"),
@@ -174,6 +168,192 @@ export function ChartOfAccountsPage() {
         return "secondary";
     }
   };
+
+
+  // Full-page in-place Canvas for Adding Sub-Account
+  if (isAddOpen) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setIsAddOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لدليل الحسابات</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-industrial-accent" />
+                <span>{t("coa.addSubAccount")}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                إضافة حساب فرعي جديد لشجرة الحسابات المحاسبية وفق المعايير السعودية
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAddOpen(false)}
+              disabled={isSubmitting}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSubmit(onSubmitSubAccount)}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+            >
+              {isSubmitting ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Card */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-base font-semibold">بيانات وتصنيف الحساب المالي</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit(onSubmitSubAccount)} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="sub_parent">{t("coa.parentAccount")}</Label>
+                <Select
+                  value={selectedParentId}
+                  onValueChange={(val) => {
+                    setValue("parent_id", val);
+                    const parent = accounts.find((a) => a.id === val);
+                    if (parent) {
+                      if (parent.type === "header") {
+                        if (parent.code === "1000") setValue("type", "asset");
+                        else if (parent.code === "2000") setValue("type", "liability");
+                        else if (parent.code === "3000") setValue("type", "equity");
+                        else if (parent.code === "4000") setValue("type", "revenue");
+                        else if (parent.code === "5000" || parent.code === "6000") setValue("type", "expense");
+                      } else {
+                        setValue("type", parent.type as SubAccountFormData["type"]);
+                      }
+                    }
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="sub_parent" className="h-10">
+                    <SelectValue placeholder="اختر الحساب الرئيسي..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {headerAccounts.map((h) => (
+                      <SelectItem key={h.id} value={h.id}>
+                        {h.code} — {h.name_ar} ({h.name_en})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.parent_id && (
+                  <p className="text-xs text-rose-600">{errors.parent_id.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="sub_code">{t("coa.accountCode")}</Label>
+                  <Input
+                    id="sub_code"
+                    dir="ltr"
+                    placeholder="1106"
+                    className="font-mono text-sm h-10"
+                    disabled={isSubmitting}
+                    {...register("code")}
+                  />
+                  {errors.code && (
+                    <p className="text-xs text-rose-600">{errors.code.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="sub_type">{t("coa.accountType")}</Label>
+                  <Select
+                    value={selectedType}
+                    onValueChange={(val) => setValue("type", val as SubAccountFormData["type"])}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger id="sub_type" className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asset">أصل (Asset)</SelectItem>
+                      <SelectItem value="contra_asset">مجمع إهلاك / مقابل أصل (Contra-Asset)</SelectItem>
+                      <SelectItem value="liability">التزام (Liability)</SelectItem>
+                      <SelectItem value="equity">حقوق ملكية (Equity)</SelectItem>
+                      <SelectItem value="revenue">إيراد (Revenue)</SelectItem>
+                      <SelectItem value="contra_revenue">مردودات ومسموحات (Contra-Revenue)</SelectItem>
+                      <SelectItem value="expense">مصروف (Expense)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="sub_name_ar">{t("coa.accountNameAr")}</Label>
+                  <Input
+                    id="sub_name_ar"
+                    placeholder="خزنة مستودع التعبئة"
+                    className="h-10"
+                    disabled={isSubmitting}
+                    {...register("name_ar")}
+                  />
+                  {errors.name_ar && (
+                    <p className="text-xs text-rose-600">{errors.name_ar.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="sub_name_en">{t("coa.accountNameEn")}</Label>
+                  <Input
+                    id="sub_name_en"
+                    dir="ltr"
+                    placeholder="Packaging Cash Box"
+                    className="h-10"
+                    disabled={isSubmitting}
+                    {...register("name_en")}
+                  />
+                  {errors.name_en && (
+                    <p className="text-xs text-rose-600">{errors.name_en.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+                >
+                  {isSubmitting ? t("common.saving") : t("common.save")}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -338,136 +518,6 @@ export function ChartOfAccountsPage() {
         </CardContent>
       </Card>
 
-      {/* ADD SUB-ACCOUNT DIALOG (Owner Only) */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("coa.addSubAccount")}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmitSubAccount)} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="sub_parent">{t("coa.parentAccount")}</Label>
-              <Select
-                value={selectedParentId}
-                onValueChange={(val) => {
-                  setValue("parent_id", val);
-                  const parent = accounts.find((a) => a.id === val);
-                  if (parent) {
-                    if (parent.type === "header") {
-                      if (parent.code === "1000") setValue("type", "asset");
-                      else if (parent.code === "2000") setValue("type", "liability");
-                      else if (parent.code === "3000") setValue("type", "equity");
-                      else if (parent.code === "4000") setValue("type", "revenue");
-                      else if (parent.code === "5000" || parent.code === "6000") setValue("type", "expense");
-                    } else {
-                      setValue("type", parent.type as SubAccountFormData["type"]);
-                    }
-                  }
-                }}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger id="sub_parent">
-                  <SelectValue placeholder="اختر الحساب الرئيسي..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {headerAccounts.map((h) => (
-                    <SelectItem key={h.id} value={h.id}>
-                      {h.code} — {h.name_ar} ({h.name_en})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.parent_id && (
-                <p className="text-xs text-rose-600">{errors.parent_id.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="sub_code">{t("coa.accountCode")}</Label>
-              <Input
-                id="sub_code"
-                dir="ltr"
-                tabularNums
-                placeholder="1106"
-                className="font-mono"
-                disabled={isSubmitting}
-                {...register("code")}
-              />
-              {errors.code && (
-                <p className="text-xs text-rose-600">{errors.code.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="sub_name_ar">{t("coa.accountNameAr")}</Label>
-              <Input
-                id="sub_name_ar"
-                placeholder="خزنة مستودع التعبئة"
-                disabled={isSubmitting}
-                {...register("name_ar")}
-              />
-              {errors.name_ar && (
-                <p className="text-xs text-rose-600">{errors.name_ar.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="sub_name_en">{t("coa.accountNameEn")}</Label>
-              <Input
-                id="sub_name_en"
-                dir="ltr"
-                placeholder="Packaging Cash Box"
-                disabled={isSubmitting}
-                {...register("name_en")}
-              />
-              {errors.name_en && (
-                <p className="text-xs text-rose-600">{errors.name_en.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="sub_type">{t("coa.accountType")}</Label>
-              <Select
-                value={selectedType}
-                onValueChange={(val) => setValue("type", val as SubAccountFormData["type"])}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger id="sub_type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asset">أصل (Asset)</SelectItem>
-                  <SelectItem value="contra_asset">مجمع إهلاك / مقابل أصل (Contra-Asset)</SelectItem>
-                  <SelectItem value="liability">التزام (Liability)</SelectItem>
-                  <SelectItem value="equity">حقوق ملكية (Equity)</SelectItem>
-                  <SelectItem value="revenue">إيراد (Revenue)</SelectItem>
-                  <SelectItem value="contra_revenue">مردودات ومسموحات (Contra-Revenue)</SelectItem>
-                  <SelectItem value="expense">مصروف (Expense)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddOpen(false)}
-                disabled={isSubmitting}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="submit"
-                variant="default"
-                isLoading={isSubmitting}
-                className="bg-industrial-primary text-white"
-              >
-                {t("common.save")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

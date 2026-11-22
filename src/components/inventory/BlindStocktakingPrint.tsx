@@ -1,28 +1,33 @@
 import React, { useRef } from "react";
-import { Printer, EyeOff } from "lucide-react";
+import { Printer, EyeOff, FileDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { StocktakingSession, FactorySettings } from "@/types/database";
 
 interface BlindStocktakingPrintProps {
   session: StocktakingSession;
   settings: FactorySettings | null;
+  compact?: boolean;
 }
 
-export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ session, settings }) => {
+export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ session, settings, compact = false }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = () => {
+  const handlePrint = (isPdf = false) => {
     const printContent = printRef.current;
     if (!printContent) return;
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    const docTitle = isPdf
+      ? `ورقة_الجرد_الأعمى_${session.session_number}`
+      : `${session.session_number} - ورقة الجرد الأعمى`;
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
-          <title>${session.session_number} - ورقة الجرد الأعمى</title>
+          <title>${docTitle}</title>
           <meta charset="utf-8" />
           <style>
             @page {
@@ -121,19 +126,62 @@ export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ se
     printWindow.document.close();
   };
 
+  const handleShareWhatsApp = () => {
+    const factory = settings?.name_ar || "مصنع الأسياح للمنتجات الكيميائية";
+    const msg = `*ورقة الجرد المخزني الأعمى (Blind Stocktaking)*
+رقم جلسة الجرد: ${session.session_number}
+تاريخ الجرد: ${session.session_date}
+المستودع: ${session.warehouse?.name_ar || "المستودع الرئيسي"}
+عدد الأصناف المطلوب حصرها: ${session.lines?.length || 0} صنف
+_صادر من إدارة المستودعات والمخزون - ${factory}_`;
+
+    const encoded = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   return (
     <div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handlePrint}
-        className="h-8 gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-      >
-        <EyeOff className="h-3.5 w-3.5 text-slate-500" />
-        <span>ورقة الجرد الأعمى (A4)</span>
-      </Button>
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        {/* 1. Print A4 Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePrint(false)}
+          className={compact ? "h-7 px-2 text-xs gap-1 border-slate-300 text-slate-800 hover:bg-slate-100" : "h-8 px-2.5 gap-1.5 text-xs font-medium text-slate-800 border-slate-300 hover:bg-slate-100"}
+          title="طباعة ورقة الجرد الأعمى A4"
+        >
+          <Printer className="h-3.5 w-3.5 text-slate-600" />
+          <EyeOff className="h-3.5 w-3.5 text-amber-600" />
+          <span>{compact ? "طباعة" : "طباعة ورقة الجرد الأعمى A4"}</span>
+        </Button>
 
-      {/* Hidden print container */}
+        {/* 2. Save PDF Button */}
+        <Button
+          variant="tonal"
+          size="sm"
+          onClick={() => handlePrint(true)}
+          className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "h-8 px-2.5 gap-1.5 text-xs font-semibold"}
+          title="حفظ ورقة الجرد كملف PDF"
+        >
+          <FileDown className="h-3.5 w-3.5 text-sky-700" />
+          <span>{compact ? "PDF" : "حفظ PDF"}</span>
+        </Button>
+
+        {/* 3. Share WhatsApp Button */}
+        <Button
+          variant="emerald"
+          size="sm"
+          onClick={handleShareWhatsApp}
+          className={compact ? "h-7 px-2 text-xs gap-1" : "h-8 px-2.5 gap-1.5 text-xs"}
+          title="مشاركة تفاصيل الجرد عبر واتساب"
+        >
+          <Share2 className="h-3.5 w-3.5 text-emerald-100" />
+          <span>واتساب</span>
+        </Button>
+      </div>
+
+      {/* Hidden print template */}
       <div style={{ display: "none" }}>
         <div ref={printRef}>
           {/* Header */}
@@ -146,11 +194,11 @@ export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ se
             </div>
 
             <div className="title-box">
-              <div className="badge-blind">
-                ورقة الجرد الفعلي الأعمى (Blind Stocktaking Sheet)
+              <div style={{ fontSize: "16px", fontWeight: "bold" }}>
+                نموذج العد والحصر الفعلي (جرد أعمى)
               </div>
-              <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                الكميات الدفترية محجوبة منعاً للتحيز في العد
+              <div className="badge-blind">
+                BLIND STOCKTAKING SHEET
               </div>
             </div>
 
@@ -158,15 +206,28 @@ export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ se
               <div style={{ fontSize: "13px", fontWeight: "bold" }}>
                 {settings?.name_en || "Al-Asyah Detergent Factory"}
               </div>
-              <div style={{ fontFamily: "monospace" }}>Session: {session.session_number}</div>
+              <div>Date: {session.session_date}</div>
             </div>
           </div>
 
           {/* Meta Bar */}
           <div className="meta-bar">
-            <div>المستودع المستهدف: <strong>{session.warehouse?.name_ar || "المستودع الرئيسي"}</strong></div>
-            <div>تاريخ الجرد: <strong>{session.session_date}</strong></div>
-            <div>رقم الجلسة: <strong style={{ fontFamily: "monospace" }}>{session.session_number}</strong></div>
+            <div>
+              <strong>رقم جلسة الجرد:</strong> {session.session_number}
+            </div>
+            <div>
+              <strong>المستودع المستهدف:</strong> {session.warehouse?.name_ar || "المستودع الرئيسي"}
+            </div>
+            <div>
+              <strong>المسؤول عن الجرد:</strong> {session.created_by || "فريق الجرد الميداني"}
+            </div>
+            <div>
+              <strong>تاريخ البدء:</strong> {session.session_date}
+            </div>
+          </div>
+
+          <div style={{ padding: "6px 8px", backgroundColor: "#fffbeb", border: "1px dashed #f59e0b", borderRadius: "4px", marginBottom: "12px", fontSize: "10px", color: "#b45309" }}>
+            * تنبيه رقابي: تم إخفاء الكميات الدفترية المسجلة بالنظام لضمان دقة ونزاهة الحصر الفعلي بالمستودع وفق معايير الحوكمة.
           </div>
 
           {/* Table */}
@@ -174,24 +235,22 @@ export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ se
             <thead>
               <tr>
                 <th style={{ width: "35px" }}>#</th>
-                <th style={{ width: "120px" }}>كود الصنف (SKU)</th>
-                <th>اسم الصنف / الخامة</th>
-                <th style={{ width: "70px" }}>وحدة القياس</th>
-                <th style={{ width: "100px" }}>العد الفعلي الأول</th>
-                <th style={{ width: "100px" }}>العد الفعلي الثاني (المطابقة)</th>
-                <th style={{ width: "130px" }}>ملاحظات الجرد الميداني</th>
+                <th style={{ width: "100px" }}>رمز الصنف SKU</th>
+                <th>اسم الصنف / المادة المخزنية</th>
+                <th style={{ width: "80px" }}>وحدة القياس</th>
+                <th style={{ width: "100px" }}>الكمية الفعلية المحصورة</th>
+                <th style={{ width: "140px" }}>ملاحظات الجرد / رقم الباتش</th>
               </tr>
             </thead>
             <tbody>
               {session.lines?.map((line, idx) => (
                 <tr key={line.id || idx}>
-                  <td style={{ textAlign: "center", fontWeight: "bold" }}>{idx + 1}</td>
-                  <td style={{ fontFamily: "monospace", fontWeight: "bold" }}>{line.item?.sku}</td>
-                  <td style={{ fontWeight: "bold" }}>{line.item?.name_ar}</td>
-                  <td style={{ textAlign: "center" }}>{line.item?.base_unit === "gram" ? "جرام / كجم" : "حبة"}</td>
+                  <td style={{ textAlign: "center" }}>{idx + 1}</td>
+                  <td style={{ fontFamily: "monospace", textAlign: "center" }}>{line.item?.sku || "-"}</td>
+                  <td style={{ fontWeight: "600" }}>{line.item?.name_ar || "صنف مخزني"}</td>
+                  <td style={{ textAlign: "center" }}>{line.item?.base_unit === "gram" ? "جرام" : "حبة / كرتون"}</td>
+                  <td className="empty-box" style={{ border: "1.5px solid #0f172a" }}></td>
                   <td className="empty-box"></td>
-                  <td className="empty-box"></td>
-                  <td></td>
                 </tr>
               ))}
             </tbody>
@@ -200,17 +259,17 @@ export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ se
           {/* Signatures */}
           <div className="signatures">
             <div>
-              <div className="sig-title">عضو لجنة الجرد (1)</div>
+              <div className="sig-title">عضو لجنة الجرد 1</div>
               <div className="sig-line"></div>
               <div style={{ fontSize: "10px", color: "#64748b", marginTop: "4px" }}>الاسم والتوقيع</div>
             </div>
             <div>
-              <div className="sig-title">عضو لجنة الجرد (2)</div>
+              <div className="sig-title">عضو لجنة الجرد 2</div>
               <div className="sig-line"></div>
               <div style={{ fontSize: "10px", color: "#64748b", marginTop: "4px" }}>الاسم والتوقيع</div>
             </div>
             <div>
-              <div className="sig-title">أمين المستودع المسؤول</div>
+              <div className="sig-title">أمين المستودع (شاهد)</div>
               <div className="sig-line"></div>
               <div style={{ fontSize: "10px", color: "#64748b", marginTop: "4px" }}>الاسم والتوقيع</div>
             </div>

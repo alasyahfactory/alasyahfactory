@@ -15,19 +15,16 @@ import {
   Trash2,
   ArrowRightLeft,
   FileSpreadsheet,
+  ArrowRight,
+  Printer,
+  FileDown,
+  Share2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import type { JournalEntry, JournalLine, Account } from "@/types/database";
 
 interface ManualLineInput {
@@ -164,6 +161,131 @@ export function JournalEntriesPage() {
     setLines(updated);
   };
 
+  const handlePrintEntry = (entry: JournalEntry, isPdf = false) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const docTitle = isPdf ? `قيد_يومية_${entry.entry_number}` : `سند قيد يومية - ${entry.entry_number}`;
+
+    const linesHtml = (entry.lines || [])
+      .map(
+        (l, i) => `
+        <tr>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${i + 1}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; font-family: monospace;">${l.account?.code || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; font-weight: bold;">${l.account?.name_ar || l.account?.name_en || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-family: monospace;">${l.debit > 0 ? Number(l.debit).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "-"}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-family: monospace;">${l.credit > 0 ? Number(l.credit).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "-"}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; font-size: 11px; color: #475569;">${l.description || entry.description || "-"}</td>
+        </tr>
+      `
+      )
+      .join("");
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
+        <head>
+          <meta charset="utf-8" />
+          <title>${docTitle}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "IBM Plex Sans Arabic", sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 0; font-size: 12px; }
+            .header-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+            .badge { display: inline-block; padding: 4px 14px; background: #0f172a; color: #fff; font-weight: bold; font-size: 16px; border-radius: 4px; }
+            .meta-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; background: #f8fafc; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { border: 1px solid #cbd5e1; background: #f1f5f9; padding: 8px; font-size: 11px; font-weight: bold; }
+            .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; margin-top: 40px; text-align: center; }
+            .sig-box { border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-grid">
+            <div style="text-align: ${isArabic ? "right" : "left"};">
+              <div style="font-weight: bold; font-size: 15px;">مصنع الأسياح للمنتجات الكيميائية</div>
+              <div style="font-size: 11px; color: #64748b;">سجل تجاري: 1010000000 | الرقم الضريبي: 300000000000003</div>
+              <div style="font-size: 11px; color: #64748b;">إدارة الحسابات العامة والمالية</div>
+            </div>
+            <div style="text-align: center;">
+              <div class="badge">سند قيد يومية عامة</div>
+              <div style="font-size: 13px; font-family: monospace; font-weight: bold; margin-top: 4px;">${entry.entry_number}</div>
+            </div>
+            <div style="text-align: ${isArabic ? "left" : "right"}; direction: ltr;">
+              <div style="font-weight: bold; font-size: 14px;">Al-Asyah Chemical Factory</div>
+              <div style="font-size: 11px; color: #64748b;">General Journal Entry Voucher</div>
+              <div style="font-size: 11px; color: #64748b;">Date: ${entry.entry_date}</div>
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <div><strong>رقم القيد:</strong> <span style="font-family: monospace;">${entry.entry_number}</span></div>
+            <div><strong>تاريخ القيد:</strong> <span style="font-family: monospace;">${entry.entry_date}</span></div>
+            <div style="grid-column: span 2;"><strong>البيان العام:</strong> ${entry.description || "قيد محاسبي مرحل"}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th style="width: 100px;">رقم الحساب</th>
+                <th>اسم الحساب</th>
+                <th style="width: 110px;">مدين (ر.س)</th>
+                <th style="width: 110px;">دائن (ر.س)</th>
+                <th>البيان التحليلي</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${linesHtml}
+            </tbody>
+            <tfoot>
+              <tr style="background: #f8fafc; font-weight: bold;">
+                <td colspan="3" style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">الإجمالي العام المتوازن</td>
+                <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-family: monospace;">${Number(entry.total_debit).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-family: monospace;">${Number(entry.total_credit).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #16a34a; font-size: 11px;">متوازن ومرحل آلياً</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="signatures">
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">المحاسب المنشئ</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">المراجع المالي الداخلي</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">المدير المالي والاعتماد</div>
+              <div>الختم والتوقيع: ............................</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); window.close(); };
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
+  const handleShareWhatsapp = (entry: JournalEntry) => {
+    const msg = `*سند قيد محاسبي - مصنع الأسياح للمنتجات الكيميائية*
+رقم القيد: ${entry.entry_number}
+التاريخ: ${entry.entry_date}
+البيان: ${entry.description || "-"}
+إجمالي المدين: ${Number(entry.total_debit).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س
+إجمالي الدائن: ${Number(entry.total_credit).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س
+الحالة: مرحل ومتوازن
+_نظام إدارة العمليات والمحاسبة - مصنع الأسياح_`;
+
+    const encoded = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   // Filter entries
   const filteredEntries = entries?.filter((entry) => {
     const matchesSearch =
@@ -178,6 +300,346 @@ export function JournalEntriesPage() {
       (filterType === "payroll" && entry.ref_type === "payroll");
     return matchesSearch && matchesType;
   });
+
+  // In-Page Canvas View for Manual JV Creation (Eliminating modal popup)
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لقيود اليومية" : "Back to Journal"}</span>
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-sky-600" />
+                <span>تسجيل قيد محاسبي يدوي (Double-Entry Balanced JV)</span>
+              </h1>
+              <p className="text-xs text-slate-500">
+                تسجيل الأطراف المدينة والدائنة مع اشتراط التوازن التام (المدين = الدائن) قبل الترحيل
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={() => createMutation.mutate()}
+              disabled={!isBalanced || !entryDescription.trim() || createMutation.isPending}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white min-h-[40px] px-5 font-semibold"
+            >
+              {createMutation.isPending ? "جاري الترحيل..." : "ترحيل القيد المالي"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Body in Cards */}
+        <div className="space-y-6">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-bold text-slate-800">بيانات القيد العام</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    تاريخ القيد *
+                  </label>
+                  <Input
+                    type="date"
+                    value={entryDate}
+                    onChange={(e) => setEntryDate(e.target.value)}
+                    className="bg-slate-50 border-slate-200 text-xs font-mono"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    البيان العام للقيد *
+                  </label>
+                  <Input
+                    value={entryDescription}
+                    onChange={(e) => setEntryDescription(e.target.value)}
+                    placeholder="مثال: إثبات مصاريف عمومية وإدارية / تسوية رصيد حساب..."
+                    className="bg-slate-50 border-slate-200 text-xs"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-800">أطراف القيد (مدين / دائن)</CardTitle>
+                <p className="text-xs text-slate-500 mt-0.5">اختر الحساب المالي وحدد المبلغ المدين أو الدائن</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddLine}
+                className="gap-1.5 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>إضافة طرف / سطر آخر</span>
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <table className="w-full text-xs text-start border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold">
+                      <th className="py-2.5 px-3 text-start w-1/3">الحساب المالي *</th>
+                      <th className="py-2.5 px-3 text-start">شرح / بيان السطر</th>
+                      <th className="py-2.5 px-3 text-end w-32">مدين (Debit)</th>
+                      <th className="py-2.5 px-3 text-end w-32">دائن (Credit)</th>
+                      <th className="py-2.5 px-3 text-center w-12"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {lines.map((line, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/50">
+                        <td className="p-2">
+                          <select
+                            value={line.account_id}
+                            onChange={(e) => handleLineChange(idx, "account_id", e.target.value)}
+                            className="w-full text-xs p-1.5 rounded border border-slate-200 bg-white"
+                          >
+                            <option value="">-- اختر الحساب المالي --</option>
+                            {accounts?.map((acc) => (
+                              <option key={acc.id} value={acc.id}>
+                                {acc.code} - {acc.name_ar} ({acc.type})
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            placeholder="بيان خاص بهذا السطر..."
+                            value={line.description}
+                            onChange={(e) => handleLineChange(idx, "description", e.target.value)}
+                            className="h-8 text-xs bg-white"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={line.debit || ""}
+                            onChange={(e) => handleLineChange(idx, "debit", parseFloat(e.target.value) || 0)}
+                            className="h-8 text-xs text-end font-mono font-bold text-emerald-800 bg-white"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={line.credit || ""}
+                            onChange={(e) => handleLineChange(idx, "credit", parseFloat(e.target.value) || 0)}
+                            className="h-8 text-xs text-end font-mono font-bold text-slate-800 bg-white"
+                          />
+                        </td>
+                        <td className="p-2 text-center">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveLine(idx)}
+                            disabled={lines.length <= 2}
+                            className="h-7 w-7 text-rose-500 hover:text-rose-700"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Balance Status Card */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+                <div className="flex flex-wrap items-center gap-6">
+                  <div>
+                    <span className="text-slate-500 block">إجمالي المدين:</span>
+                    <strong className="font-mono text-base text-emerald-700 tabular-nums">{totalDebit.toFixed(2)} ر.س</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">إجمالي الدائن:</span>
+                    <strong className="font-mono text-base text-slate-800 tabular-nums">{totalCredit.toFixed(2)} ر.س</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">الفارق:</span>
+                    <strong className={`font-mono text-base tabular-nums ${difference > 0 ? "text-rose-600 font-bold" : "text-emerald-600"}`}>
+                      {difference.toFixed(2)} ر.س
+                    </strong>
+                  </div>
+                </div>
+
+                {isBalanced ? (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 font-bold">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>القيد متوازن وجاهز للترحيل</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-100 text-rose-800 font-bold">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>القيد غير متوازن (المدين != الدائن)</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // In-Page View for Selected Entry Details (Eliminating modal popup)
+  if (detailsModalOpen && selectedEntry) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => {
+                setDetailsModalOpen(false);
+                setSelectedEntry(null);
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لقيود اليومية" : "Back to Journal"}</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-bold font-mono text-slate-900">
+                  {selectedEntry.entry_number}
+                </h1>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {selectedEntry.entry_date}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {selectedEntry.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintEntry(selectedEntry, false)}
+              className="gap-1.5"
+            >
+              <Printer className="w-4 h-4 text-slate-600" />
+              <span>{isArabic ? "طباعة A4" : "Print A4"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintEntry(selectedEntry, true)}
+              className="gap-1.5"
+            >
+              <FileDown className="w-4 h-4 text-sky-600" />
+              <span>{isArabic ? "حفظ PDF" : "Save PDF"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleShareWhatsapp(selectedEntry)}
+              className="gap-1.5 text-emerald-700 hover:text-emerald-800"
+            >
+              <Share2 className="w-4 h-4 text-emerald-600" />
+              <span>{isArabic ? "مشاركة واتساب" : "WhatsApp"}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setDetailsModalOpen(false);
+                setSelectedEntry(null);
+              }}
+            >
+              {isArabic ? "إغلاق" : "Close"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Details Card */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-sm font-bold text-slate-800">أطراف وسطور القيد المالي</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <table className="w-full text-xs text-start border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold">
+                    <th className="py-2.5 px-3 text-start">رقم الحساب</th>
+                    <th className="py-2.5 px-3 text-start">اسم الحساب</th>
+                    <th className="py-2.5 px-3 text-start">شرح السطر</th>
+                    <th className="py-2.5 px-3 text-end">مدين (Debit)</th>
+                    <th className="py-2.5 px-3 text-end">دائن (Credit)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {selectedEntry.lines?.map((line) => (
+                    <tr key={line.id} className="hover:bg-slate-50/50">
+                      <td className="py-2 px-3 font-mono font-bold text-slate-800">
+                        {line.account?.code}
+                      </td>
+                      <td className="py-2 px-3 font-medium text-slate-900">
+                        {line.account?.name_ar}
+                      </td>
+                      <td className="py-2 px-3 text-slate-500 text-[11px]">
+                        {line.description || line.note || "-"}
+                      </td>
+                      <td className="py-2 px-3 text-end font-mono tabular-nums font-bold text-emerald-800">
+                        {line.debit > 0 ? `${line.debit.toFixed(2)} ر.س` : "-"}
+                      </td>
+                      <td className="py-2 px-3 text-end font-mono tabular-nums font-bold text-slate-800">
+                        {line.credit > 0 ? `${line.credit.toFixed(2)} ر.س` : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-slate-100/75 border-t border-slate-200 font-bold text-slate-900">
+                    <td colSpan={3} className="py-3 px-3 text-center">
+                      الإجمالي المتوازن
+                    </td>
+                    <td className="py-3 px-3 text-end font-mono text-emerald-800 text-sm tabular-nums">
+                      {selectedEntry.total_debit?.toFixed(2)} ر.س
+                    </td>
+                    <td className="py-3 px-3 text-end font-mono text-slate-900 text-sm tabular-nums">
+                      {selectedEntry.total_credit?.toFixed(2)} ر.س
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -313,17 +775,47 @@ export function JournalEntriesPage() {
                         </Badge>
                       </td>
                       <td className="py-2.5 px-3 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedEntry(entry);
-                            setDetailsModalOpen(true);
-                          }}
-                          className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEntry(entry);
+                              setDetailsModalOpen(true);
+                            }}
+                            className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900"
+                            title={isArabic ? "معاينة القيد" : "View"}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintEntry(entry, false)}
+                            className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
+                            title={isArabic ? "طباعة A4" : "Print A4"}
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintEntry(entry, true)}
+                            className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
+                            title={isArabic ? "حفظ PDF" : "Save PDF"}
+                          >
+                            <FileDown className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleShareWhatsapp(entry)}
+                            className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
+                            title={isArabic ? "مشاركة واتساب" : "WhatsApp"}
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -335,245 +827,6 @@ export function JournalEntriesPage() {
       </Card>
 
       {/* Entry Details Modal */}
-      <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center justify-between">
-              <span>تفاصيل القيد المالي: {selectedEntry?.entry_number}</span>
-              <span className="font-mono text-xs text-slate-400 font-normal">
-                {selectedEntry?.entry_date}
-              </span>
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedEntry && (
-            <div className="space-y-4 pt-2">
-              <div className="bg-slate-50 p-3 rounded-md border border-slate-200 text-xs">
-                <span className="font-bold text-slate-700">البيان: </span>
-                <span className="text-slate-900">{selectedEntry.description}</span>
-              </div>
-
-              <div className="border border-industrial-border rounded-md overflow-hidden">
-                <table className="w-full text-xs text-start border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 border-b border-industrial-border text-slate-700 font-semibold">
-                      <th className="py-2 px-3 text-start">رقم الحساب</th>
-                      <th className="py-2 px-3 text-start">اسم الحساب</th>
-                      <th className="py-2 px-3 text-start">شرح السطر</th>
-                      <th className="py-2 px-3 text-end">مدين (Debit)</th>
-                      <th className="py-2 px-3 text-end">دائن (Credit)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-industrial-border">
-                    {selectedEntry.lines?.map((line) => (
-                      <tr key={line.id} className="hover:bg-slate-50/50">
-                        <td className="py-2 px-3 font-mono font-bold text-slate-800">
-                          {line.account?.code}
-                        </td>
-                        <td className="py-2 px-3 font-medium text-slate-900">
-                          {line.account?.name_ar}
-                        </td>
-                        <td className="py-2 px-3 text-slate-500 text-[11px]">
-                          {line.description || line.note || "-"}
-                        </td>
-                        <td className="py-2 px-3 text-end font-mono tabular-nums font-bold text-emerald-800">
-                          {line.debit > 0 ? `${line.debit.toFixed(2)} ر.س` : "-"}
-                        </td>
-                        <td className="py-2 px-3 text-end font-mono tabular-nums font-bold text-slate-800">
-                          {line.credit > 0 ? `${line.credit.toFixed(2)} ر.س` : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-slate-100/75 border-t border-industrial-border font-bold text-slate-900">
-                      <td colSpan={3} className="py-2 px-3 text-center">
-                        الإجمالي المتوازن
-                      </td>
-                      <td className="py-2 px-3 text-end font-mono text-emerald-800">
-                        {selectedEntry.total_debit?.toFixed(2)} ر.س
-                      </td>
-                      <td className="py-2 px-3 text-end font-mono text-slate-900">
-                        {selectedEntry.total_credit?.toFixed(2)} ر.س
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Manual JV Modal */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Plus className="h-5 w-5 text-industrial-accent" />
-              <span>تسجيل قيد محاسبي يدوي (Double-Entry Balanced JV)</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  تاريخ القيد *
-                </label>
-                <Input
-                  type="date"
-                  value={entryDate}
-                  onChange={(e) => setEntryDate(e.target.value)}
-                  className="bg-slate-50 border-industrial-border text-xs"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  البيان العام للقيد *
-                </label>
-                <Input
-                  value={entryDescription}
-                  onChange={(e) => setEntryDescription(e.target.value)}
-                  placeholder="مثال: إثبات مصاريف عمومية وإدارية / تسوية رصيد حساب..."
-                  className="bg-slate-50 border-industrial-border text-xs"
-                />
-              </div>
-            </div>
-
-            {/* Lines Table */}
-            <div className="border border-industrial-border rounded-lg overflow-hidden">
-              <table className="w-full text-xs text-start border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-industrial-border text-slate-700 font-semibold">
-                    <th className="py-2 px-2 text-start w-52">الحساب المالي *</th>
-                    <th className="py-2 px-2 text-end w-32">مدين (Debit) *</th>
-                    <th className="py-2 px-2 text-end w-32">دائن (Credit) *</th>
-                    <th className="py-2 px-2 text-start">شرح السطر</th>
-                    <th className="py-2 px-2 text-center w-12">حذف</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-industrial-border">
-                  {lines.map((line, idx) => (
-                    <tr key={idx} className="bg-white">
-                      <td className="p-1.5">
-                        <select
-                          value={line.account_id}
-                          onChange={(e) => handleLineChange(idx, "account_id", e.target.value)}
-                          className="w-full h-8 px-2 rounded border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
-                        >
-                          <option value="">اختر الحساب...</option>
-                          {accounts?.map((acc) => (
-                            <option key={acc.id} value={acc.id}>
-                              {acc.code} - {acc.name_ar}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-1.5">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={line.debit || ""}
-                          onChange={(e) => handleLineChange(idx, "debit", e.target.value)}
-                          placeholder="0.00"
-                          className="h-8 text-end font-mono text-xs"
-                        />
-                      </td>
-                      <td className="p-1.5">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={line.credit || ""}
-                          onChange={(e) => handleLineChange(idx, "credit", e.target.value)}
-                          placeholder="0.00"
-                          className="h-8 text-end font-mono text-xs"
-                        />
-                      </td>
-                      <td className="p-1.5">
-                        <Input
-                          value={line.description}
-                          onChange={(e) => handleLineChange(idx, "description", e.target.value)}
-                          placeholder="شرح إضافي للسطر..."
-                          className="h-8 text-xs"
-                        />
-                      </td>
-                      <td className="p-1.5 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveLine(idx)}
-                          className="h-7 w-7 p-0 text-rose-500 hover:text-rose-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddLine}
-              className="gap-1.5 text-xs text-slate-700"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>إضافة طرف / سطر آخر</span>
-            </Button>
-
-            {/* Balance Status Footer */}
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-4">
-                <div>
-                  إجمالي المدين: <strong className="font-mono text-emerald-700">{totalDebit.toFixed(2)} ر.س</strong>
-                </div>
-                <div>
-                  إجمالي الدائن: <strong className="font-mono text-slate-800">{totalCredit.toFixed(2)} ر.س</strong>
-                </div>
-                <div>
-                  الفارق: <strong className={`font-mono ${difference > 0 ? "text-rose-600 font-bold" : "text-emerald-600"}`}>{difference.toFixed(2)} ر.س</strong>
-                </div>
-              </div>
-
-              {isBalanced ? (
-                <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>القيد متوازن وجاهز للترحيل</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-rose-600 font-bold">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>القيد غير متوازن (المدين != الدائن)</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="pt-3 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateModalOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!isBalanced || !entryDescription.trim() || createMutation.isPending}
-              className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold"
-            >
-              {createMutation.isPending ? "جاري الترحيل..." : "ترحيل القيد المالي"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

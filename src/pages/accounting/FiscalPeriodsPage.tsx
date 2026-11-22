@@ -14,13 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -30,7 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Plus, Lock, Unlock, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Calendar,
+  ArrowRight, Plus, Lock, Unlock, ShieldAlert, CheckCircle2 } from "lucide-react";
 
 const periodSchema = z
   .object({
@@ -170,6 +164,126 @@ export function FiscalPeriodsPage() {
     }
   };
 
+
+  // Full-page in-place Canvas for Creating Fiscal Period
+  if (isCreateOpen) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setIsCreateOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة للفترات المالية</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-sky-600" />
+                <span>{t("periods.createPeriod")}</span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCreateOpen(false)}
+              disabled={isSubmitting}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSubmit(onCreatePeriod)}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+            >
+              {isSubmitting ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-base font-semibold">إعدادات الفترة المحاسبية</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit(onCreatePeriod)} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="period_name">{t("periods.periodName")}</Label>
+                <Input
+                  id="period_name"
+                  placeholder="الربع الأول 2026 (Q1 2026)"
+                  className="h-10"
+                  disabled={isSubmitting}
+                  {...register("period_name")}
+                />
+                {errors.period_name && (
+                  <p className="text-xs text-rose-600">{errors.period_name.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="start_date">{t("periods.startDate")}</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    dir="ltr"
+                    className="h-10 font-mono"
+                    disabled={isSubmitting}
+                    {...register("start_date")}
+                  />
+                  {errors.start_date && (
+                    <p className="text-xs text-rose-600">{errors.start_date.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="end_date">{t("periods.endDate")}</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    dir="ltr"
+                    className="h-10 font-mono"
+                    disabled={isSubmitting}
+                    {...register("end_date")}
+                  />
+                  {errors.end_date && (
+                    <p className="text-xs text-rose-600">{errors.end_date.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCreateOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+                >
+                  {isSubmitting ? t("common.saving") : t("common.save")}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -302,76 +416,6 @@ export function FiscalPeriodsPage() {
       </Card>
 
       {/* CREATE PERIOD DIALOG */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("periods.createPeriod")}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onCreatePeriod)} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="period_name">{t("periods.periodName")}</Label>
-              <Input
-                id="period_name"
-                placeholder="الربع الأول 2026 (Q1 2026)"
-                disabled={isSubmitting}
-                {...register("period_name")}
-              />
-              {errors.period_name && (
-                <p className="text-xs text-rose-600">{errors.period_name.message}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="start_date">{t("periods.startDate")}</Label>
-                <Input
-                  id="start_date"
-                  type="date"
-                  dir="ltr"
-                  disabled={isSubmitting}
-                  {...register("start_date")}
-                />
-                {errors.start_date && (
-                  <p className="text-xs text-rose-600">{errors.start_date.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="end_date">{t("periods.endDate")}</Label>
-                <Input
-                  id="end_date"
-                  type="date"
-                  dir="ltr"
-                  disabled={isSubmitting}
-                  {...register("end_date")}
-                />
-                {errors.end_date && (
-                  <p className="text-xs text-rose-600">{errors.end_date.message}</p>
-                )}
-              </div>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateOpen(false)}
-                disabled={isSubmitting}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="submit"
-                variant="default"
-                isLoading={isSubmitting}
-                className="bg-industrial-primary text-white"
-              >
-                {t("common.save")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* LOCK / UNLOCK ALERT DIALOG */}
       <AlertDialog

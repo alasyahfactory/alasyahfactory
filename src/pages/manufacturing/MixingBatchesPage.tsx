@@ -42,6 +42,12 @@ import {
   XCircle,
   HelpCircle,
   Check,
+  Printer,
+  FileDown,
+  Share2,
+  FileText,
+  Eye,
+  ArrowRight,
 } from "lucide-react";
 
 export function MixingBatchesPage() {
@@ -71,6 +77,7 @@ export function MixingBatchesPage() {
   const [closeTankModalOpen, setCloseTankModalOpen] = useState(false);
   const [closeTargetBatch, setCloseTargetBatch] = useState<MixingBatch | null>(null);
   const [actualYieldKg, setActualYieldKg] = useState<number>(0);
+  const [selectedBatch, setSelectedBatch] = useState<MixingBatch | null>(null);
 
   // 1. Fetch Tanks with current batch
   const { data: tanks, isLoading: isTanksLoading } = useQuery<Tank[]>({
@@ -280,6 +287,245 @@ export function MixingBatchesPage() {
         return <Badge variant="secondary" className="text-[11px]">{status}</Badge>;
     }
   };
+
+  const handlePrintBatchSheet = (batch: MixingBatch, isPdf = false) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const docTitle = isPdf ? `كرت_تشغيل_باتش_${batch.batch_number}` : `كرت تشغيل باتش خلط - ${batch.batch_number}`;
+    const plannedKg = Math.round((batch.planned_qty_grams || 0) / 1000);
+    const remainingKg = Math.round((batch.remaining_qty_grams || 0) / 1000);
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
+        <head>
+          <meta charset="utf-8" />
+          <title>${docTitle}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "IBM Plex Sans Arabic", sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 0; font-size: 12px; }
+            .header-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+            .badge { display: inline-block; padding: 4px 14px; background: #0f172a; color: #fff; font-weight: bold; font-size: 15px; border-radius: 4px; }
+            .meta-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; background: #f8fafc; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; }
+            .qc-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; margin-bottom: 20px; background: #fff; }
+            .tabular { font-family: monospace; font-variant-numeric: tabular-nums; }
+            .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; margin-top: 40px; text-align: center; }
+            .sig-box { border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-grid">
+            <div style="text-align: ${isArabic ? "right" : "left"};">
+              <div style="font-weight: bold; font-size: 15px;">مصنع الأسياح للمنتجات الكيميائية</div>
+              <div style="font-size: 11px; color: #64748b;">سجل تجاري: 1010000000 | الرقم الضريبي: 300000000000003</div>
+              <div style="font-size: 11px; color: #64748b;">إدارة الإنتاج والخلط الكيميائي</div>
+            </div>
+            <div style="text-align: center;">
+              <div class="badge">كرت تشغيل وتشغيل باتش خلط</div>
+              <div style="font-size: 13px; font-family: monospace; font-weight: bold; margin-top: 4px;">${batch.batch_number}</div>
+            </div>
+            <div style="text-align: ${isArabic ? "left" : "right"}; direction: ltr;">
+              <div style="font-weight: bold; font-size: 14px;">Al-Asyah Chemical Factory</div>
+              <div style="font-size: 11px; color: #64748b;">Chemical Mixing Batch Traveler</div>
+              <div style="font-size: 11px; color: #64748b;">Date: ${batch.created_at ? new Date(batch.created_at).toLocaleDateString("en-CA") : "-"}</div>
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <div><strong>رقم الباتش:</strong> <span class="tabular font-bold">${batch.batch_number}</span></div>
+            <div><strong>تانك التشغيل:</strong> ${batch.tank?.tank_code || "-"} (${batch.tank?.name || "-"})</div>
+            <div><strong>التركيبة / المنتج:</strong> <strong>${batch.formula ? (isArabic ? batch.formula.name_ar : batch.formula.name_en) : "-"}</strong></div>
+            <div><strong>كود المعادلة:</strong> <span class="tabular">${batch.formula?.code || "-"}</span></div>
+            <div><strong>الكمية المخططة:</strong> <span class="tabular">${plannedKg.toLocaleString()}</span> كجم</div>
+            <div><strong>الكمية المتبقية بالخلط:</strong> <span class="tabular">${remainingKg.toLocaleString()}</span> كجم</div>
+            <div><strong>حالة الباتش:</strong> ${batch.status}</div>
+            <div><strong>حالة الفحص المخبري (QC):</strong> ${batch.qc_status === "passed" ? "مطابق ومعتمد" : batch.qc_status === "needs_rework" ? "يحتاج تعديل وإصلاح" : "بانتظار الفحص"}</div>
+          </div>
+
+          <div class="qc-card">
+            <h3 style="margin-top: 0; font-size: 13px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">نتائج الفحص وضبط الجودة (QC Gate Specifications)</h3>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; font-size: 12px;">
+              <div><strong>الرقم الهيدروجيني (pH):</strong> <span class="tabular">${batch.qc_ph ?? "غير مسجل"}</span></div>
+              <div><strong>اللزوجة (Viscosity cP):</strong> <span class="tabular">${batch.qc_viscosity ? batch.qc_viscosity.toLocaleString() + " cP" : "غير مسجل"}</span></div>
+              <div><strong>مطابقة اللون:</strong> ${batch.qc_color_ok ? "مطابق ✓" : "غير مطابق ✗"}</div>
+              <div><strong>مطابقة الرائحة:</strong> ${batch.qc_odor_ok ? "مطابق ✓" : "غير مطابق ✗"}</div>
+            </div>
+            ${batch.qc_notes ? `<div style="margin-top: 10px; font-size: 11px; color: #475569;"><strong>ملاحظات المختبر:</strong> ${batch.qc_notes}</div>` : ""}
+          </div>
+
+          <div class="signatures">
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">فني / مشغل الخلط</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">كيميائي فحص الجودة (QC)</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">مدير الإنتاج والمصنع</div>
+              <div>الختم والتوقيع: ............................</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); window.close(); };
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
+  const handleShareWhatsapp = (batch: MixingBatch) => {
+    const plannedKg = Math.round((batch.planned_qty_grams || 0) / 1000);
+    const formulaName = batch.formula ? (isArabic ? batch.formula.name_ar : batch.formula.name_en) : "-";
+    const msg = `*كرت تشغيل باتش خلط - مصنع الأسياح للكيماويات*
+رقم الباتش: ${batch.batch_number}
+المنتج / التركيبة: ${formulaName}
+التانك: ${batch.tank?.tank_code || "-"}
+الكمية المخططة: ${plannedKg.toLocaleString()} كجم
+حالة الفحص المخبري (QC): ${batch.qc_status === "passed" ? "معتمد ومطابق" : batch.qc_status === "needs_rework" ? "يحتاج إصلاح" : "قيد الفحص"}
+الحالة التشغيلية: ${batch.status}
+_إدارة العمليات الصناعية والخلط - مصنع الأسياح_`;
+
+    const encoded = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
+  // Full-page in-place Canvas for Inspecting a Batch Traveler Sheet
+  if (selectedBatch) {
+    const plannedKg = Math.round((selectedBatch.planned_qty_grams || 0) / 1000);
+    const remainingKg = Math.round((selectedBatch.remaining_qty_grams || 0) / 1000);
+    const formulaName = selectedBatch.formula ? (isArabic ? selectedBatch.formula.name_ar : selectedBatch.formula.name_en) : "-";
+
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setSelectedBatch(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة للباتشات" : "Back"}</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold font-mono text-slate-900">
+                  {selectedBatch.batch_number}
+                </h1>
+                <Badge variant={selectedBatch.qc_status === "passed" ? "emerald" : "amber"}>
+                  {selectedBatch.qc_status === "passed" ? "معتمد للتعبئة" : selectedBatch.qc_status}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {formulaName} | تانك: {selectedBatch.tank?.tank_code || "-"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintBatchSheet(selectedBatch, false)}
+              className="gap-1.5 text-xs text-slate-700 hover:bg-slate-100 min-h-[38px]"
+            >
+              <Printer className="h-4 w-4 text-slate-600" />
+              <span>{isArabic ? "طباعة A4" : "Print A4"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintBatchSheet(selectedBatch, true)}
+              className="gap-1.5 text-xs text-sky-700 hover:bg-sky-50 min-h-[38px]"
+            >
+              <FileDown className="h-4 w-4 text-sky-600" />
+              <span>{isArabic ? "حفظ PDF" : "Save PDF"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleShareWhatsapp(selectedBatch)}
+              className="gap-1.5 text-xs text-emerald-700 hover:bg-emerald-50 min-h-[38px]"
+            >
+              <Share2 className="h-4 w-4 text-emerald-600" />
+              <span>{isArabic ? "مشاركة واتساب" : "WhatsApp"}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedBatch(null)}
+            >
+              {isArabic ? "إغلاق" : "Close"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Batch Information Details */}
+        <Card className="border border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-base font-bold flex items-center justify-between">
+              <span>تفاصيل تشغيل الباتش ومواصفات الجودة</span>
+              <span className="font-mono text-sm text-slate-500">{selectedBatch.batch_number}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 text-sm">
+              <div>
+                <span className="text-xs text-slate-500 block">المنتج / التركيبة</span>
+                <span className="font-bold text-slate-800">{formulaName}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 block">التانك المستخدم</span>
+                <span className="font-bold font-mono text-slate-800">{selectedBatch.tank?.tank_code || "-"} ({selectedBatch.tank?.name || "-"})</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 block">الكمية المخططة</span>
+                <span className="font-bold font-mono text-slate-800">{plannedKg.toLocaleString()} كجم</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 block">المتبقي بالخلط</span>
+                <span className="font-bold font-mono text-slate-800">{remainingKg.toLocaleString()} كجم</span>
+              </div>
+            </div>
+
+            <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+              <h3 className="font-bold text-sm text-slate-800">بيانات الفحص المخبري (QC Gate)</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-xs text-slate-500 block">درجة الحموضة (pH)</span>
+                  <span className="font-bold font-mono">{selectedBatch.qc_ph ?? "لم يُفحص"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 block">اللزوجة (cP)</span>
+                  <span className="font-bold font-mono">{selectedBatch.qc_viscosity ? `${selectedBatch.qc_viscosity.toLocaleString()} cP` : "لم يُفحص"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 block">مطابقة الرائحة</span>
+                  <span className="font-bold">{selectedBatch.qc_odor_ok ? "مطابق ✓" : "غير مطابق ✗"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 block">مطابقة اللون</span>
+                  <span className="font-bold">{selectedBatch.qc_color_ok ? "مطابق ✓" : "غير مطابق ✗"}</span>
+                </div>
+              </div>
+              {selectedBatch.qc_notes && (
+                <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2">
+                  <span className="font-bold block mb-1">ملاحظات الفاحص:</span>
+                  {selectedBatch.qc_notes}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -512,8 +758,16 @@ export function MixingBatchesPage() {
 
                       return (
                         <tr key={batch.id} className="hover:bg-slate-50/80">
-                          <td className="py-2.5 px-3 font-mono font-bold text-sky-700">
-                            {batch.batch_number}
+                          <td className="py-2.5 px-3 font-mono font-bold">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedBatch(batch)}
+                              className="text-sky-700 hover:text-sky-900 hover:underline flex items-center gap-1 cursor-pointer"
+                              title={isArabic ? "معاينة كرت تشغيل الباتش" : "View Traveler"}
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              <span>{batch.batch_number}</span>
+                            </button>
                           </td>
                           <td className="py-2.5 px-3 font-semibold text-slate-900">
                             {batch.formula ? (isArabic ? batch.formula.name_ar : batch.formula.name_en) : "-"}
@@ -548,26 +802,64 @@ export function MixingBatchesPage() {
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-center">
-                            {batch.status !== "closed" && (
-                              <div className="flex items-center justify-center gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => openQcDialog(batch)}
-                                  className="h-7 text-xs text-sky-700 hover:bg-sky-50 px-2"
-                                >
-                                  فحص الجودة
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => openCloseTankDialog(batch)}
-                                  className="h-7 text-xs text-slate-600 hover:bg-slate-100 px-2"
-                                >
-                                  إغلاق
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex items-center justify-center gap-1">
+                              {batch.status !== "closed" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => openQcDialog(batch)}
+                                    className="h-7 text-xs text-sky-700 hover:bg-sky-50 px-2"
+                                  >
+                                    فحص الجودة
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => openCloseTankDialog(batch)}
+                                    className="h-7 text-xs text-slate-600 hover:bg-slate-100 px-2"
+                                  >
+                                    إغلاق
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedBatch(batch)}
+                                className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900"
+                                title={isArabic ? "معاينة كرت الباتش" : "View Batch"}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handlePrintBatchSheet(batch, false)}
+                                className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
+                                title={isArabic ? "طباعة كرت التشغيل A4" : "Print A4"}
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handlePrintBatchSheet(batch, true)}
+                                className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
+                                title={isArabic ? "حفظ PDF" : "Save PDF"}
+                              >
+                                <FileDown className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleShareWhatsapp(batch)}
+                                className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
+                                title={isArabic ? "مشاركة واتساب" : "WhatsApp"}
+                              >
+                                <Share2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );

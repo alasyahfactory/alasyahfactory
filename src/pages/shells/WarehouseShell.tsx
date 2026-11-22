@@ -23,14 +23,6 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -378,6 +370,274 @@ export function WarehouseShell() {
       toast.error(err.message || (isArabic ? "فشل حفظ العد" : "Failed to save"));
     },
   });
+
+  // Full-page in-place Canvas for GRN (Goods Receipt Note) Weighing & Receiving
+  if (grnModalOpen && selectedPo) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setGrnModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لبوابة المستودع" : "Back"}</span>
+            </Button>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Scale className="h-5 w-5 text-emerald-600" />
+                <span>{isArabic ? "استلام شحنة مشتريات بالميزان الفعلي (GRN)" : "Goods Receipt (GRN)"}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isArabic
+                  ? `أمر الشراء رقم: ${selectedPo.po_number} • المورد: ${(selectedPo as any)?.supplier?.name_ar}`
+                  : `PO: ${selectedPo.po_number}`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGrnModalOpen(false)}
+              disabled={submitGrnMutation.isPending}
+            >
+              {isArabic ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => submitGrnMutation.mutate()}
+              disabled={submitGrnMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold min-h-[40px] px-5"
+            >
+              <CheckCircle2 className="me-1.5 h-4 w-4" />
+              <span>{isArabic ? "تأكيد الاستلام وتوليد FIFO" : "Confirm & Post FIFO"}</span>
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm p-4 space-y-4">
+          {/* Receiving Warehouse */}
+          <div>
+            <Label className="font-semibold text-slate-700 mb-1 block text-xs">
+              {isArabic ? "المستودع المستلم الفعلي" : "Receiving Warehouse"}
+            </Label>
+            <Select value={receivingWarehouseId} onValueChange={setReceivingWarehouseId}>
+              <SelectTrigger className="h-10 text-xs bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {physicalWarehouses.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.name_ar} ({w.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Supplier DN Number */}
+          <div>
+            <Label className="font-semibold text-slate-700 mb-1 block text-xs">
+              {isArabic ? "رقم إشعار تسليم المورد (سند الشحنة / الفاتورة)" : "Supplier Delivery Note Number"}
+            </Label>
+            <Input
+              value={supplierDnNumber}
+              onChange={(e) => setSupplierDnNumber(e.target.value)}
+              placeholder={isArabic ? "مثال: DN-88492 أو رقم الفاتورة..." : "DN number..."}
+              className="h-10 text-xs bg-white"
+            />
+          </div>
+
+          {/* Lines List */}
+          <div className="space-y-3 pt-2">
+            <Label className="font-semibold text-slate-700 block text-xs">
+              {isArabic ? "تسجيل الوزن الفعلي بالميزان لكل صنف:" : "Actual Scale Weight per Item:"}
+            </Label>
+
+            {grnLines.map((line, idx) => {
+              const poLine = (selectedPo as any)?.lines?.find((l: any) => l.item_id === line.item_id);
+              const itm = poLine?.item;
+              const isGram = itm?.base_unit === "gram";
+
+              return (
+                <div key={idx} className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2 text-xs">
+                  <div className="flex items-center justify-between font-bold text-slate-800">
+                    <span>{itm?.name_ar || itm?.sku}</span>
+                    <span className="font-mono text-slate-500">
+                      {isArabic ? "مطلوب بالـ PO:" : "PO Qty:"}{" "}
+                      {isGram
+                        ? `${(Number(poLine?.ordered_qty) / 1000).toFixed(2)} كجم`
+                        : `${Number(poLine?.ordered_qty).toLocaleString()} حبة`}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[11px] text-slate-600 block mb-1">
+                        {isGram ? (isArabic ? "الوزن الفعلي كجم:" : "Weight (KG):") : (isArabic ? "العدد المستلم (حبة):" : "Received (Pcs):")}
+                      </span>
+                      <Input
+                        type="number"
+                        step={isGram ? "0.01" : "1"}
+                        value={isGram ? line.weight_kg : line.received_qty}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const updated = [...grnLines];
+                          if (isGram) {
+                            updated[idx].weight_kg = val;
+                            updated[idx].received_qty = val * 1000;
+                          } else {
+                            updated[idx].received_qty = val;
+                          }
+                          setGrnLines(updated);
+                        }}
+                        className="h-10 text-xs font-mono font-bold bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <span className="text-[11px] text-slate-600 block mb-1">
+                        {isArabic ? "رقم تشغيلة المورد (Lot/Batch):" : "Lot/Batch Number:"}
+                      </span>
+                      <Input
+                        value={line.batch_number}
+                        onChange={(e) => {
+                          const updated = [...grnLines];
+                          updated[idx].batch_number = e.target.value;
+                          setGrnLines(updated);
+                        }}
+                        className="h-10 text-xs font-mono bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Full-page in-place Canvas for Van Loading Dispatch
+  if (vanModalOpen) {
+    return (
+      <div className="space-y-6 max-w-xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setVanModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لبوابة المستودع" : "Back"}</span>
+            </Button>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Truck className="h-5 w-5 text-indigo-600" />
+                <span>{isArabic ? "صرف وتحميل بضاعة لسيارة التوزيع" : "Dispatch to Sales Van"}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isArabic
+                  ? "نقل بضاعة المنظفات التامة من مستودع المصنع إلى عهدة المندوب (حساب 1135)"
+                  : "Transfer finished goods to van warehouse custody"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setVanModalOpen(false)}
+              disabled={submitVanLoadingMutation.isPending}
+            >
+              {isArabic ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => submitVanLoadingMutation.mutate()}
+              disabled={submitVanLoadingMutation.isPending || !selectedVanId || !vanItemId || vanCartons <= 0}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold min-h-[40px] px-5"
+            >
+              <CheckCircle2 className="me-1.5 h-4 w-4" />
+              <span>{isArabic ? "تأكيد صرف الشحنة للسيارة" : "Confirm Dispatch"}</span>
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm p-5 space-y-4">
+          <div>
+            <Label className="font-semibold text-slate-700 mb-1 block text-xs">
+              {isArabic ? "سيارة التوزيع المستلمة" : "Target Sales Van"}
+            </Label>
+            <Select value={selectedVanId} onValueChange={setSelectedVanId}>
+              <SelectTrigger className="h-10 text-xs bg-white">
+                <SelectValue placeholder={isArabic ? "اختر السيارة..." : "Select Van..."} />
+              </SelectTrigger>
+              <SelectContent>
+                {vanWarehouses.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.name_ar} ({v.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="font-semibold text-slate-700 mb-1 block text-xs">
+              {isArabic ? "صنف المنظف المراد صرفه" : "Finished Good Item"}
+            </Label>
+            <Select value={vanItemId} onValueChange={setVanItemId}>
+              <SelectTrigger className="h-10 text-xs bg-white">
+                <SelectValue placeholder={isArabic ? "اختر الصنف..." : "Select Item..."} />
+              </SelectTrigger>
+              <SelectContent>
+                {finishedGoods.map((i) => (
+                  <SelectItem key={i.id} value={i.id}>
+                    {i.name_ar} ({i.sku}) • {i.pieces_per_carton} حبة/كرتون
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="font-semibold text-slate-700 mb-1 block text-xs">
+              {isArabic ? "الكمية المحملة (بالكرتون)" : "Cartons Count"}
+            </Label>
+            <Input
+              type="number"
+              min="1"
+              value={vanCartons}
+              onChange={(e) => setVanCartons(parseInt(e.target.value) || 0)}
+              className="h-10 text-xs font-mono font-bold bg-white"
+            />
+          </div>
+
+          <div>
+            <Label className="font-semibold text-slate-700 mb-1 block text-xs">
+              {isArabic ? "ملاحظات السند" : "Notes"}
+            </Label>
+            <Input
+              value={vanNotes}
+              onChange={(e) => setVanNotes(e.target.value)}
+              placeholder={isArabic ? "مثال: تحميل صباحي لخط سير القصيم..." : "e.g., Morning route..."}
+              className="h-10 text-xs bg-white"
+            />
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto pb-16">
@@ -731,248 +991,6 @@ export function WarehouseShell() {
           )}
         </TabsContent>
       </Tabs>
-
-      {/* ========================================================================= */}
-      {/* GRN WEIGH & RECEIVE DIALOG */}
-      {/* ========================================================================= */}
-      <Dialog open={grnModalOpen} onOpenChange={setGrnModalOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Scale className="h-5 w-5 text-emerald-600" />
-              <span>{isArabic ? "استلام شحنة مشتريات بالميزان الفعلي (GRN)" : "Goods Receipt (GRN)"}</span>
-            </DialogTitle>
-            <DialogDescription>
-              {isArabic
-                ? `أمر الشراء رقم: ${selectedPo?.po_number} • المورد: ${(selectedPo as any)?.supplier?.name_ar}`
-                : `PO: ${selectedPo?.po_number}`}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2 text-xs">
-            {/* Receiving Warehouse */}
-            <div>
-              <Label className="font-semibold text-slate-700 mb-1 block">
-                {isArabic ? "المستودع المستلم الفعلي" : "Receiving Warehouse"}
-              </Label>
-              <Select value={receivingWarehouseId} onValueChange={setReceivingWarehouseId}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {physicalWarehouses.map((w) => (
-                    <SelectItem key={w.id} value={w.id}>
-                      {w.name_ar} ({w.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Supplier DN Number */}
-            <div>
-              <Label className="font-semibold text-slate-700 mb-1 block">
-                {isArabic ? "رقم إشعار تسليم المورد (سند الشحنة / الفاتورة)" : "Supplier Delivery Note Number"}
-              </Label>
-              <Input
-                value={supplierDnNumber}
-                onChange={(e) => setSupplierDnNumber(e.target.value)}
-                placeholder={isArabic ? "مثال: DN-88492 أو رقم الفاتورة..." : "DN number..."}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            {/* Lines List */}
-            <div className="space-y-2 pt-2">
-              <Label className="font-semibold text-slate-700 block">
-                {isArabic ? "تسجيل الوزن الفعلي بالميزان لكل صنف:" : "Actual Scale Weight per Item:"}
-              </Label>
-
-              {grnLines.map((line, idx) => {
-                const poLine = (selectedPo as any)?.lines?.find((l: any) => l.item_id === line.item_id);
-                const itm = poLine?.item;
-                const isGram = itm?.base_unit === "gram";
-
-                return (
-                  <div key={idx} className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2 text-xs">
-                    <div className="flex items-center justify-between font-bold text-slate-800">
-                      <span>{itm?.name_ar || itm?.sku}</span>
-                      <span className="font-mono text-slate-500">
-                        {isArabic ? "مطلوب بالـ PO:" : "PO Qty:"}{" "}
-                        {isGram
-                          ? `${(Number(poLine?.ordered_qty) / 1000).toFixed(2)} كجم`
-                          : `${Number(poLine?.ordered_qty).toLocaleString()} حبة`}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[11px] text-slate-600 block mb-1">
-                          {isGram ? (isArabic ? "الوزن الفعلي كجم:" : "Weight (KG):") : (isArabic ? "العدد المستلم (حبة):" : "Received (Pcs):")}
-                        </span>
-                        <Input
-                          type="number"
-                          step={isGram ? "0.01" : "1"}
-                          value={isGram ? line.weight_kg : line.received_qty}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            const updated = [...grnLines];
-                            if (isGram) {
-                              updated[idx].weight_kg = val;
-                              updated[idx].received_qty = val * 1000; // grams
-                            } else {
-                              updated[idx].received_qty = val;
-                            }
-                            setGrnLines(updated);
-                          }}
-                          className="h-9 text-xs font-mono font-bold"
-                        />
-                      </div>
-
-                      <div>
-                        <span className="text-[11px] text-slate-600 block mb-1">
-                          {isArabic ? "رقم تشغيلة المورد (Lot/Batch):" : "Lot/Batch Number:"}
-                        </span>
-                        <Input
-                          value={line.batch_number}
-                          onChange={(e) => {
-                            const updated = [...grnLines];
-                            updated[idx].batch_number = e.target.value;
-                            setGrnLines(updated);
-                          }}
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setGrnModalOpen(false)}
-              disabled={submitGrnMutation.isPending}
-            >
-              {isArabic ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => submitGrnMutation.mutate()}
-              disabled={submitGrnMutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
-            >
-              <CheckCircle2 className="me-1.5 h-4 w-4" />
-              <span>{isArabic ? "تأكيد الاستلام وتوليد FIFO" : "Confirm & Post FIFO"}</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ========================================================================= */}
-      {/* VAN LOADING DIALOG */}
-      {/* ========================================================================= */}
-      <Dialog open={vanModalOpen} onOpenChange={setVanModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Truck className="h-5 w-5 text-indigo-600" />
-              <span>{isArabic ? "صرف وتحميل بضاعة لسيارة التوزيع" : "Dispatch to Sales Van"}</span>
-            </DialogTitle>
-            <DialogDescription>
-              {isArabic
-                ? "نقل بضاعة المنظفات التامة من مستودع المصنع إلى عهدة المندوب (حساب 1135)"
-                : "Transfer finished goods to van warehouse custody"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2 text-xs">
-            <div>
-              <Label className="font-semibold text-slate-700 mb-1 block">
-                {isArabic ? "سيارة التوزيع المستلمة" : "Target Sales Van"}
-              </Label>
-              <Select value={selectedVanId} onValueChange={setSelectedVanId}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder={isArabic ? "اختر السيارة..." : "Select Van..."} />
-                </SelectTrigger>
-                <SelectContent>
-                  {vanWarehouses.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name_ar} ({v.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="font-semibold text-slate-700 mb-1 block">
-                {isArabic ? "صنف المنظف المراد صرفه" : "Finished Good Item"}
-              </Label>
-              <Select value={vanItemId} onValueChange={setVanItemId}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder={isArabic ? "اختر الصنف..." : "Select Item..."} />
-                </SelectTrigger>
-                <SelectContent>
-                  {finishedGoods.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>
-                      {i.name_ar} ({i.sku}) • {i.pieces_per_carton} حبة/كرتون
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="font-semibold text-slate-700 mb-1 block">
-                {isArabic ? "الكمية المحملة (بالكرتون)" : "Cartons Count"}
-              </Label>
-              <Input
-                type="number"
-                min="1"
-                value={vanCartons}
-                onChange={(e) => setVanCartons(parseInt(e.target.value) || 0)}
-                className="h-9 text-xs font-mono font-bold"
-              />
-            </div>
-
-            <div>
-              <Label className="font-semibold text-slate-700 mb-1 block">
-                {isArabic ? "ملاحظات السند" : "Notes"}
-              </Label>
-              <Input
-                value={vanNotes}
-                onChange={(e) => setVanNotes(e.target.value)}
-                placeholder={isArabic ? "مثال: تحميل صباحي لخط سير القصيم..." : "e.g., Morning route..."}
-                className="h-9 text-xs"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setVanModalOpen(false)}
-              disabled={submitVanLoadingMutation.isPending}
-            >
-              {isArabic ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => submitVanLoadingMutation.mutate()}
-              disabled={submitVanLoadingMutation.isPending}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
-            >
-              <CheckCircle2 className="me-1.5 h-4 w-4" />
-              <span>{isArabic ? "تأكيد الصرف والتحميل" : "Confirm Loading"}</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

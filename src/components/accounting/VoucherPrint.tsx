@@ -1,31 +1,37 @@
 import React, { useRef } from "react";
-import { Printer } from "lucide-react";
+import { Printer, FileDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Voucher, FactorySettings } from "@/types/database";
 
 interface VoucherPrintProps {
   voucher: Voucher;
   settings: FactorySettings | null;
+  compact?: boolean;
 }
 
-export const VoucherPrint: React.FC<VoucherPrintProps> = ({ voucher, settings }) => {
+export const VoucherPrint: React.FC<VoucherPrintProps> = ({ voucher, settings, compact = false }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
   const isReceipt = voucher.voucher_type === "receipt";
   const isPayment = voucher.voucher_type === "payment";
+  const voucherTypeName = isReceipt ? "سند قبض" : isPayment ? "سند صرف" : "سند تحويل";
 
-  const handlePrint = () => {
+  const handlePrint = (isPdf = false) => {
     const printContent = printRef.current;
     if (!printContent) return;
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    const docTitle = isPdf
+      ? `${voucherTypeName.replace(/\s+/g, "_")}_${voucher.voucher_number}`
+      : `${voucher.voucher_number} - ${voucherTypeName}`;
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
-          <title>${voucher.voucher_number} - ${isReceipt ? "سند قبض" : isPayment ? "سند صرف" : "سند تحويل"}</title>
+          <title>${docTitle}</title>
           <meta charset="utf-8" />
           <style>
             @page {
@@ -98,13 +104,12 @@ export const VoucherPrint: React.FC<VoucherPrintProps> = ({ voucher, settings })
             .meta-value {
               font-family: monospace;
               font-weight: 700;
-              color: #0f172a;
             }
             .amount-box {
-              border: 2px solid #0f172a;
+              background: #f1f5f9;
+              border: 1px dashed #64748b;
               border-radius: 6px;
-              padding: 16px;
-              background-color: #f1f5f9;
+              padding: 12px 16px;
               margin-bottom: 20px;
               display: flex;
               justify-content: space-between;
@@ -113,33 +118,32 @@ export const VoucherPrint: React.FC<VoucherPrintProps> = ({ voucher, settings })
             .amount-val {
               font-size: 20px;
               font-weight: 900;
-              color: #0f172a;
               font-family: monospace;
+              color: #0f172a;
             }
             .desc-box {
               border: 1px solid #cbd5e1;
               border-radius: 6px;
-              padding: 14px;
+              padding: 12px;
               margin-bottom: 30px;
+              min-height: 50px;
               background: #fff;
-              min-height: 60px;
             }
             .signatures {
               display: grid;
-              grid-template-columns: 1fr 1fr 1fr;
+              grid-template-columns: repeat(3, 1fr);
               gap: 20px;
+              margin-top: 30px;
               text-align: center;
-              margin-top: 40px;
-              padding-top: 20px;
-              border-top: 1px dashed #cbd5e1;
             }
             .sig-title {
-              font-weight: 700;
-              margin-bottom: 50px;
+              font-weight: bold;
+              margin-bottom: 40px;
+              color: #334155;
             }
             .sig-line {
-              border-top: 1px solid #64748b;
-              margin: 0 20px;
+              border-top: 1px dashed #94a3b8;
+              margin: 0 10px;
             }
           </style>
         </head>
@@ -159,17 +163,61 @@ export const VoucherPrint: React.FC<VoucherPrintProps> = ({ voucher, settings })
     printWindow.document.close();
   };
 
+  const handleShareWhatsApp = () => {
+    const factory = settings?.name_ar || "مصنع الأسياح للمنتجات الكيميائية";
+    const msg = `*${voucherTypeName}*
+رقم السند: ${voucher.voucher_number}
+التاريخ: ${voucher.voucher_date}
+${isReceipt ? "المستلم منه:" : "المصروف له:"} ${voucher.customer?.name_ar || voucher.supplier?.name_ar || voucher.description || "-"}
+المبلغ الإجمالي: ${voucher.total_amount.toFixed(2)} ريال سعودي
+البيان: ${voucher.description || "-"}
+طريقة الدفع: ${voucher.payment_method === "cash" ? "نقداً" : voucher.payment_method === "bank_transfer" ? "تحويل بنكي" : voucher.payment_method === "check" ? "شيك" : "شبكة / نقاط بيع"}
+_صادر من ${factory}_`;
+
+    const encoded = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   return (
     <div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handlePrint}
-        className="h-8 gap-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-      >
-        <Printer className="h-3.5 w-3.5" />
-        <span>طباعة السند</span>
-      </Button>
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        {/* 1. Print A4 Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePrint(false)}
+          className={compact ? "h-7 px-2 text-xs gap-1 border-slate-300 text-slate-800 hover:bg-slate-100" : "h-8 px-2.5 gap-1.5 text-xs font-medium text-slate-800 border-slate-300 hover:bg-slate-100"}
+          title="طباعة السند A4"
+        >
+          <Printer className="h-3.5 w-3.5 text-slate-600" />
+          <span>{compact ? "طباعة" : "طباعة A4"}</span>
+        </Button>
+
+        {/* 2. Save PDF Button */}
+        <Button
+          variant="tonal"
+          size="sm"
+          onClick={() => handlePrint(true)}
+          className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "h-8 px-2.5 gap-1.5 text-xs font-semibold"}
+          title="حفظ السند كملف PDF"
+        >
+          <FileDown className="h-3.5 w-3.5 text-sky-700" />
+          <span>{compact ? "PDF" : "حفظ PDF"}</span>
+        </Button>
+
+        {/* 3. Share WhatsApp Button */}
+        <Button
+          variant="emerald"
+          size="sm"
+          onClick={handleShareWhatsApp}
+          className={compact ? "h-7 px-2 text-xs gap-1" : "h-8 px-2.5 gap-1.5 text-xs"}
+          title="مشاركة السند عبر واتساب"
+        >
+          <Share2 className="h-3.5 w-3.5 text-emerald-100" />
+          <span>واتساب</span>
+        </Button>
+      </div>
 
       {/* Hidden print container */}
       <div style={{ display: "none" }}>
@@ -178,65 +226,61 @@ export const VoucherPrint: React.FC<VoucherPrintProps> = ({ voucher, settings })
           <div className="header">
             <div className="header-info-ar">
               <div style={{ fontSize: "16px", fontWeight: "bold" }}>
-                {settings?.name_ar || "مصنع الآسية للمنظفات الصناعية"}
+                {settings?.name_ar || "مصنع الأسياح للمنظفات الصناعية"}
               </div>
-              <div>س.ت: {settings?.cr_number || "1131012345"}</div>
-              <div>الرقم الضريبي: {settings?.vat_number || "300000000000003"}</div>
-              <div style={{ fontSize: "11px", color: "#64748b" }}>{settings?.national_address}</div>
+              <div style={{ fontSize: "11px", color: "#64748b" }}>
+                سجل تجاري: {settings?.cr_number || "1010000000"}
+              </div>
+              <div style={{ fontSize: "11px", color: "#64748b" }}>
+                الرقم الضريبي: {settings?.vat_number || "300000000000003"}
+              </div>
             </div>
 
             <div className="header-center">
               <div className="title-box">
-                {isReceipt ? "سند قبض مالي" : isPayment ? "سند صرف مالي" : "سند تحويل داخلي"}
+                {voucherTypeName}
               </div>
-              <div style={{ fontSize: "11px", color: "#475569", fontWeight: "bold" }}>
+              <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "bold" }}>
                 {isReceipt ? "RECEIPT VOUCHER" : isPayment ? "PAYMENT VOUCHER" : "TRANSFER VOUCHER"}
-              </div>
-              <div style={{ fontFamily: "monospace", fontSize: "14px", fontWeight: "bold", marginTop: "4px" }}>
-                {voucher.voucher_number}
               </div>
             </div>
 
             <div className="header-info-en">
-              <div style={{ fontSize: "15px", fontWeight: "bold" }}>
-                {settings?.name_en || "Al-Asyah Detergent Factory"}
+              <div style={{ fontSize: "14px", fontWeight: "bold" }}>
+                {settings?.name_en || "Al-Asyah Detergents Factory"}
               </div>
-              <div>CR: {settings?.cr_number || "1131012345"}</div>
-              <div>VAT: {settings?.vat_number || "300000000000003"}</div>
-              <div style={{ fontSize: "11px", color: "#64748b" }}>Kingdom of Saudi Arabia</div>
+              <div style={{ fontSize: "11px", color: "#64748b" }}>
+                CR: {settings?.cr_number || "1010000000"}
+              </div>
+              <div style={{ fontSize: "11px", color: "#64748b" }}>
+                VAT: {settings?.vat_number || "300000000000003"}
+              </div>
             </div>
           </div>
 
-          {/* Meta Grid */}
+          {/* Meta Details Grid */}
           <div className="meta-grid">
+            <div className="meta-item">
+              <span className="meta-label">رقم السند / Voucher No:</span>
+              <span className="meta-value">{voucher.voucher_number}</span>
+            </div>
             <div className="meta-item">
               <span className="meta-label">التاريخ / Date:</span>
               <span className="meta-value">{voucher.voucher_date}</span>
             </div>
             <div className="meta-item">
-              <span className="meta-label">طريقة الدفع / Payment Method:</span>
-              <span className="meta-value">
-                {voucher.payment_method === "cash"
-                  ? "نقداً / Cash"
-                  : voucher.payment_method === "bank_transfer"
-                  ? "تحويل بنكي / Bank Transfer"
-                  : voucher.payment_method === "check"
-                  ? "شيك مصرفي / Check"
-                  : voucher.payment_method === "pos"
-                  ? "مدى / POS"
-                  : "عربون مقدم / Advance"}
+              <span className="meta-label">{isReceipt ? "استلمنا من السيد / Payer:" : "يُصرف إلى السيد / Payee:"}</span>
+              <span className="meta-value" style={{ fontFamily: "inherit" }}>
+                {voucher.customer?.name_ar || voucher.supplier?.name_ar || voucher.description || "غير محدد"}
               </span>
             </div>
             <div className="meta-item">
-              <span className="meta-label">{isReceipt ? "استلمنا من السيد / Received From:" : "يُصرف إلى السيد / Paid To:"}</span>
-              <span className="meta-value">
-                {voucher.customer?.name_ar || voucher.supplier?.name_ar || voucher.sales_rep?.full_name || voucher.contra_account?.name_ar || "الجهة المذكورة"}
-              </span>
-            </div>
-            <div className="meta-item">
-              <span className="meta-label">الحساب المالي / Account:</span>
-              <span className="meta-value">
-                {voucher.account?.code} - {voucher.account?.name_ar}
+              <span className="meta-label">طريقة السداد / Payment Method:</span>
+              <span className="meta-value" style={{ fontFamily: "inherit" }}>
+                {voucher.payment_method === "cash" && "نقداً (صندوق الكاش)"}
+                {voucher.payment_method === "bank_transfer" && "تحويل بنكي"}
+                {voucher.payment_method === "check" && "شيك مصرفي"}
+                {voucher.payment_method === "pos" && "نقاط بيع / شبكة"}
               </span>
             </div>
             {voucher.vehicle && (

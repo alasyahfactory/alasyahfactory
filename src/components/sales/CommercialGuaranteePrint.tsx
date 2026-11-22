@@ -1,31 +1,37 @@
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Printer, FileDown, Share2 } from "lucide-react";
 import type { Customer, FactorySettings } from "@/types/database";
 
 interface CommercialGuaranteePrintProps {
   customer: Customer;
   settings: FactorySettings | null;
+  compact?: boolean;
 }
 
-export function CommercialGuaranteePrint({ customer, settings }: CommercialGuaranteePrintProps) {
+export function CommercialGuaranteePrint({ customer, settings, compact = false }: CommercialGuaranteePrintProps) {
   const { i18n } = useTranslation();
   const printContainerRef = useRef<HTMLDivElement>(null);
   const isAr = i18n.language === "ar";
 
-  const handlePrint = () => {
+  const handlePrint = (isPdf = false) => {
     const content = printContainerRef.current;
     if (!content) return;
 
     const win = window.open("", "_blank");
     if (!win) return;
 
+    const docTitle = isPdf
+      ? `شهادة_الضمان_التجاري_${customer.name_ar.replace(/\s+/g, "_")}`
+      : `شهادة الضمان التجاري - ${customer.name_ar}`;
+
     win.document.write(`
       <!DOCTYPE html>
-      <html dir="${isAr ? "rtl" : "ltr"}">
+      <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
-          <title>شهادة الضمان التجاري - ${customer.name_ar}</title>
+          <meta charset="utf-8" />
+          <title>${docTitle}</title>
           <style>
             @page {
               size: A4 portrait;
@@ -67,24 +73,17 @@ export function CommercialGuaranteePrint({ customer, settings }: CommercialGuara
               font-weight: 900;
               color: #0f172a;
               margin-bottom: 16px;
-              letter-spacing: 0.5px;
-            }
-            .tabular {
-              font-family: monospace;
-              font-variant-numeric: tabular-nums;
             }
             .statement {
-              font-size: 14px;
+              margin-bottom: 16px;
               text-align: justify;
-              margin-bottom: 20px;
-              line-height: 1.8;
+              font-size: 14px;
             }
             .signatures {
               display: grid;
               grid-template-columns: 1fr 1fr;
               gap: 32px;
-              margin-top: 50px;
-              padding-top: 20px;
+              margin-top: 48px;
             }
             .sig-box {
               text-align: center;
@@ -119,17 +118,61 @@ export function CommercialGuaranteePrint({ customer, settings }: CommercialGuara
     win.document.close();
   };
 
+  const handleShareWhatsApp = () => {
+    const factory = settings?.name_ar || "مصنع الأسياح للمنتجات الكيميائية";
+    const guarantee = customer.guarantee_text || "ضمان جودة المنظفات والمعقمات وفق مواصفات الهيئة السعودية للمواصفات والمقاييس والجودة (SASO)";
+    const msg = `*شهادة ضمان الجودة والمطابقة التجارية*
+السادة/ ${customer.name_ar}
+نحيطكم علماً بصدور شهادة الضمان التجاري المعتمدة لمنتجاتكم الموردة من ${factory}.
+*البنود:* ${guarantee}
+صلاحية المنتجات 24 شهراً مع الالتزام التام بالاستبدال والتعويض الفوري.
+_صادرة ومعتمدة من إدارة الجودة بالمصنع_`;
+
+    const encoded = encodeURIComponent(msg);
+    const phone = customer.phone?.replace(/[^0-9]/g, "") || "";
+    const waUrl = phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
   return (
     <div>
-      <Button
-        onClick={handlePrint}
-        size="sm"
-        variant="outline"
-        className="text-xs border-sky-300 text-sky-700 hover:bg-sky-50 min-h-[36px]"
-      >
-        <ShieldCheck className="me-1.5 h-4 w-4 text-sky-600" />
-        <span>{isAr ? "شهادة الضمان التجاري A4" : "Commercial Guarantee A4"}</span>
-      </Button>
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        {/* 1. Print A4 Button */}
+        <Button
+          onClick={() => handlePrint(false)}
+          size="sm"
+          variant="outline"
+          className={compact ? "h-7 px-2 text-xs gap-1 border-sky-300 text-sky-800 hover:bg-sky-50" : "text-xs border-sky-300 text-sky-800 hover:bg-sky-50 min-h-[36px] gap-1.5"}
+          title={isAr ? "طباعة شهادة الضمان A4" : "Print Guarantee A4"}
+        >
+          <Printer className="h-3.5 w-3.5 text-sky-600" />
+          <span>{compact ? (isAr ? "طباعة" : "Print") : (isAr ? "طباعة A4" : "Print A4")}</span>
+        </Button>
+
+        {/* 2. Save PDF Button */}
+        <Button
+          onClick={() => handlePrint(true)}
+          size="sm"
+          variant="tonal"
+          className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "text-xs min-h-[36px] px-2.5 gap-1.5 font-semibold"}
+          title={isAr ? "حفظ كملف PDF" : "Save as PDF"}
+        >
+          <FileDown className="h-3.5 w-3.5 text-sky-700" />
+          <span>{compact ? "PDF" : (isAr ? "حفظ PDF" : "Save PDF")}</span>
+        </Button>
+
+        {/* 3. Share WhatsApp Button */}
+        <Button
+          onClick={handleShareWhatsApp}
+          size="sm"
+          variant="emerald"
+          className={compact ? "h-7 px-2 text-xs gap-1" : "text-xs min-h-[36px] px-2.5 gap-1.5"}
+          title={isAr ? "مشاركة الضمان عبر واتساب" : "Share via WhatsApp"}
+        >
+          <Share2 className="h-3.5 w-3.5 text-emerald-100" />
+          <span>{isAr ? "واتساب" : "WhatsApp"}</span>
+        </Button>
+      </div>
 
       <div style={{ display: "none" }}>
         <div ref={printContainerRef}>
@@ -139,8 +182,8 @@ export function CommercialGuaranteePrint({ customer, settings }: CommercialGuara
               <div style={{ fontWeight: "bold", fontSize: "15px" }}>
                 {settings?.name_ar || "مصنع الأسياح للمنظفات الصناعية"}
               </div>
-              <div style={{ fontSize: "11px", color: "#475569" }}>
-                س.ت: {settings?.cr_number || "1010000000"} | ترخيص صناعي معتمد
+              <div style={{ fontSize: "11px", color: "#64748b" }}>
+                س.ت: {settings?.cr_number || "1010000000"} | الرقم الضريبي: {settings?.vat_number || "300000000000003"}
               </div>
             </div>
 
@@ -148,23 +191,19 @@ export function CommercialGuaranteePrint({ customer, settings }: CommercialGuara
               {settings?.logo_base64 ? (
                 <img src={settings.logo_base64} alt="Logo" className="logo-img" />
               ) : (
-                <div style={{ fontWeight: "bold", fontSize: "18px", color: "#0284c7" }}>
-                  AL-ASYAH ERP
-                </div>
+                <div style={{ fontWeight: "bold", fontSize: "18px", letterSpacing: "1px" }}>AL-ASYAH</div>
               )}
             </div>
 
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontWeight: "bold", fontSize: "14px" }}>
-                {settings?.name_en || "Al-Asyah Detergents Factory"}
+            <div style={{ textAlign: "left", direction: "ltr" }}>
+              <div style={{ fontWeight: "bold", fontSize: "13px" }}>
+                {settings?.name_en || "Al-Asyah Chemical Detergent Factory"}
               </div>
-              <div style={{ fontSize: "11px", color: "#475569" }}>
-                VAT: <span className="tabular">{settings?.vat_number || "300000000000003"}</span>
-              </div>
+              <div style={{ fontSize: "11px", color: "#64748b" }}>Quality Assurance Dept.</div>
             </div>
           </div>
 
-          {/* Certificate Container */}
+          {/* Certificate Content */}
           <div className="cert-box">
             <div className="cert-title">
               شهادة ضمان الجودة والمطابقة التجارية

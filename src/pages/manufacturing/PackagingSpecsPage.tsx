@@ -13,14 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -30,6 +22,7 @@ import {
 
 import {
   Layers,
+  ArrowRight,
   Plus,
   Search,
   PackageCheck,
@@ -159,6 +152,242 @@ export function PackagingSpecsPage() {
       s.name_en.toLowerCase().includes(term)
     );
   });
+
+
+  // Full-page in-place Canvas for Creating Packaging Spec
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لمواصفات التعبئة</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Layers className="h-5 w-5 text-sky-600" />
+                <span>{t("manufacturing.createSpec")}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                اربط صنف المنتج التام بالسائل السائب في التانك ومواد التعبئة (العبوة، الاستيكرات، والكرتون)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setCreateModalOpen(false)}
+              disabled={createSpecMutation.isPending}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={createSpecMutation.isPending}
+              onClick={() => createSpecMutation.mutate()}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+            >
+              {createSpecMutation.isPending ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Cards Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <CardTitle className="text-base font-semibold">المواصفة والمنتج التام</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold">{t("manufacturing.specCode")} *</Label>
+                  <Input
+                    placeholder="مثال: SPEC-DW-5L"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="mt-1 font-mono uppercase"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">{t("common.arabicName")} *</Label>
+                  <Input
+                    placeholder="مثال: مواصفة تعبئة جركل 5 لتر"
+                    value={nameAr}
+                    onChange={(e) => setNameAr(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">{t("common.englishName")}</Label>
+                  <Input
+                    placeholder="5L Gallon Packaging Spec"
+                    value={nameEn}
+                    onChange={(e) => setNameEn(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">{t("manufacturing.finishedGood")} *</Label>
+                <Select value={finishedGoodId} onValueChange={setFinishedGoodId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="اختر المنتج التام..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {finishedGoods.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">{t("manufacturing.bulkItem")} *</Label>
+                <Select value={bulkItemId} onValueChange={setBulkItemId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="اختر السائل السائب بالتانك..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bulkItems.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold">{t("manufacturing.volumePerUnit")} (جرام) *</Label>
+                  <Input
+                    type="number"
+                    value={volumePerUnitGrams}
+                    onChange={(e) => setVolumePerUnitGrams(Number(e.target.value))}
+                    placeholder="5000"
+                    className="mt-1 font-mono tabular-nums"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">{t("manufacturing.piecesPerCarton")} *</Label>
+                  <Input
+                    type="number"
+                    value={piecesPerCarton}
+                    onChange={(e) => setPiecesPerCarton(Number(e.target.value))}
+                    placeholder="4"
+                    min={1}
+                    className="mt-1 font-mono tabular-nums"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <CardTitle className="text-base font-semibold">مواد التعبئة والتغليف المرتبطة</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4 text-xs">
+              <div>
+                <Label className="text-xs font-semibold">{t("manufacturing.bottleItem")} *</Label>
+                <Select value={bottleItemId} onValueChange={setBottleItemId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="اختر العبوة / الجركل مع الغطاء..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {packagingMaterials.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold">{t("manufacturing.frontSticker")}</Label>
+                  <Select value={frontStickerItemId} onValueChange={setFrontStickerItemId}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر الاستيكر الأمامي..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {packagingMaterials.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">{t("manufacturing.backSticker")} (اختياري)</Label>
+                  <Select value={backStickerItemId} onValueChange={setBackStickerItemId}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر الاستيكر الخلفي..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {packagingMaterials.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">{t("manufacturing.cartonItem")}</Label>
+                <Select value={cartonItemId} onValueChange={setCartonItemId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="اختر كرتون الشحن..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {packagingMaterials.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={() => setCreateModalOpen(false)}
+            disabled={createSpecMutation.isPending}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            disabled={createSpecMutation.isPending}
+            onClick={() => createSpecMutation.mutate()}
+            className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+          >
+            {createSpecMutation.isPending ? t("common.saving") : t("common.save")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -313,196 +542,6 @@ export function PackagingSpecsPage() {
       )}
 
       {/* Create Packaging Spec Dialog */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Layers className="h-5 w-5 text-sky-600" />
-              <span>{t("manufacturing.createSpec")}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              اربط صنف المنتج التام بالسائل السائب في التانك ومواد التعبئة (العبوة، الاستيكرات، والكرتون)
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">{t("manufacturing.specCode")} *</Label>
-                <Input
-                  placeholder="مثال: SPEC-DW-5L"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="mt-1 font-mono uppercase"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("common.arabicName")} *</Label>
-                <Input
-                  placeholder="مثال: مواصفة تعبئة جركل 5 لتر"
-                  value={nameAr}
-                  onChange={(e) => setNameAr(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("common.englishName")}</Label>
-                <Input
-                  placeholder="5L Gallon Packaging Spec"
-                  value={nameEn}
-                  onChange={(e) => setNameEn(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">{t("manufacturing.finishedGood")} *</Label>
-                <Select value={finishedGoodId} onValueChange={setFinishedGoodId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر المنتج التام..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {finishedGoods.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">{t("manufacturing.bulkItem")} *</Label>
-                <Select value={bulkItemId} onValueChange={setBulkItemId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر السائل السائب بالتانك..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bulkItems.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">{t("manufacturing.volumePerUnit")} *</Label>
-                <Input
-                  type="number"
-                  value={volumePerUnitGrams}
-                  onChange={(e) => setVolumePerUnitGrams(Number(e.target.value))}
-                  placeholder="5000"
-                  className="mt-1 font-mono tabular-nums"
-                />
-                <span className="text-[10px] text-slate-400 mt-0.5 block">
-                  (مثال: 5000 جم تعادل 5 لتر، 1000 جم تعادل 1 لتر)
-                </span>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">{t("manufacturing.piecesPerCarton")} *</Label>
-                <Input
-                  type="number"
-                  value={piecesPerCarton}
-                  onChange={(e) => setPiecesPerCarton(Number(e.target.value))}
-                  placeholder="4"
-                  min={1}
-                  className="mt-1 font-mono tabular-nums"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-200 space-y-3">
-              <span className="font-bold text-slate-800 text-xs block">مواد التعبئة والتغليف المرتبطة:</span>
-
-              <div>
-                <Label className="text-xs font-semibold">{t("manufacturing.bottleItem")} *</Label>
-                <Select value={bottleItemId} onValueChange={setBottleItemId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر العبوة / الجركل مع الغطاء..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {packagingMaterials.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-semibold">{t("manufacturing.frontSticker")}</Label>
-                  <Select value={frontStickerItemId} onValueChange={setFrontStickerItemId}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="اختر الاستيكر الأمامي..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {packagingMaterials.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">{t("manufacturing.backSticker")} (اختياري)</Label>
-                  <Select value={backStickerItemId} onValueChange={setBackStickerItemId}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="اختر الاستيكر الخلفي..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {packagingMaterials.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">{t("manufacturing.cartonItem")}</Label>
-                <Select value={cartonItemId} onValueChange={setCartonItemId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر كرتون الشحن..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {packagingMaterials.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              disabled={createSpecMutation.isPending}
-              onClick={() => createSpecMutation.mutate()}
-              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[44px]"
-            >
-              {createSpecMutation.isPending ? t("common.saving") : t("common.save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

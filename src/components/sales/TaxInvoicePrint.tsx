@@ -2,16 +2,17 @@ import React, { useEffect, useState, useRef } from "react";
 import QRCode from "qrcode";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Printer, Share2 } from "lucide-react";
+import { Printer, Share2, FileDown } from "lucide-react";
 import type { SalesInvoice, FactorySettings } from "@/types/database";
 
 interface TaxInvoicePrintProps {
   invoice: SalesInvoice;
   settings: FactorySettings | null;
   isCreditNote?: boolean;
+  compact?: boolean;
 }
 
-export function TaxInvoicePrint({ invoice, settings, isCreditNote = false }: TaxInvoicePrintProps) {
+export function TaxInvoicePrint({ invoice, settings, isCreditNote = false, compact = false }: TaxInvoicePrintProps) {
   const { i18n } = useTranslation();
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const printContainerRef = useRef<HTMLDivElement>(null);
@@ -29,18 +30,23 @@ export function TaxInvoicePrint({ invoice, settings, isCreditNote = false }: Tax
     }
   }, [invoice.zatca_qr_base64]);
 
-  const handlePrint = () => {
+  const handlePrint = (isPdf = false) => {
     const content = printContainerRef.current;
     if (!content) return;
 
     const win = window.open("", "_blank");
     if (!win) return;
 
+    const docTitle = isPdf
+      ? `فاتورة_ضريبية_${invoice.invoice_number}`
+      : `${isCreditNote ? "إشعار دائن ضريبي" : "فاتورة ضريبية"} - ${invoice.invoice_number}`;
+
     win.document.write(`
       <!DOCTYPE html>
-      <html dir="${isAr ? "rtl" : "ltr"}">
+      <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
-          <title>${isCreditNote ? "إشعار دائن ضريبي" : "فاتورة ضريبية"} - ${invoice.invoice_number}</title>
+          <meta charset="utf-8" />
+          <title>${docTitle}</title>
           <style>
             @page {
               size: A4 portrait;
@@ -187,8 +193,10 @@ export function TaxInvoicePrint({ invoice, settings, isCreditNote = false }: Tax
           ${content.innerHTML}
           <script>
             window.onload = function() {
-              window.print();
-              window.close();
+              setTimeout(function() {
+                window.print();
+                window.close();
+              }, 200);
             };
           </script>
         </body>
@@ -208,12 +216,15 @@ export function TaxInvoicePrint({ invoice, settings, isCreditNote = false }: Tax
     const net = invoice.net_amount_due.toFixed(2);
     const customer = invoice.customer?.name_ar || "العميل الكريم";
 
-    const msg = `*فاتورة ضريبية إلكترونية - ${factory}*
-رقم الفاتورة: ${invoiceNum}
+    const docType = isCreditNote ? "إشعار دائن ضريبي معتمد" : "فاتورة ضريبية إلكترونية";
+    const docNumLabel = isCreditNote ? "رقم الإشعار الدائن" : "رقم الفاتورة";
+
+    const msg = `*${docType} - ${factory}*
+${docNumLabel}: ${invoiceNum}
 التاريخ: ${date}
 العميل: ${customer}
 الإجمالي شامل الضريبة (15%): ${total} ر.س
-صافي المستحق للسداد: ${net} ر.س
+${isCreditNote ? "قيمة الإشعار الدائن" : "صافي المستحق للسداد"}: ${net} ر.س
 سجل تجاري: ${settings?.cr_number || ""}
 الرقم الضريبي: ${settings?.vat_number || ""}
 نشكركم لتعاملكم معنا.`;
@@ -224,25 +235,47 @@ export function TaxInvoicePrint({ invoice, settings, isCreditNote = false }: Tax
     window.open(waUrl, "_blank");
   };
 
+  const handleSavePdf = () => {
+    handlePrint(true);
+  };
+
   return (
     <div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        {/* 1. M3 Filled Button: Print A4 */}
         <Button
-          onClick={handlePrint}
+          onClick={() => handlePrint(false)}
+          variant="filled"
           size="sm"
-          className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-4"
+          className={compact ? "h-7 px-2 text-xs gap-1" : "min-h-[36px] px-3 gap-1.5 shadow-sm text-xs"}
+          title={isAr ? "طباعة الفاتورة الضريبية A4" : "Print Tax Invoice A4"}
         >
-          <Printer className="me-2 h-4 w-4 text-sky-400" />
-          <span>{isAr ? "طباعة الفاتورة الضريبية A4" : "Print Tax Invoice A4"}</span>
+          <Printer className="h-3.5 w-3.5 text-sky-400" />
+          <span>{compact ? (isAr ? "طباعة" : "Print") : (isAr ? "طباعة A4" : "Print A4")}</span>
         </Button>
 
+        {/* 2. M3 Tonal Button: Save as PDF */}
+        <Button
+          onClick={handleSavePdf}
+          variant="tonal"
+          size="sm"
+          className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "min-h-[36px] px-3 gap-1.5 text-xs font-semibold"}
+          title={isAr ? "حفظ الفاتورة كملف PDF" : "Save Invoice as PDF"}
+        >
+          <FileDown className="h-3.5 w-3.5 text-sky-700" />
+          <span>{compact ? "PDF" : (isAr ? "حفظ PDF" : "Save PDF")}</span>
+        </Button>
+
+        {/* 3. M3 Emerald Button: Share via WhatsApp */}
         <Button
           onClick={handleShareWhatsApp}
+          variant="emerald"
           size="sm"
-          className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[40px] px-4"
+          className={compact ? "h-7 px-2 text-xs gap-1" : "min-h-[36px] px-3 gap-1.5 text-xs"}
+          title={isAr ? "مشاركة الفاتورة عبر واتساب" : "Share via WhatsApp"}
         >
-          <Share2 className="me-2 h-4 w-4 text-emerald-200" />
-          <span>{isAr ? "مشاركة عبر واتساب" : "Share via WhatsApp"}</span>
+          <Share2 className="h-3.5 w-3.5 text-emerald-100" />
+          <span>{isAr ? "واتساب" : "WhatsApp"}</span>
         </Button>
       </div>
 

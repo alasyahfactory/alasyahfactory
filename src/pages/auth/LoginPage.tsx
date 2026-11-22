@@ -108,7 +108,7 @@ export function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate aria-label={t("auth.title")}>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">{t("common.phone")}</Label>
                 <div className="relative">
@@ -120,6 +120,9 @@ export function LoginPage() {
                     autoComplete="tel"
                     inputMode="tel"
                     enterKeyHint="next"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     placeholder="05XXXXXXXX"
                     className="ps-9 font-mono text-start"
                     disabled={isSubmitting}
@@ -144,6 +147,7 @@ export function LoginPage() {
                     dir="ltr"
                     autoComplete="current-password"
                     enterKeyHint="done"
+                    spellCheck={false}
                     placeholder="••••••••"
                     className="ps-9 pe-10"
                     disabled={isSubmitting}

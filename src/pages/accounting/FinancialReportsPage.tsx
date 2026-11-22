@@ -9,6 +9,8 @@ import {
   Calendar,
   Download,
   Printer,
+  FileDown,
+  Share2,
   Scale,
   TrendingUp,
   Building,
@@ -171,6 +173,22 @@ export function FinancialReportsPage() {
     window.print();
   };
 
+  const handleShareWhatsApp = () => {
+    const reportNames: Record<string, string> = {
+      trial_balance: "ميزان المراجعة بالمجاميع والأرصدة",
+      income_statement: "قائمة الدخل والأرباح والخسائر (P&L)",
+      balance_sheet: "الميزانية العمومية والمركز المالي",
+      vat_return: "إقرار ضريبة القيمة المضافة (ZATCA)",
+      general_ledger: "كشف حساب الأستاذ العام",
+      aging_receivables: "أعمار ديون العملاء",
+    };
+    const rName = reportNames[activeTab] || "التقرير المالي";
+    const msg = `*${rName}*
+الفترة: من ${startDate} إلى ${endDate}
+_صادر من النظام المالي - مصنع الأسياح للمنتجات الكيميائية_`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -187,7 +205,7 @@ export function FinancialReportsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -205,7 +223,27 @@ export function FinancialReportsPage() {
             className="gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
           >
             <Printer className="h-3.5 w-3.5" />
-            <span>{isArabic ? "طباعة التقرير" : "Print Report"}</span>
+            <span>{isArabic ? "طباعة A4" : "Print A4"}</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrint}
+            className="gap-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            <span>{isArabic ? "حفظ PDF" : "Save PDF"}</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShareWhatsApp}
+            className="gap-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span>{isArabic ? "مشاركة واتساب" : "WhatsApp"}</span>
           </Button>
         </div>
       </div>

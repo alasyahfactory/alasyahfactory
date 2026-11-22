@@ -15,13 +15,6 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -40,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import {
   Users,
+  ArrowRight,
   UserPlus,
   KeyRound,
   UserX,
@@ -262,6 +256,253 @@ export function UsersPage() {
     }
   };
 
+  // Full-page in-place Canvas for Creating a User
+  if (isCreateOpen) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto pb-16 animate-in fade-in duration-200">
+        <form onSubmit={handleSubmit(onCreateUser)} className="space-y-6">
+          {/* Top Header Bar */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="tonal"
+                size="sm"
+                onClick={() => setIsCreateOpen(false)}
+                className="gap-1.5"
+              >
+                <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+                <span>العودة لقائمة المستخدمين</span>
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <UserPlus className="h-5 w-5 text-emerald-600" />
+                  <span>{t("users.createTitle")}</span>
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  تسجيل حساب جديد وتحديد الدور الوظيفي وصلاحيات الأمان الحساسة
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateOpen(false)}
+                disabled={isSubmitting}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[40px] px-6 font-semibold"
+              >
+                {isSubmitting ? t("common.saving") : t("common.save")}
+              </Button>
+            </div>
+          </div>
+
+          {/* Form Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">البيانات الشخصية وبيانات الدخول</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="full_name">{t("users.fullName")} *</Label>
+                  <Input
+                    id="full_name"
+                    placeholder={isArabic ? "مثال: م. أحمد عبد العزيز" : "e.g. John Doe"}
+                    {...register("full_name")}
+                    className={errors.full_name ? "border-rose-500" : ""}
+                  />
+                  {errors.full_name && (
+                    <p className="text-xs text-rose-500">{errors.full_name.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">{t("users.phone")} *</Label>
+                  <Input
+                    id="phone"
+                    dir="ltr"
+                    placeholder="0501234567"
+                    {...register("phone")}
+                    className={errors.phone ? "border-rose-500" : ""}
+                  />
+                  {errors.phone && (
+                    <p className="text-xs text-rose-500">{errors.phone.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="password">{t("users.password")} *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    dir="ltr"
+                    placeholder="••••••••"
+                    {...register("password")}
+                    className={errors.password ? "border-rose-500" : ""}
+                  />
+                  {errors.password && (
+                    <p className="text-xs text-rose-500">{errors.password.message}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">الدور الوظيفي والصلاحيات</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="role">{t("users.role")} *</Label>
+                  <Select
+                    value={selectedRole}
+                    onValueChange={(val: UserRole) => setValue("role", val)}
+                  >
+                    <SelectTrigger id="role" className="bg-white">
+                      <SelectValue placeholder={t("users.selectRole")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="owner">{t("users.roles.owner")}</SelectItem>
+                      <SelectItem value="accountant">{t("users.roles.accountant")}</SelectItem>
+                      <SelectItem value="production">{t("users.roles.production")}</SelectItem>
+                      <SelectItem value="warehouse">{t("users.roles.warehouse")}</SelectItem>
+                      <SelectItem value="sales_rep">{t("users.roles.sales_rep")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 space-y-3">
+                  <span className="text-xs font-bold text-slate-800 block">صلاحيات الأمان الإضافية:</span>
+                  
+                  <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                    <Label htmlFor="can_view_formulas" className="text-xs cursor-pointer">
+                      {t("users.flagsList.can_view_formulas")}
+                    </Label>
+                    <input
+                      type="checkbox"
+                      id="can_view_formulas"
+                      checked={canViewFormulas}
+                      onChange={(e) => setValue("can_view_formulas", e.target.checked)}
+                      className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                    <Label htmlFor="can_view_costs" className="text-xs cursor-pointer">
+                      {t("users.flagsList.can_view_costs")}
+                    </Label>
+                    <input
+                      type="checkbox"
+                      id="can_view_costs"
+                      checked={canViewCosts}
+                      onChange={(e) => setValue("can_view_costs", e.target.checked)}
+                      className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                    <Label htmlFor="can_approve_on_behalf" className="text-xs cursor-pointer">
+                      {t("users.flagsList.can_approve_on_behalf")}
+                    </Label>
+                    <input
+                      type="checkbox"
+                      id="can_approve_on_behalf"
+                      checked={canApproveOnBehalf}
+                      onChange={(e) => setValue("can_approve_on_behalf", e.target.checked)}
+                      className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // Full-page in-place Canvas for Reset Password
+  if (resetTargetUser) {
+    return (
+      <div className="space-y-6 max-w-xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => {
+                setResetTargetUser(null);
+                setNewPassword("");
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لقائمة المستخدمين</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-amber-600" />
+                <span>{t("users.resetPassword")}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {resetTargetUser.full_name} ({resetTargetUser.phone})
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResetTargetUser(null);
+                setNewPassword("");
+              }}
+              disabled={isResetting}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={!newPassword || newPassword.length < 6 || isResetting}
+              className="bg-amber-600 hover:bg-amber-700 text-white min-h-[40px] px-6 font-semibold"
+            >
+              {isResetting ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm p-6 bg-white dark:bg-slate-900 space-y-4">
+          <p className="text-xs text-slate-500">
+            {isArabic
+              ? `إعادة تعيين كلمة المرور لحساب ${resetTargetUser.full_name} (${resetTargetUser.phone}). سيتم إنهاء أي جلسات قديمة فورياً لضمان الأمان.`
+              : `Set new password for ${resetTargetUser.full_name}. Old sessions will be signed out.`}
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="canvas_new_password">{t("users.newPassword")} *</Label>
+            <Input
+              id="canvas_new_password"
+              type="password"
+              dir="ltr"
+              placeholder="••••••••"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              disabled={isResetting}
+              className="font-mono text-sm"
+            />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -438,185 +679,6 @@ export function UsersPage() {
       </Card>
 
       {/* CREATE USER DIALOG */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("users.createBtn")}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onCreateUser)} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="create_full_name">{t("users.fullName")}</Label>
-              <Input
-                id="create_full_name"
-                placeholder="أحمد علي"
-                disabled={isSubmitting}
-                {...register("full_name")}
-              />
-              {errors.full_name && (
-                <p className="text-xs text-rose-600">{errors.full_name.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="create_phone">{t("users.phone")}</Label>
-              <Input
-                id="create_phone"
-                dir="ltr"
-                tabularNums
-                placeholder="05XXXXXXXX"
-                className="font-mono text-start"
-                disabled={isSubmitting}
-                {...register("phone")}
-              />
-              {errors.phone && (
-                <p className="text-xs text-rose-600">{errors.phone.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="create_password">{t("common.password")}</Label>
-              <Input
-                id="create_password"
-                type="password"
-                dir="ltr"
-                placeholder="••••••••"
-                disabled={isSubmitting}
-                {...register("password")}
-              />
-              {errors.password && (
-                <p className="text-xs text-rose-600">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="create_role">{t("users.role")}</Label>
-              <Select
-                value={selectedRole}
-                onValueChange={(val) => setValue("role", val as UserRole)}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger id="create_role">
-                  <SelectValue placeholder="اختر الدور الوظيفي" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="owner">{t("roles.owner")}</SelectItem>
-                  <SelectItem value="accountant">{t("roles.accountant")}</SelectItem>
-                  <SelectItem value="production">{t("roles.production")}</SelectItem>
-                  <SelectItem value="warehouse">{t("roles.warehouse")}</SelectItem>
-                  <SelectItem value="sales_rep">{t("roles.sales_rep")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Granular switches */}
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3">
-              <p className="text-xs font-semibold text-slate-700">{t("users.flags")}</p>
-
-              <div className="flex items-center justify-between">
-                <Label htmlFor="switch_formulas" className="text-xs font-normal">
-                  {t("users.canViewFormulas")}
-                </Label>
-                <Switch
-                  id="switch_formulas"
-                  checked={canViewFormulas}
-                  onCheckedChange={(c) => setValue("can_view_formulas", c)}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label htmlFor="switch_costs" className="text-xs font-normal">
-                  {t("users.canViewCosts")}
-                </Label>
-                <Switch
-                  id="switch_costs"
-                  checked={canViewCosts}
-                  onCheckedChange={(c) => setValue("can_view_costs", c)}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label htmlFor="switch_approve" className="text-xs font-normal">
-                  {t("users.canApproveOnBehalf")}
-                </Label>
-                <Switch
-                  id="switch_approve"
-                  checked={canApproveOnBehalf}
-                  onCheckedChange={(c) => setValue("can_approve_on_behalf", c)}
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateOpen(false)}
-                disabled={isSubmitting}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="submit"
-                variant="default"
-                isLoading={isSubmitting}
-                className="bg-industrial-primary text-white"
-              >
-                {t("common.create")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* RESET PASSWORD DIALOG */}
-      <Dialog open={!!resetTargetUser} onOpenChange={(open) => !open && setResetTargetUser(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("users.resetPassword")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <p className="text-xs text-slate-500">
-              {isArabic
-                ? `إعادة تعيين كلمة المرور لحساب ${resetTargetUser?.full_name} (${resetTargetUser?.phone}). سيتم إنهاء أي جلسات قديمة.`
-                : `Set new password for ${resetTargetUser?.full_name}. Old sessions will be signed out.`}
-            </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="new_password">{t("users.newPassword")}</Label>
-              <Input
-                id="new_password"
-                type="password"
-                dir="ltr"
-                placeholder="••••••••"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                disabled={isResetting}
-              />
-            </div>
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setResetTargetUser(null)}
-                disabled={isResetting}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="button"
-                variant="default"
-                isLoading={isResetting}
-                onClick={handleResetPassword}
-                className="bg-industrial-primary text-white"
-              >
-                {t("common.save")}
-              </Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* DISABLE & FORCE LOGOUT CONFIRMATION */}
       <AlertDialog

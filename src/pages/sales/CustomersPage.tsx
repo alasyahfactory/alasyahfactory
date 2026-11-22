@@ -15,14 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -32,6 +24,7 @@ import {
 
 import {
   Users,
+  ArrowRight,
   Plus,
   Search,
   Building,
@@ -168,6 +161,235 @@ export function CustomersPage() {
       c.phone.includes(term)
     );
   });
+
+
+  // Full-page in-place Canvas for Creating a Customer
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لقائمة العملاء</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Building className="h-5 w-5 text-sky-600" />
+                <span>{t("sales.createCustomer")}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                أدخل بيانات العميل الرسمية، الرقم الضريبي، الحد الائتماني وشروط الضمان
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setCreateModalOpen(false)}
+              disabled={createCustomerMutation.isPending}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={createCustomerMutation.isPending}
+              onClick={() => createCustomerMutation.mutate()}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+            >
+              {createCustomerMutation.isPending ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Cards Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Official & Tax Info */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Building className="h-4 w-4 text-sky-600" />
+                <span>البيانات الأساسية والرسمية</span>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                الاسم التجاري، كود العميل وبيانات هيئة الزكاة والضريبة
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4 text-xs">
+              <div>
+                <Label className="text-xs font-semibold">{t("sales.customerCode")} *</Label>
+                <Input
+                  placeholder="مثال: CUST-0003"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="mt-1 font-mono uppercase text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold">{t("sales.customerNameAr")} *</Label>
+                  <Input
+                    placeholder="شركة أسواق..."
+                    value={nameAr}
+                    onChange={(e) => setNameAr(e.target.value)}
+                    className="mt-1 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">{t("sales.customerNameEn")}</Label>
+                  <Input
+                    placeholder="Market Co."
+                    value={nameEn}
+                    onChange={(e) => setNameEn(e.target.value)}
+                    className="mt-1 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold">الرقم الضريبي (15 رقم)</Label>
+                  <Input
+                    placeholder="3000XXXXXXXX003"
+                    value={vatNumber}
+                    onChange={(e) => setVatNumber(e.target.value)}
+                    maxLength={15}
+                    className="mt-1 font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">رقم السجل التجاري</Label>
+                  <Input
+                    placeholder="1010XXXXXX"
+                    value={crNumber}
+                    onChange={(e) => setCrNumber(e.target.value)}
+                    className="mt-1 font-mono text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold">{t("common.phone")} *</Label>
+                  <Input
+                    placeholder="05XXXXXXXX"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="mt-1 font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">العنوان الوطني والفرع</Label>
+                  <Input
+                    placeholder="المدينة، الحي، الشارع..."
+                    value={nationalAddress}
+                    onChange={(e) => setNationalAddress(e.target.value)}
+                    className="mt-1 text-sm"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Financial Terms & Guarantees */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-emerald-600" />
+                <span>الائتمان، المندوب والضمان</span>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                شروط السداد الآجل والربط مع مندوب المبيعات
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold">{t("sales.creditLimit")} (SAR) *</Label>
+                  <Input
+                    type="number"
+                    value={creditLimit}
+                    onChange={(e) => setCreditLimit(Number(e.target.value))}
+                    className="mt-1 font-mono tabular-nums text-sm font-bold"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">{t("sales.paymentDays")} (يوم) *</Label>
+                  <Input
+                    type="number"
+                    value={paymentDays}
+                    onChange={(e) => setPaymentDays(Number(e.target.value))}
+                    className="mt-1 font-mono tabular-nums text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">{t("sales.assignedRep")}</Label>
+                <Select value={assignedRepId} onValueChange={setAssignedRepId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="اختر مندوب المبيعات المسؤول..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reps?.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.full_name} ({r.phone})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">{t("sales.guaranteeText")}</Label>
+                <Input
+                  placeholder="نص الضمان التجاري المخصص الذي يطبع في شهادة الضمان A4..."
+                  value={guaranteeText}
+                  onChange={(e) => setGuaranteeText(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200 text-xs space-y-1 mt-2">
+                <div className="font-bold flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  <span>حماية السقف الائتماني:</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  يمنع النظام آلياً إصدار فواتير بيع آجلة إذا تجاوز الرصيد المتبقي حد الائتمان أو وُجدت فواتير مستحقة متأخرة بدون موافقة المالك.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={() => setCreateModalOpen(false)}
+            disabled={createCustomerMutation.isPending}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            disabled={createCustomerMutation.isPending}
+            onClick={() => createCustomerMutation.mutate()}
+            className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+          >
+            {createCustomerMutation.isPending ? t("common.saving") : t("common.save")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -308,152 +530,6 @@ export function CustomersPage() {
         </div>
       )}
 
-      {/* Create Customer Dialog */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Building className="h-5 w-5 text-sky-600" />
-              <span>{t("sales.createCustomer")}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              أدخل بيانات العميل الرسمية، الرقم الضريبي، الحد الائتماني وشروط الضمان
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">{t("sales.customerCode")} *</Label>
-                <Input
-                  placeholder="مثال: CUST-0003"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="mt-1 font-mono uppercase"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("sales.customerNameAr")} *</Label>
-                <Input
-                  placeholder="شركة أسواق..."
-                  value={nameAr}
-                  onChange={(e) => setNameAr(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("sales.customerNameEn")}</Label>
-                <Input
-                  placeholder="Market Co."
-                  value={nameEn}
-                  onChange={(e) => setNameEn(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">الرقم الضريبي (15 رقم)</Label>
-                <Input
-                  placeholder="3000XXXXXXXX003"
-                  value={vatNumber}
-                  onChange={(e) => setVatNumber(e.target.value)}
-                  maxLength={15}
-                  className="mt-1 font-mono"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">رقم السجل التجاري</Label>
-                <Input
-                  placeholder="1010XXXXXX"
-                  value={crNumber}
-                  onChange={(e) => setCrNumber(e.target.value)}
-                  className="mt-1 font-mono"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("common.phone")} *</Label>
-                <Input
-                  placeholder="05XXXXXXXX"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="mt-1 font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs font-semibold">{t("sales.creditLimit")} *</Label>
-                <Input
-                  type="number"
-                  value={creditLimit}
-                  onChange={(e) => setCreditLimit(Number(e.target.value))}
-                  className="mt-1 font-mono tabular-nums"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("sales.paymentDays")} *</Label>
-                <Input
-                  type="number"
-                  value={paymentDays}
-                  onChange={(e) => setPaymentDays(Number(e.target.value))}
-                  className="mt-1 font-mono tabular-nums"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">{t("sales.assignedRep")}</Label>
-                <Select value={assignedRepId} onValueChange={setAssignedRepId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر مندوب المبيعات..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {reps?.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        {r.full_name} ({r.phone})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">العنوان الوطني والفرع</Label>
-              <Input
-                placeholder="المدينة، الحي، الشارع..."
-                value={nationalAddress}
-                onChange={(e) => setNationalAddress(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">{t("sales.guaranteeText")}</Label>
-              <Input
-                placeholder="نص الضمان التجاري المخصص الذي يطبع في شهادة الضمان A4..."
-                value={guaranteeText}
-                onChange={(e) => setGuaranteeText(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              disabled={createCustomerMutation.isPending}
-              onClick={() => createCustomerMutation.mutate()}
-              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[44px]"
-            >
-              {createCustomerMutation.isPending ? t("common.saving") : t("common.save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -15,19 +15,13 @@ import {
   Truck,
   Building,
   User,
+  ArrowRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { VoucherPrint } from "@/components/accounting/VoucherPrint";
 import type { Voucher, Account, Vehicle, Customer, Supplier, FactorySettings } from "@/types/database";
 
@@ -201,6 +195,354 @@ export function VouchersPage() {
       (v.supplier?.name_ar && v.supplier.name_ar.includes(searchTerm));
     return matchesTab && matchesSearch;
   });
+
+  // In-Page Canvas View for Voucher Creation (Eliminating modal popup)
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لقائمة السندات" : "Back to Vouchers"}</span>
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-sky-600" />
+                <span>إصدار سند مالي وترحيل القيد آلياً</span>
+              </h1>
+              <p className="text-xs text-slate-500">
+                سندات القبض (RV)، الصرف (PV)، والتحويلات مع تحديث الخزينة/البنك والذمم آلياً
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={() => postMutation.mutate()}
+              disabled={
+                !accountId ||
+                !contraAccountId ||
+                amount <= 0 ||
+                !description.trim() ||
+                postMutation.isPending
+              }
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-5 font-semibold"
+            >
+              {postMutation.isPending ? "جاري الإصدار..." : "إصدار وترحيل السند"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Body in Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Voucher Type Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">نوع السند المالي</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-3 gap-3 p-1.5 bg-slate-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setVoucherType("receipt")}
+                    className={`py-2.5 text-xs font-bold rounded-lg transition-all ${
+                      voucherType === "receipt" ? "bg-emerald-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    سند قبض (RV)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVoucherType("payment")}
+                    className={`py-2.5 text-xs font-bold rounded-lg transition-all ${
+                      voucherType === "payment" ? "bg-rose-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    سند صرف (PV)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVoucherType("transfer")}
+                    className={`py-2.5 text-xs font-bold rounded-lg transition-all ${
+                      voucherType === "transfer" ? "bg-indigo-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    تحويل داخلي (TV)
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      تاريخ السند *
+                    </label>
+                    <Input
+                      type="date"
+                      value={voucherDate}
+                      onChange={(e) => setVoucherDate(e.target.value)}
+                      className="bg-slate-50 border-slate-200 text-xs font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      طريقة السداد / القبض *
+                    </label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value as any)}
+                      className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      <option value="cash">نقداً (Cash)</option>
+                      <option value="bank_transfer">تحويل بنكي (Bank Transfer)</option>
+                      <option value="check">شيك مصرفي (Check)</option>
+                      <option value="pos">مدى / شبكة (POS)</option>
+                      <option value="advance">خصم من دفعة مقدمة (Advance)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Check Details */}
+                {paymentMethod === "check" && (
+                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-amber-900 block mb-1">رقم الشيك *</label>
+                      <Input
+                        value={checkNumber}
+                        onChange={(e) => setCheckNumber(e.target.value)}
+                        placeholder="مثال: 987654"
+                        className="h-8 bg-white border-amber-300 text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-amber-900 block mb-1">البنك المسحوب عليه *</label>
+                      <Input
+                        value={checkBank}
+                        onChange={(e) => setCheckBank(e.target.value)}
+                        placeholder="مثال: مصرف الراجحي"
+                        className="h-8 bg-white border-amber-300 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-amber-900 block mb-1">تاريخ استحقاق الشيك *</label>
+                      <Input
+                        type="date"
+                        value={checkDueDate}
+                        onChange={(e) => setCheckDueDate(e.target.value)}
+                        className="h-8 bg-white border-amber-300 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Accounts & Linkage Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">الحسابات المحاسبية والأطراف المرتبطة</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      {voucherType === "receipt" ? "حساب الإيداع / الخزينة *" : "حساب الصرف / البنك *"}
+                    </label>
+                    <select
+                      value={accountId}
+                      onChange={(e) => setAccountId(e.target.value)}
+                      className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      <option value="">اختر حساب الخزينة أو البنك...</option>
+                      {treasuryAccounts?.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.code} - {acc.name_ar}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      الحساب المقابل (العميل / المورد / المصروف) *
+                    </label>
+                    <select
+                      value={contraAccountId}
+                      onChange={(e) => setContraAccountId(e.target.value)}
+                      className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      <option value="">اختر الحساب المقابل...</option>
+                      {accounts?.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.code} - {acc.name_ar} ({acc.type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {voucherType === "receipt" ? (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">
+                        العميل المرتبط (اختياري لربط الذمة)
+                      </label>
+                      <select
+                        value={customerId}
+                        onChange={(e) => setCustomerId(e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
+                      >
+                        <option value="">اختر العميل إن وجد...</option>
+                        {customers?.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name_ar} ({c.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">
+                        المورد المرتبط (اختياري لربط الذمة)
+                      </label>
+                      <select
+                        value={supplierId}
+                        onChange={(e) => setSupplierId(e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
+                      >
+                        <option value="">اختر المورد إن وجد...</option>
+                        {suppliers?.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name_ar} ({s.contact_phone || s.tax_number || ""})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {voucherType === "payment" && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1 flex items-center gap-1.5">
+                        <Truck className="h-3.5 w-3.5 text-slate-500" />
+                        <span>سيارة التوزيع (لمصاريف البنزين والصيانة 6109)</span>
+                      </label>
+                      <select
+                        value={vehicleId}
+                        onChange={(e) => setVehicleId(e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
+                      >
+                        <option value="">غير مرتبطة بسيارة محددة</option>
+                        {vehicles?.map((veh) => (
+                          <option key={veh.id} value={veh.id}>
+                            {veh.name} - {veh.plate_number}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    البيان والشرح التفصيلي *
+                  </label>
+                  <Input
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="مثال: سداد دفعة من فاتورة مبيعات رقم INV-2024-0012 / بنزين سيارة دينا..."
+                    className="bg-slate-50 border-slate-200 text-xs"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side Column: Amounts & Submit */}
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm sticky top-6">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">المبالغ والضريبة</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      المبلغ قبل الضريبة (SAR) *
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={amount || ""}
+                      onChange={(e) => setAmount(Number(e.target.value))}
+                      placeholder="0.00"
+                      className="font-mono text-sm font-bold text-slate-900 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      نسبة الضريبة (VAT)
+                    </label>
+                    <select
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(Number(e.target.value))}
+                      disabled={voucherType === "transfer"}
+                      className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      <option value={0}>0% (معفاة / بدون ضريبة)</option>
+                      <option value={15}>15% (ضريبة القيمة المضافة)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-900 text-white rounded-xl text-center space-y-1">
+                  <span className="text-xs text-slate-400 block">المبلغ الإجمالي الشامل:</span>
+                  <span className="text-2xl font-bold font-mono tabular-nums block text-emerald-400">
+                    {calculatedTotal.toFixed(2)} ر.س
+                  </span>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <Button
+                    onClick={() => postMutation.mutate()}
+                    disabled={
+                      !accountId ||
+                      !contraAccountId ||
+                      amount <= 0 ||
+                      !description.trim() ||
+                      postMutation.isPending
+                    }
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white min-h-[46px] font-bold"
+                  >
+                    {postMutation.isPending ? "جاري الإصدار..." : "إصدار وترحيل السند"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreateModalOpen(false)}
+                    className="w-full"
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -377,295 +719,6 @@ export function VouchersPage() {
         </CardContent>
       </Card>
 
-      {/* Create Voucher Modal */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Plus className="h-5 w-5 text-industrial-accent" />
-              <span>إصدار سند مالي وترحيل القيد آلياً</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2">
-            {/* Voucher Type Selector */}
-            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-lg">
-              <button
-                type="button"
-                onClick={() => setVoucherType("receipt")}
-                className={`py-2 text-xs font-bold rounded-md transition-all ${
-                  voucherType === "receipt" ? "bg-emerald-700 text-white shadow-sm" : "text-slate-600"
-                }`}
-              >
-                سند قبض (RV)
-              </button>
-              <button
-                type="button"
-                onClick={() => setVoucherType("payment")}
-                className={`py-2 text-xs font-bold rounded-md transition-all ${
-                  voucherType === "payment" ? "bg-rose-700 text-white shadow-sm" : "text-slate-600"
-                }`}
-              >
-                سند صرف (PV)
-              </button>
-              <button
-                type="button"
-                onClick={() => setVoucherType("transfer")}
-                className={`py-2 text-xs font-bold rounded-md transition-all ${
-                  voucherType === "transfer" ? "bg-indigo-700 text-white shadow-sm" : "text-slate-600"
-                }`}
-              >
-                تحويل داخلي (TV)
-              </button>
-            </div>
-
-            {/* Date & Payment Method */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  تاريخ السند *
-                </label>
-                <Input
-                  type="date"
-                  value={voucherDate}
-                  onChange={(e) => setVoucherDate(e.target.value)}
-                  className="bg-slate-50 border-industrial-border text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  طريقة السداد / القبض *
-                </label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  className="w-full h-9 px-3 rounded-md border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="cash">نقداً (Cash)</option>
-                  <option value="bank_transfer">تحويل بنكي (Bank Transfer)</option>
-                  <option value="check">شيك مصرفي (Check)</option>
-                  <option value="pos">مدى / شبكة (POS)</option>
-                  <option value="advance">خصم من دفعة مقدمة (Advance)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Check Details if Method is Check */}
-            {paymentMethod === "check" && (
-              <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                <div>
-                  <label className="font-bold text-amber-900 block mb-1">رقم الشيك *</label>
-                  <Input
-                    value={checkNumber}
-                    onChange={(e) => setCheckNumber(e.target.value)}
-                    placeholder="مثال: 987654"
-                    className="h-8 bg-white border-amber-300 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-amber-900 block mb-1">البنك المسحوب عليه *</label>
-                  <Input
-                    value={checkBank}
-                    onChange={(e) => setCheckBank(e.target.value)}
-                    placeholder="مثال: مصرف الراجحي"
-                    className="h-8 bg-white border-amber-300 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-amber-900 block mb-1">تاريخ استحقاق الشيك *</label>
-                  <Input
-                    type="date"
-                    value={checkDueDate}
-                    onChange={(e) => setCheckDueDate(e.target.value)}
-                    className="h-8 bg-white border-amber-300 text-xs font-mono"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Treasury/Bank Account & Contra Account */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  {voucherType === "receipt" ? "حساب الإيداع / الخزينة *" : "حساب الصرف / البنك *"}
-                </label>
-                <select
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  className="w-full h-9 px-3 rounded-md border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="">اختر حساب الخزينة أو البنك...</option>
-                  {treasuryAccounts?.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.code} - {acc.name_ar}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  الحساب المقابل (العميل / المورد / المصروف) *
-                </label>
-                <select
-                  value={contraAccountId}
-                  onChange={(e) => setContraAccountId(e.target.value)}
-                  className="w-full h-9 px-3 rounded-md border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="">اختر الحساب المقابل...</option>
-                  {accounts?.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.code} - {acc.name_ar} ({acc.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Linked Entity: Customer or Supplier or Vehicle */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {voucherType === "receipt" ? (
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    العميل المرتبط (اختياري لربط الذمة)
-                  </label>
-                  <select
-                    value={customerId}
-                    onChange={(e) => setCustomerId(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
-                  >
-                    <option value="">اختر العميل إن وجد...</option>
-                    {customers?.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name_ar} ({c.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    المورد المرتبط (اختياري لربط الذمة)
-                  </label>
-                  <select
-                    value={supplierId}
-                    onChange={(e) => setSupplierId(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
-                  >
-                    <option value="">اختر المورد إن وجد...</option>
-                    {suppliers?.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name_ar} ({s.contact_phone || s.tax_number || ""})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Delivery Vehicle linkage for 6109 expense */}
-              {voucherType === "payment" && (
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1 flex items-center gap-1.5">
-                    <Truck className="h-3.5 w-3.5 text-slate-500" />
-                    <span>سيارة التوزيع (لمصاريف البنزين والصيانة 6109)</span>
-                  </label>
-                  <select
-                    value={vehicleId}
-                    onChange={(e) => setVehicleId(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
-                  >
-                    <option value="">غير مرتبطة بسيارة محددة</option>
-                    {vehicles?.map((veh) => (
-                      <option key={veh.id} value={veh.id}>
-                        {veh.name} - {veh.plate_number}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {/* Financial Amounts & VAT */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  المبلغ قبل الضريبة (SAR) *
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={amount || ""}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="font-mono text-sm font-bold text-slate-900 bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  نسبة الضريبة (VAT)
-                </label>
-                <select
-                  value={taxRate}
-                  onChange={(e) => setTaxRate(Number(e.target.value))}
-                  disabled={voucherType === "transfer"}
-                  className="w-full h-9 px-3 rounded-md border border-industrial-border bg-white text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value={0}>0% (معفاة / بدون ضريبة)</option>
-                  <option value={15}>15% (ضريبة القيمة المضافة)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  المبلغ الإجمالي الشامل
-                </label>
-                <div className="h-9 px-3 flex items-center bg-slate-200/70 border border-slate-300 rounded-md font-mono font-bold text-slate-900 text-sm">
-                  {calculatedTotal.toFixed(2)} ر.س
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
-                البيان والشرح التفصيلي *
-              </label>
-              <Input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="مثال: سداد دفعة من فاتورة مبيعات رقم INV-2024-0012 / بنزين سيارة دينا..."
-                className="bg-slate-50 border-industrial-border text-xs"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="pt-3 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateModalOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => postMutation.mutate()}
-              disabled={
-                !accountId ||
-                !contraAccountId ||
-                amount <= 0 ||
-                !description.trim() ||
-                postMutation.isPending
-              }
-              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold"
-            >
-              {postMutation.isPending ? "جاري الإصدار..." : "إصدار وترحيل السند"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

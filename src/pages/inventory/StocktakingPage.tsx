@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   ClipboardCheck,
+  ArrowRight,
   Plus,
   Search,
   Warehouse,
@@ -21,13 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { BlindStocktakingPrint } from "@/components/inventory/BlindStocktakingPrint";
 import { StockReconciliationPrint } from "@/components/inventory/StockReconciliationPrint";
 import type { StocktakingSession, StocktakingLine, Warehouse as WarehouseType, FactorySettings } from "@/types/database";
@@ -165,6 +159,295 @@ export function StocktakingPage() {
     );
   });
 
+
+  // Full-page in-place Canvas for Creating Stocktaking Session
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لجلسات الجرد</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5 text-industrial-accent" />
+                <span>بدء جلسة جرد مخزني جديدة</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                اختر المستودع لأخذ لقطة فورية (Snapshot) لأرصدة الـ FIFO وتوليد محضر الجرد الأعمى
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              disabled={createMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={() => createMutation.mutate()}
+              disabled={!selectedWarehouseId || createMutation.isPending}
+              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold min-h-[40px] px-6"
+            >
+              {createMutation.isPending ? "جاري البدء..." : "تأكيد وبدء الجلسة"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Card */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-2 shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <CardTitle className="text-base font-semibold">بيانات جلسة الجرد</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 text-xs">
+                  المستودع المراد جرده *
+                </label>
+                <select
+                  value={selectedWarehouseId}
+                  onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-medium text-slate-800 dark:text-slate-200"
+                >
+                  <option value="">اختر المستودع...</option>
+                  {warehouses?.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name_ar} ({w.warehouse_type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 text-xs">
+                  تاريخ الجرد *
+                </label>
+                <Input
+                  type="date"
+                  value={sessionDate}
+                  onChange={(e) => setSessionDate(e.target.value)}
+                  className="h-10 text-sm font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 text-xs">
+                  ملاحظات الجلسة (اختياري)
+                </label>
+                <Input
+                  value={sessionNotes}
+                  onChange={(e) => setSessionNotes(e.target.value)}
+                  placeholder="مثال: جرد نهاية الربع الأول / جرد مفاجئ لمستودع التام..."
+                  className="h-10 text-sm"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800/40 text-amber-900 dark:text-amber-200 space-y-2 text-xs">
+              <div className="font-bold flex items-center gap-1.5 text-sm">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <span>آلية الجرد الأعمى في النظام:</span>
+              </div>
+              <p className="leading-relaxed">
+                سيقوم النظام فوراً بأخذ لقطة فورية (Snapshot) لكافة كميات الـ FIFO الحالية بالمستودع وتوليد ورقة الجرد الأعمى (A4) بطمس الكميات لمنع التحيز أثناء العد الفعلي.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Full-page in-place Canvas for Physical Counts Entry & Reconciliation
+  if (reconcileModalOpen && selectedSession) {
+    const totalItems = selectedSession.lines?.length || 0;
+    let totalShortage = 0;
+    let totalSurplus = 0;
+    let netDiffAmt = 0;
+
+    selectedSession.lines?.forEach((line) => {
+      const physical = countsMap[line.id] ?? line.system_qty;
+      const diffQty = physical - line.system_qty;
+      const diffAmt = diffQty * line.unit_cost;
+      if (diffAmt < 0) totalShortage += Math.abs(diffAmt);
+      if (diffAmt > 0) totalSurplus += diffAmt;
+      netDiffAmt += diffAmt;
+    });
+
+    return (
+      <div className="space-y-6 max-w-6xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setReconcileModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لجلسات الجرد</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <FileCheck className="h-5 w-5 text-emerald-600" />
+                <span>إدخال نتائج العد الفعلي ومطابقة الفروقات: {selectedSession.session_number}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                المستودع: {selectedSession.warehouse?.name_ar} | إجمالي الأصناف: {totalItems} صنفاً
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReconcileModalOpen(false)}
+              disabled={reconcileMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={() => reconcileMutation.mutate()}
+              disabled={reconcileMutation.isPending}
+              className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold min-h-[40px] px-6"
+            >
+              {reconcileMutation.isPending ? "جاري الترحيل..." : "اعتماد محضر المطابقة وترحيل القيود"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Stat Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-slate-500 block mb-1">الأصناف المجرودة</span>
+            <span className="text-xl font-black font-mono">{totalItems}</span>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-rose-600 block mb-1">إجمالي العجز (Shortage)</span>
+            <span className="text-xl font-black font-mono text-rose-600">-{totalShortage.toFixed(2)} SAR</span>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-emerald-600 block mb-1">إجمالي الزيادة (Surplus)</span>
+            <span className="text-xl font-black font-mono text-emerald-600">+{totalSurplus.toFixed(2)} SAR</span>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-slate-500 block mb-1">صافي الفارق المالي</span>
+            <span className="text-xl font-black font-mono text-slate-800 dark:text-slate-200">
+              {netDiffAmt.toFixed(2)} SAR
+            </span>
+          </Card>
+        </div>
+
+        {/* Items Table Card */}
+        <Card className="shadow-sm overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-base font-semibold">قائمة أصناف الجرد والعد الفعلي</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-start border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-semibold">
+                    <th className="py-3 px-3 text-start">كود الصنف</th>
+                    <th className="py-3 px-3 text-start">اسم الصنف / المادة</th>
+                    <th className="py-3 px-3 text-end">الرصيد الدفتري (FIFO)</th>
+                    <th className="py-3 px-3 text-end w-40">العد الفعلي المجرود *</th>
+                    <th className="py-3 px-3 text-end">الفارق بالكمية</th>
+                    <th className="py-3 px-3 text-end">تكلفة الوحدة</th>
+                    <th className="py-3 px-3 text-end font-bold">الفارق المالي (SAR)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {selectedSession.lines?.map((line) => {
+                    const physical = countsMap[line.id] ?? line.system_qty;
+                    const diffQty = physical - line.system_qty;
+                    const diffAmt = diffQty * line.unit_cost;
+                    const isShortage = diffAmt < 0;
+                    const isSurplus = diffAmt > 0;
+
+                    return (
+                      <tr key={line.id} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td className="p-3 font-mono font-bold text-slate-900 dark:text-slate-100">{line.item?.sku}</td>
+                        <td className="p-3 font-bold text-slate-900 dark:text-slate-100">{line.item?.name_ar}</td>
+                        <td className="p-3 text-end font-mono tabular-nums text-slate-800 dark:text-slate-200">{line.system_qty}</td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={countsMap[line.id] ?? ""}
+                            onChange={(e) =>
+                              setCountsMap({
+                                ...countsMap,
+                                [line.id]: Number(e.target.value),
+                              })
+                            }
+                            className="h-8 text-xs font-mono font-bold text-end"
+                          />
+                        </td>
+                        <td className={`p-3 text-end font-mono tabular-nums font-bold ${isShortage ? "text-rose-700" : isSurplus ? "text-emerald-700" : "text-slate-500"}`}>
+                          {diffQty > 0 ? `+${diffQty}` : diffQty}
+                        </td>
+                        <td className="p-3 text-end font-mono tabular-nums text-slate-700 dark:text-slate-300">
+                          {line.unit_cost.toFixed(2)}
+                        </td>
+                        <td className={`p-3 text-end font-mono tabular-nums font-black text-sm ${isShortage ? "text-rose-700" : isSurplus ? "text-emerald-700" : "text-slate-800 dark:text-slate-200"}`}>
+                          {diffAmt.toFixed(2)} ر.س
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+          <div className="font-bold">المعالجة المحاسبية التلقائية عند الاعتماد:</div>
+          <p className="leading-relaxed">
+            في حال وجود عجز مالي (Shortage)، سيقوم النظام آلياً بإصدار قيد تسوية متوازن بخصم كمية العجز من طبقات الـ FIFO وترحيل تكلفتها إلى حساب <strong>6107 عجز وهالك الجرد المخزني</strong>.
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setReconcileModalOpen(false)}
+            disabled={reconcileMutation.isPending}
+          >
+            إلغاء
+          </Button>
+          <Button
+            onClick={() => reconcileMutation.mutate()}
+            disabled={reconcileMutation.isPending}
+            className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold min-h-[40px] px-6"
+          >
+            {reconcileMutation.isPending ? "جاري الترحيل..." : "اعتماد محضر المطابقة وترحيل القيود"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -298,179 +581,6 @@ export function StocktakingPage() {
         </CardContent>
       </Card>
 
-      {/* Create Stocktaking Session Modal */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Plus className="h-4 w-4 text-industrial-accent" />
-              <span>بدء جلسة جرد مخزني جديدة</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 pt-2 text-xs">
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">المستودع المراد جرده *</label>
-              <select
-                value={selectedWarehouseId}
-                onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                className="w-full h-8 px-2 rounded border border-industrial-border bg-slate-50 text-xs font-medium text-slate-800"
-              >
-                <option value="">اختر المستودع...</option>
-                {warehouses?.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name_ar} ({w.warehouse_type})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">تاريخ الجرد *</label>
-              <Input
-                type="date"
-                value={sessionDate}
-                onChange={(e) => setSessionDate(e.target.value)}
-                className="h-8 text-xs font-mono bg-slate-50 border-industrial-border"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">ملاحظات الجلسة (اختياري)</label>
-              <Input
-                value={sessionNotes}
-                onChange={(e) => setSessionNotes(e.target.value)}
-                placeholder="مثال: جرد نهاية الربع الأول / جرد مفاجئ لمستودع التام..."
-                className="h-8 text-xs bg-slate-50 border-industrial-border"
-              />
-            </div>
-
-            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-900 space-y-1">
-              <div className="font-bold flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <span>آلية الجرد الأعمى في النظام:</span>
-              </div>
-              <p>
-                سيقوم النظام فوراً بأخذ لقطة فورية (Snapshot) لكافة كميات الـ FIFO الحالية بالمستودع وتوليد ورقة الجرد الأعمى (A4) بطمس الكميات لمنع التحيز أثناء العد الفعلي.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-3 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateModalOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!selectedWarehouseId || createMutation.isPending}
-              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold"
-            >
-              {createMutation.isPending ? "جاري البدء..." : "تأكيد وبدء الجلسة"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Enter Physical Counts & Reconcile Modal */}
-      <Dialog open={reconcileModalOpen} onOpenChange={setReconcileModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center justify-between">
-              <span>إدخال نتائج العد الفعلي ومطابقة الفروقات: {selectedSession?.session_number}</span>
-              <span className="text-xs font-mono font-normal text-slate-400">
-                {selectedSession?.lines?.length || 0} صنفاً
-              </span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2 text-xs">
-            <div className="border border-industrial-border rounded-lg overflow-hidden">
-              <table className="w-full text-xs text-start border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-industrial-border text-slate-700 font-semibold">
-                    <th className="py-2 px-2 text-start">كود الصنف</th>
-                    <th className="py-2 px-2 text-start">اسم الصنف / المادة</th>
-                    <th className="py-2 px-2 text-end">الرصيد الدفتري (FIFO)</th>
-                    <th className="py-2 px-2 text-end w-36">العد الفعلي المجرود *</th>
-                    <th className="py-2 px-2 text-end">الفارق بالكمية</th>
-                    <th className="py-2 px-2 text-end">تكلفة الوحدة</th>
-                    <th className="py-2 px-2 text-end font-bold">الفارق المالي (SAR)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-industrial-border">
-                  {selectedSession?.lines?.map((line) => {
-                    const physical = countsMap[line.id] ?? line.system_qty;
-                    const diffQty = physical - line.system_qty;
-                    const diffAmt = diffQty * line.unit_cost;
-                    const isShortage = diffAmt < 0;
-                    const isSurplus = diffAmt > 0;
-
-                    return (
-                      <tr key={line.id} className="bg-white hover:bg-slate-50/50">
-                        <td className="p-2 font-mono font-bold text-slate-900">{line.item?.sku}</td>
-                        <td className="p-2 font-bold text-slate-900">{line.item?.name_ar}</td>
-                        <td className="p-2 text-end font-mono tabular-nums text-slate-800">{line.system_qty}</td>
-                        <td className="p-1.5">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={countsMap[line.id] ?? ""}
-                            onChange={(e) =>
-                              setCountsMap({
-                                ...countsMap,
-                                [line.id]: Number(e.target.value),
-                              })
-                            }
-                            className="h-7 text-xs font-mono font-bold text-end"
-                          />
-                        </td>
-                        <td className={`p-2 text-end font-mono tabular-nums font-bold ${isShortage ? "text-rose-700" : isSurplus ? "text-emerald-700" : "text-slate-500"}`}>
-                          {diffQty > 0 ? `+${diffQty}` : diffQty}
-                        </td>
-                        <td className="p-2 text-end font-mono tabular-nums text-slate-700">
-                          {line.unit_cost.toFixed(2)}
-                        </td>
-                        <td className={`p-2 text-end font-mono tabular-nums font-black text-sm ${isShortage ? "text-rose-700" : isSurplus ? "text-emerald-700" : "text-slate-800"}`}>
-                          {diffAmt.toFixed(2)} ر.س
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="p-3 bg-slate-100 rounded-lg text-slate-700 space-y-1">
-              <div className="font-bold">المعالجة المحاسبية التلقائية عند الاعتماد:</div>
-              <p>
-                في حال وجود عجز مالي (Shortage)، سيقوم النظام آلياً بإصدار قيد تسوية متوازن بخصم كمية العجز من طبقات الـ FIFO وترحيل تكلفتها إلى حساب <strong>6107 عجز وهالك الجرد المخزني</strong>.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-3 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setReconcileModalOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => reconcileMutation.mutate()}
-              disabled={reconcileMutation.isPending}
-              className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold"
-            >
-              {reconcileMutation.isPending ? "جاري الترحيل..." : "اعتماد محضر المطابقة وترحيل القيود"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

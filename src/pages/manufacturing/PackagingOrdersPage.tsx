@@ -14,14 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -40,6 +32,9 @@ import {
   Layers,
   Droplets,
   Calendar,
+  ArrowRight,
+  FileDown,
+  Share2,
 } from "lucide-react";
 
 export function PackagingOrdersPage() {
@@ -235,6 +230,362 @@ export function PackagingOrdersPage() {
     return o.order_number.toLowerCase().includes(term) || batchNum.includes(term) || fgName.includes(term);
   });
 
+  // In-Page Canvas View for Packaging Order Creation (Eliminating modal popup)
+  if (createModalOpen) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreateModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "العودة لأوامر التعبئة" : "Back to Packaging"}</span>
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                <Package className="h-5 w-5 text-sky-600" />
+                <span>{t("manufacturing.createPackagingOrder")}</span>
+              </h1>
+              <p className="text-xs text-slate-500">
+                اختر تشغيلة معتمدة الجودة لتعبئة المنتج التام وخصم العبوات ومواد التغليف
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={
+                executePackagingMutation.isPending ||
+                !selectedBatch ||
+                !selectedSpec ||
+                !isBulkSufficient ||
+                unitsProduced <= 0
+              }
+              onClick={() => executePackagingMutation.mutate()}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-5 font-semibold"
+            >
+              {executePackagingMutation.isPending ? t("common.saving") : "تنفيذ التعبئة وترحيل المخزون"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Body in Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Step 1 & 2: Batch & Spec Selection */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">
+                  اختيار التشغيلة المعتمدة ومواصفة التعبئة
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div>
+                  <Label className="text-xs font-semibold">تشغيلة الخلط المعتمدة (QC Passed) *</Label>
+                  <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر تشغيلة معتمدة..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {approvedBatches?.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.batch_number} - {isArabic ? b.formula?.name_ar : b.formula?.name_en} ({b.tank?.tank_code} - متبقي {Math.round(b.remaining_qty_grams / 1000)} كجم)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {approvedBatches?.length === 0 && (
+                    <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200 mt-2 text-xs">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>
+                        لا توجد تشغيلات خلط حاصلة على اعتماد الجودة (Passed). يجب فحص واعتماد الجودة من شاشة التانكات أولاً.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {selectedBatch && (
+                  <div>
+                    <Label className="text-xs font-semibold">مواصفة وحجم التعبئة *</Label>
+                    <Select value={selectedSpecId} onValueChange={setSelectedSpecId}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="اختر مواصفة التعبئة (الحجم / المنتج)..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {compatibleSpecs?.map((spec) => (
+                          <SelectItem key={spec.id} value={spec.id}>
+                            {isArabic ? spec.name_ar : spec.name_en} ({spec.code}) - {spec.volume_per_unit_grams / 1000} لتر
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Step 3: Quantities & Bulk calculations */}
+            {selectedSpec && (
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <CardTitle className="text-sm font-bold text-slate-800">
+                    كميات الإنتاج وسحب السائل السائب
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-semibold">{t("manufacturing.unitsProduced")} *</Label>
+                      <Input
+                        type="number"
+                        value={unitsProduced}
+                        onChange={(e) => setUnitsProduced(Number(e.target.value))}
+                        min={1}
+                        className="mt-1 font-mono text-center font-bold"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">{t("manufacturing.cartonsProduced")}</Label>
+                      <div className="mt-1 h-9 rounded-md border border-slate-200 bg-slate-50 flex items-center justify-center font-mono font-bold text-slate-800">
+                        {calculatedCartons} كرتون
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                    <span className="text-slate-600">السائل السائب المطلوب سحبه من التانك:</span>
+                    <span className={`font-mono font-bold tabular-nums text-sm ${isBulkSufficient ? "text-emerald-700" : "text-rose-600"}`}>
+                      {totalBulkNeededKg} كجم (المتبقي بالتانك: {remainingBulkInTankKg} كجم)
+                    </span>
+                  </div>
+
+                  {!isBulkSufficient && (
+                    <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-semibold text-xs flex items-center gap-1.5">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      الكمية المطلوبة تتجاوز الكمية المتبقية في التانك!
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Step 4: Spoilage */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">
+                  تسجيل هالك مواد التعبئة (لخصم المخزون والرقابة)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs text-slate-600 block mb-1">{t("manufacturing.wastedBottles")}</Label>
+                    <Input
+                      type="number"
+                      value={wastedBottles}
+                      onChange={(e) => setWastedBottles(Number(e.target.value))}
+                      min={0}
+                      className="font-mono text-center"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600 block mb-1">{t("manufacturing.wastedStickers")}</Label>
+                    <Input
+                      type="number"
+                      value={wastedStickers}
+                      onChange={(e) => setWastedStickers(Number(e.target.value))}
+                      min={0}
+                      className="font-mono text-center"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600 block mb-1">{t("manufacturing.wastedCartons")}</Label>
+                    <Input
+                      type="number"
+                      value={wastedCartons}
+                      onChange={(e) => setWastedCartons(Number(e.target.value))}
+                      min={0}
+                      className="font-mono text-center"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side Column: Summary & Submit */}
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm sticky top-6">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">ملخص أمر التعبئة</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2.5">
+                  <div className="flex justify-between text-slate-600">
+                    <span>عدد الحبات المنتجة:</span>
+                    <span className="font-mono font-bold text-slate-900">{unitsProduced} حبة</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>عدد الكراتين المنتجة:</span>
+                    <span className="font-mono font-bold text-slate-900">{calculatedCartons} كرتون</span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-slate-700 font-semibold">
+                    <span>السائل المسحوب:</span>
+                    <span className="font-mono text-emerald-700">{totalBulkNeededKg} كجم</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <Button
+                    disabled={
+                      executePackagingMutation.isPending ||
+                      !selectedBatch ||
+                      !selectedSpec ||
+                      !isBulkSufficient ||
+                      unitsProduced <= 0
+                    }
+                    onClick={() => executePackagingMutation.mutate()}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white min-h-[46px] font-bold"
+                  >
+                    {executePackagingMutation.isPending ? t("common.saving") : "تنفيذ التعبئة وترحيل المخزون"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreateModalOpen(false)}
+                    className="w-full"
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // In-Page Canvas View for Thermal Batch Label Printing
+  if (labelModalOpen && selectedOrderForLabel) {
+    const prodDate = selectedOrderForLabel.packaging_date || new Date().toISOString().split("T")[0];
+    const shelfLife = selectedOrderForLabel.target_fg_item?.shelf_life_months || 24;
+    const pDateObj = new Date(prodDate);
+    pDateObj.setMonth(pDateObj.getMonth() + shelfLife);
+    const expiryDate = pDateObj.toISOString().split("T")[0];
+
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto pb-16 animate-in fade-in duration-200">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => {
+                setLabelModalOpen(false);
+                setSelectedOrderForLabel(null);
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة لأوامر التعبئة</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Printer className="h-5 w-5 text-sky-600" />
+                <span>{t("manufacturing.printLabel")}</span>
+                <span className="font-mono text-xs text-slate-500 font-normal">
+                  ({selectedOrderForLabel.order_number})
+                </span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                معاينة وطباعة ملصق الباركود الحراري وفق أبعاد المصنع ({settings?.label_width_mm || 50} × {settings?.label_height_mm || 30} مم)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+              className="gap-1.5"
+            >
+              <Printer className="w-4 h-4 text-slate-600" />
+              <span>طباعة فورية</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+              className="gap-1.5"
+            >
+              <FileDown className="w-4 h-4 text-sky-600" />
+              <span>حفظ PDF</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const msg = `*ملصق تشغيل باتش - ${selectedOrderForLabel.target_fg_item?.name_ar || ''}*\nرقم الباتش: ${selectedOrderForLabel.mixing_batch?.batch_number || selectedOrderForLabel.order_number}\nرمز الصنف: ${selectedOrderForLabel.target_fg_item?.sku}\nتاريخ الإنتاج: ${prodDate}\nتاريخ الانتهاء: ${expiryDate}\nمصنع الأسياح للمنتجات الكيميائية`;
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+              className="gap-1.5 text-emerald-700 hover:text-emerald-800"
+            >
+              <Share2 className="w-4 h-4 text-emerald-600" />
+              <span>واتساب</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setLabelModalOpen(false);
+                setSelectedOrderForLabel(null);
+              }}
+            >
+              {t("common.close")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Label Preview Card */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-slate-200 shadow-sm p-4 space-y-3 text-xs">
+            <div className="font-bold text-slate-800 border-b border-slate-100 pb-2">بيانات التشغيلة والمنتج</div>
+            <div className="flex justify-between"><span className="text-slate-500">اسم المنتج:</span><strong>{selectedOrderForLabel.target_fg_item?.name_ar}</strong></div>
+            <div className="flex justify-between"><span className="text-slate-500">رقم الباتش:</span><strong className="font-mono">{selectedOrderForLabel.mixing_batch?.batch_number || selectedOrderForLabel.order_number}</strong></div>
+            <div className="flex justify-between"><span className="text-slate-500">تاريخ الإنتاج:</span><span className="font-mono">{prodDate}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">تاريخ الانتهاء:</span><span className="font-mono text-emerald-700 font-bold">{expiryDate}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">رمز SKU:</span><span className="font-mono">{selectedOrderForLabel.target_fg_item?.sku}</span></div>
+          </Card>
+
+          <Card className="md:col-span-2 border-slate-200 shadow-sm flex flex-col items-center justify-center p-8 bg-slate-50">
+            <span className="text-xs text-slate-500 mb-4 font-semibold">المعاينة الحية للملصق الحراري:</span>
+            <ThermalBatchLabel
+              productNameAr={selectedOrderForLabel.target_fg_item?.name_ar || ""}
+              productNameEn={selectedOrderForLabel.target_fg_item?.name_en || ""}
+              batchNumber={selectedOrderForLabel.mixing_batch?.batch_number || selectedOrderForLabel.order_number}
+              productionDate={prodDate}
+              expiryDate={expiryDate}
+              sku={selectedOrderForLabel.target_fg_item?.sku || ""}
+              widthMm={settings?.label_width_mm || 50}
+              heightMm={settings?.label_height_mm || 30}
+            />
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -387,212 +738,6 @@ export function PackagingOrdersPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* 1. Create Packaging Order Dialog */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Package className="h-5 w-5 text-sky-600" />
-              <span>{t("manufacturing.createPackagingOrder")}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              اختر تشغيلة معتمدة الجودة لتعبئة المنتج التام وخصم العبوات ومواد التغليف
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            {/* Step 1: Select Approved Batch (Strict QC Gate) */}
-            <div>
-              <Label className="text-xs font-semibold">تشغيلة الخلط المعتمدة (QC Passed) *</Label>
-              <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="اختر تشغيلة معتمدة..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {approvedBatches?.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.batch_number} - {isArabic ? b.formula?.name_ar : b.formula?.name_en} ({b.tank?.tank_code} - متبقي {Math.round(b.remaining_qty_grams / 1000)} كجم)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {approvedBatches?.length === 0 && (
-                <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200 mt-2 text-[11px]">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <span>
-                    لا توجد تشغيلات خلط حاصلة على اعتماد الجودة (Passed). يجب فحص واعتماد الجودة من شاشة التانكات أولاً.
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Step 2: Select Packaging Spec */}
-            {selectedBatch && (
-              <div>
-                <Label className="text-xs font-semibold">مواصفة وحجم التعبئة *</Label>
-                <Select value={selectedSpecId} onValueChange={setSelectedSpecId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر مواصفة التعبئة (الحجم / المنتج)..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {compatibleSpecs?.map((spec) => (
-                      <SelectItem key={spec.id} value={spec.id}>
-                        {isArabic ? spec.name_ar : spec.name_en} ({spec.code}) - {spec.volume_per_unit_grams / 1000} لتر
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Step 3: Quantities and Calculations */}
-            {selectedSpec && (
-              <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">{t("manufacturing.unitsProduced")} *</Label>
-                    <Input
-                      type="number"
-                      value={unitsProduced}
-                      onChange={(e) => setUnitsProduced(Number(e.target.value))}
-                      min={1}
-                      className="mt-1 font-mono text-center font-bold"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs font-semibold">{t("manufacturing.cartonsProduced")}</Label>
-                    <div className="mt-1 h-9 rounded-md border border-slate-200 bg-white flex items-center justify-center font-mono font-bold text-slate-800">
-                      {calculatedCartons} كرتون
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] pt-2 border-t border-slate-200">
-                  <span className="text-slate-600">السائل السائب المطلوب سحبه:</span>
-                  <span className={`font-mono font-bold tabular-nums ${isBulkSufficient ? "text-emerald-700" : "text-rose-600"}`}>
-                    {totalBulkNeededKg} كجم (المتبقي بالتانك: {remainingBulkInTankKg} كجم)
-                  </span>
-                </div>
-
-                {!isBulkSufficient && (
-                  <div className="text-rose-600 font-semibold text-[11px] flex items-center gap-1">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    الكمية المطلوبة تتجاوز المتبقي في التانك!
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Step 4: Spoilage Tracking (Bottles, Stickers, Cartons) */}
-            <div className="pt-2 border-t border-slate-200 space-y-2">
-              <span className="font-bold text-slate-800 text-xs block">
-                تسجيل هالك مواد التعبئة (لخصم المخزون والرقابة):
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label className="text-[11px] text-slate-600">{t("manufacturing.wastedBottles")}</Label>
-                  <Input
-                    type="number"
-                    value={wastedBottles}
-                    onChange={(e) => setWastedBottles(Number(e.target.value))}
-                    min={0}
-                    className="mt-1 font-mono text-center text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[11px] text-slate-600">{t("manufacturing.wastedStickers")}</Label>
-                  <Input
-                    type="number"
-                    value={wastedStickers}
-                    onChange={(e) => setWastedStickers(Number(e.target.value))}
-                    min={0}
-                    className="mt-1 font-mono text-center text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[11px] text-slate-600">{t("manufacturing.wastedCartons")}</Label>
-                  <Input
-                    type="number"
-                    value={wastedCartons}
-                    onChange={(e) => setWastedCartons(Number(e.target.value))}
-                    min={0}
-                    className="mt-1 font-mono text-center text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              disabled={
-                executePackagingMutation.isPending ||
-                !selectedBatch ||
-                !selectedSpec ||
-                !isBulkSufficient ||
-                unitsProduced <= 0
-              }
-              onClick={() => executePackagingMutation.mutate()}
-              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[44px]"
-            >
-              {executePackagingMutation.isPending ? t("common.saving") : "تنفيذ التعبئة وترحيل المخزون"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 2. Print Thermal Label Dialog */}
-      <Dialog open={labelModalOpen} onOpenChange={setLabelModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Printer className="h-5 w-5 text-sky-600" />
-              <span>{t("manufacturing.printLabel")}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              معاينة وطباعة ملصق الباركود الحراري وفق أبعاد المصنع المحددة ({settings?.label_width_mm || 50} × {settings?.label_height_mm || 30} مم)
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedOrderForLabel && (
-            <div className="flex flex-col items-center py-4">
-              {(() => {
-                const prodDate = selectedOrderForLabel.packaging_date || new Date().toISOString().split("T")[0];
-                const shelfLife = selectedOrderForLabel.target_fg_item?.shelf_life_months || 24;
-                
-                // Calculate automated expiry date
-                const pDateObj = new Date(prodDate);
-                pDateObj.setMonth(pDateObj.getMonth() + shelfLife);
-                const expiryDate = pDateObj.toISOString().split("T")[0];
-
-                return (
-                  <ThermalBatchLabel
-                    productNameAr={selectedOrderForLabel.target_fg_item?.name_ar || ""}
-                    productNameEn={selectedOrderForLabel.target_fg_item?.name_en || ""}
-                    batchNumber={selectedOrderForLabel.mixing_batch?.batch_number || selectedOrderForLabel.order_number}
-                    productionDate={prodDate}
-                    expiryDate={expiryDate}
-                    sku={selectedOrderForLabel.target_fg_item?.sku || ""}
-                    widthMm={settings?.label_width_mm || 50}
-                    heightMm={settings?.label_height_mm || 30}
-                  />
-                );
-              })()}
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLabelModalOpen(false)}>
-              {t("common.close")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

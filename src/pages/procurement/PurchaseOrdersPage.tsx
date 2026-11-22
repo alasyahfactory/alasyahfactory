@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -23,7 +22,11 @@ import {
   Loader2, 
   Eye, 
   Clock,
-  Send
+  Send,
+  ArrowRight,
+  Printer,
+  FileDown,
+  Share2
 } from "lucide-react";
 
 interface NewPoLine {
@@ -249,6 +252,613 @@ export function PurchaseOrdersPage() {
     );
   });
 
+
+  const handlePrintPo = (po: PurchaseOrder, isPdf = false) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+
+    const docTitle = isPdf ? `أمر_شراء_${po.po_number}` : `أمر شراء رسمي - ${po.po_number}`;
+    const totalExVat = po.total_amount;
+    const vat15 = totalExVat * 0.15;
+    const grandTotal = totalExVat + vat15;
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
+        <head>
+          <meta charset="utf-8" />
+          <title>${docTitle}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "IBM Plex Sans Arabic", sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 0; font-size: 12px; }
+            .header-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+            .po-badge { display: inline-block; padding: 4px 14px; background: #0f172a; color: #fff; font-weight: bold; font-size: 16px; border-radius: 4px; }
+            .meta-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; background: #f8fafc; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11.5px; }
+            th { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px; font-weight: bold; text-align: inherit; }
+            td { border: 1px solid #e2e8f0; padding: 8px; }
+            .tabular { font-family: monospace; font-variant-numeric: tabular-nums; }
+            .totals-box { width: 280px; margin-inline-start: auto; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 30px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #e2e8f0; font-size: 11.5px; }
+            .totals-row.grand { background: #0f172a; color: #fff; font-weight: bold; font-size: 13px; border-bottom: none; }
+            .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 40px; text-align: center; }
+            .sig-box { border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-grid">
+            <div style="text-align: ${isAr ? "right" : "left"};">
+              <div style="font-weight: bold; font-size: 15px;">مصنع الأسياح للمنتجات الكيميائية</div>
+              <div style="font-size: 11px; color: #64748b;">سجل تجاري: 1010000000 | الرقم الضريبي: 300000000000003</div>
+              <div style="font-size: 11px; color: #64748b;">إدارة المشتريات وسلاسل الإمداد</div>
+            </div>
+            <div style="text-align: center;">
+              <div class="po-badge">أمر شراء بضاعة (PO)</div>
+              <div style="font-size: 12px; font-family: monospace; font-weight: bold; margin-top: 4px;">${po.po_number}</div>
+            </div>
+            <div style="text-align: ${isAr ? "left" : "right"}; direction: ltr;">
+              <div style="font-weight: bold; font-size: 14px;">Al-Asyah Chemical Factory</div>
+              <div style="font-size: 11px; color: #64748b;">Purchase Order Form</div>
+              <div style="font-size: 11px; color: #64748b;">Date: ${po.order_date}</div>
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <div>
+              <span style="color: #64748b; font-size: 11px; display: block;">السادة / المورد المعتمد:</span>
+              <strong style="font-size: 13px;">${po.supplier?.name_ar || "-"}</strong>
+              <div style="font-size: 11px; color: #475569; margin-top: 2px;">الرقم الضريبي للمورد: <span class="tabular">${po.supplier?.tax_number || "غير مسجل"}</span></div>
+            </div>
+            <div>
+              <span style="color: #64748b; font-size: 11px; display: block;">مستودع التسليم والاستلام:</span>
+              <strong style="font-size: 13px;">${po.target_warehouse?.name_ar || "المستودع الرئيسي"}</strong>
+              <div style="font-size: 11px; color: #475569; margin-top: 2px;">تاريخ التوريد المستهدف: <span class="tabular">${(po as any).delivery_date || po.order_date}</span></div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">#</th>
+                <th style="width: 110px;">كود الصنف SKU</th>
+                <th>اسم الصنف / المادة الخام</th>
+                <th style="width: 70px; text-align: center;">الوحدة</th>
+                <th style="width: 80px; text-align: center;">الكمية</th>
+                <th style="width: 100px; text-align: right;">السعر بدون ضريبة</th>
+                <th style="width: 110px; text-align: right;">الإجمالي بدون ضريبة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${po.lines?.map((line, idx) => `
+                <tr>
+                  <td style="text-align: center;">${idx + 1}</td>
+                  <td class="tabular" style="font-weight: bold;">${line.item?.sku || "-"}</td>
+                  <td>${line.item?.name_ar || "صنف مخزني"}</td>
+                  <td style="text-align: center;">${line.item?.base_unit === "gram" ? "جرام" : "حبة / كرتون"}</td>
+                  <td class="tabular" style="text-align: center; font-weight: bold;">${line.ordered_qty.toLocaleString("en-US")}</td>
+                  <td class="tabular" style="text-align: right;">${line.unit_price_ex_vat.toFixed(2)} ر.س</td>
+                  <td class="tabular" style="text-align: right; font-weight: bold;">${line.total_ex_vat.toFixed(2)} ر.س</td>
+                </tr>
+              `).join("") || ""}
+            </tbody>
+          </table>
+
+          <div class="totals-box">
+            <div class="totals-row">
+              <span>المجموع قبل الضريبة:</span>
+              <span class="tabular font-bold">${totalExVat.toFixed(2)} ر.س</span>
+            </div>
+            <div class="totals-row">
+              <span>ضريبة القيمة المضافة (15%):</span>
+              <span class="tabular">${vat15.toFixed(2)} ر.س</span>
+            </div>
+            <div class="totals-row grand">
+              <span>إجمالي أمر الشراء (شامل الضريبة):</span>
+              <span class="tabular">${grandTotal.toFixed(2)} ر.س</span>
+            </div>
+          </div>
+
+          <div class="signatures">
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">مسؤول المشتريات</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">المحاسب المالي</div>
+              <div>التوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-weight: bold; margin-bottom: 35px;">اعتماد الإدارة العامة</div>
+              <div>الختم والتوقيع: ............................</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); window.close(); };
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
+  const handleShareWhatsapp = (po: PurchaseOrder) => {
+    const supplierName = po.supplier?.name_ar || "";
+    const totalAmount = (po.total_amount * 1.15).toLocaleString("en-US", { minimumFractionDigits: 2 });
+    const msg = `*أمر شراء بضاعة رسمي (Purchase Order)*
+السادة/ ${supplierName}
+رقم أمر الشراء: ${po.po_number}
+تاريخ الأمر: ${new Date(po.order_date).toLocaleDateString("ar-SA")}
+مستودع التسليم: ${po.target_warehouse?.name_ar || "المستودع الرئيسي"}
+عدد البنود المطلوبة: ${po.lines?.length || 0} صنف
+إجمالي قيمة الأمر شامل الضريبة (15%): ${totalAmount} ريال سعودي
+يرجى تأكيد الاستلام وتجهيز البضاعة للتوريد.
+_مصنع الأسياح للمنتجات الكيميائية - إدارة المشتريات_`;
+
+    const encoded = encodeURIComponent(msg);
+    const phone = po.supplier?.contact_phone?.replace(/[^0-9]/g, "") || "";
+    const waUrl = phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(waUrl, "_blank");
+  };
+
+  // In-Page Canvas View for Purchase Order Creation (Eliminating modal popup)
+  if (isCreateOpen) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* In-page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setIsCreateOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لأوامر الشراء" : "Back to Orders"}</span>
+            </Button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-sky-600" />
+                <span>{isAr ? "إنشاء أمر شراء وتوريد جديد" : "Create Purchase Order"}</span>
+              </h1>
+              <p className="text-xs text-slate-500">
+                {isAr ? "تحديد المورد، المستودع المستهدف، وجدول كميات وأسعار المواد الخام ومواد التعبئة" : "Specify supplier, target warehouse, and raw material lines"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => createMutation.mutate()}
+              disabled={createMutation.isPending || !supplierId || totalAmount <= 0}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-5 gap-2"
+            >
+              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              <span>{isAr ? "إرسال أمر الشراء للاعتماد" : "Submit for Approval"}</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Body in Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Header Form Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-sky-600" />
+                  <span>{isAr ? "بيانات المورد والشحن" : "Supplier & Delivery Info"}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="supplier_select">{isAr ? "المورد *" : "Supplier *"}</Label>
+                    <select
+                      id="supplier_select"
+                      value={supplierId}
+                      onChange={(e) => setSupplierId(e.target.value)}
+                      className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
+                    >
+                      <option value="">{isAr ? "-- اختر المورد --" : "-- Select Supplier --"}</option>
+                      {suppliers.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name_ar}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="target_wh">{isAr ? "المستودع المستهدف" : "Target Warehouse"}</Label>
+                    <select
+                      id="target_wh"
+                      value={targetWarehouseId}
+                      onChange={(e) => setTargetWarehouseId(e.target.value)}
+                      className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
+                    >
+                      <option value="">{isAr ? "-- اختر المستودع --" : "-- Select Warehouse --"}</option>
+                      {warehouses.map((w) => (
+                        <option key={w.id} value={w.id}>
+                          {w.name_ar}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="del_date">{isAr ? "تاريخ التوريد المتوقع" : "Expected Delivery Date"}</Label>
+                    <Input
+                      id="del_date"
+                      type="date"
+                      value={deliveryDate}
+                      onChange={(e) => setDeliveryDate(e.target.value)}
+                      className="h-9 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="po_notes">{isAr ? "ملاحظات وشروط أمر الشراء" : "Order Notes"}</Label>
+                  <Input
+                    id="po_notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder={isAr ? "شروط التسليم، مواصفات التعبئة..." : "Delivery terms..."}
+                    className="h-9 text-xs bg-white"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lines Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-sky-600" />
+                    <span>{isAr ? "بنود وأصناف أمر الشراء" : "Order Items"}</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500 mt-0.5">
+                    {isAr ? "إدراج المواد الخام ومواد التعبئة والكميات الموردة" : "Raw materials and packaging items"}
+                  </CardDescription>
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={addLine} className="gap-1.5 text-xs">
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isAr ? "إضافة بند" : "Add Line"}</span>
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50 text-xs">
+                        <TableHead className="w-[40%]">{isAr ? "المادة / الصنف" : "Item"}</TableHead>
+                        <TableHead className="w-[20%] text-center">{isAr ? "الكمية المطلوبة" : "Quantity"}</TableHead>
+                        <TableHead className="w-[20%] text-center">{isAr ? "سعر الوحدة (غير شامل)" : "Unit Price"}</TableHead>
+                        <TableHead className="w-[15%] text-end">{isAr ? "الإجمالي" : "Total"}</TableHead>
+                        <TableHead className="w-[5%]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lines.map((line, index) => {
+                        const itemObj = items.find((r) => r.id === line.item_id);
+                        const lineSubtotal = line.ordered_qty * line.unit_price_ex_vat;
+                        const lineTotal = lineSubtotal * 1.15;
+
+                        return (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <select
+                                value={line.item_id}
+                                onChange={(e) => updateLine(index, "item_id", e.target.value)}
+                                className="w-full h-8 rounded border border-slate-200 bg-white px-2 text-xs"
+                              >
+                                <option value="">{isAr ? "-- اختر الصنف --" : "-- Select Item --"}</option>
+                                {items.map((item) => (
+                                  <option key={item.id} value={item.id}>
+                                    {item.sku} - {item.name_ar} ({item.base_unit === "gram" ? "جم" : "حبة"})
+                                  </option>
+                                ))}
+                              </select>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 justify-center">
+                                <Input
+                                  type="number"
+                                  value={line.ordered_qty || ""}
+                                  onChange={(e) => updateLine(index, "ordered_qty", parseFloat(e.target.value) || 0)}
+                                  className="h-8 text-center text-xs font-mono tabular-nums w-24"
+                                />
+                                <span className="text-[10px] text-slate-500 min-w-[20px]">
+                                  {itemObj ? (itemObj.base_unit === "gram" ? "جم" : "حبة") : ""}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                step="0.0001"
+                                value={line.unit_price_ex_vat || ""}
+                                onChange={(e) => updateLine(index, "unit_price_ex_vat", parseFloat(e.target.value) || 0)}
+                                className="h-8 text-center text-xs font-mono tabular-nums"
+                              />
+                            </TableCell>
+                            <TableCell className="text-end font-mono text-xs tabular-nums font-semibold text-slate-800">
+                              {lineTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeLine(index)}
+                                disabled={lines.length === 1}
+                                className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side Column: Summary */}
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm sticky top-6">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-emerald-600" />
+                  <span>{isAr ? "الملخص المالي لأمر الشراء" : "Financial Summary"}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2.5">
+                  <div className="flex justify-between text-slate-600">
+                    <span>{isAr ? "المجموع قبل الضريبة:" : "Subtotal:"}</span>
+                    <span className="font-mono font-bold tabular-nums text-slate-900">
+                      {subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>{isAr ? "ضريبة القيمة المضافة (15%):" : "VAT (15%):"}</span>
+                    <span className="font-mono font-bold tabular-nums text-sky-700">
+                      {vatAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-extrabold text-slate-900">
+                    <span>{isAr ? "الإجمالي النهائي:" : "Grand Total:"}</span>
+                    <span className="font-mono tabular-nums text-emerald-700">
+                      {totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <Button
+                    onClick={() => createMutation.mutate()}
+                    disabled={createMutation.isPending || !supplierId || totalAmount <= 0}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white min-h-[46px] font-bold gap-2"
+                  >
+                    {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span>{isAr ? "إرسال أمر الشراء للاعتماد" : "Submit for Approval"}</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="w-full"
+                  >
+                    {isAr ? "إلغاء" : "Cancel"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // In-Page Canvas View for Selected Purchase Order Details & Approval (Eliminating modal popup)
+  if (selectedPo) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setSelectedPo(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isAr ? "العودة لأوامر الشراء" : "Back to Orders"}</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-bold font-mono text-slate-900">
+                  {selectedPo.po_number}
+                </h1>
+                {getStatusBadge(selectedPo.status)}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isAr ? "تفاصيل أمر الشراء، بنود المواد، وحالة الاعتماد الإداري" : "Purchase order details, items, and approval status"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintPo(selectedPo, false)}
+              className="gap-1.5"
+            >
+              <Printer className="w-4 h-4 text-slate-600" />
+              <span>{isAr ? "طباعة A4" : "Print A4"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintPo(selectedPo, true)}
+              className="gap-1.5"
+            >
+              <FileDown className="w-4 h-4 text-sky-600" />
+              <span>{isAr ? "حفظ PDF" : "Save PDF"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleShareWhatsapp(selectedPo)}
+              className="gap-1.5 text-emerald-700 hover:text-emerald-800"
+            >
+              <Share2 className="w-4 h-4 text-emerald-600" />
+              <span>{isAr ? "مشاركة واتساب" : "WhatsApp"}</span>
+            </Button>
+            {(isOwner || isAccountant) && selectedPo.status === "pending_approval" && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => updateStatusMutation.mutate({ id: selectedPo.id, status: "rejected", reason: "تم الرفض بواسطة الإدارة" })}
+                  disabled={updateStatusMutation.isPending}
+                  className="gap-1.5"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>{isAr ? "رفض الأمر" : "Reject"}</span>
+                </Button>
+
+                <Button
+                  onClick={() => updateStatusMutation.mutate({ id: selectedPo.id, status: "approved" })}
+                  disabled={updateStatusMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span>{isAr ? "اعتماد أمر الشراء" : "Approve PO"}</span>
+                </Button>
+              </>
+            )}
+            <Button variant="outline" onClick={() => setSelectedPo(null)}>
+              {isAr ? "إغلاق" : "Close"}
+            </Button>
+          </div>
+        </div>
+
+        {/* PO Details Body in Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Metadata Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">
+                  {isAr ? "بيانات أمر الشراء" : "Order Information"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs">
+                  <div>
+                    <span className="text-slate-400 block mb-1">{isAr ? "المورد:" : "Supplier:"}</span>
+                    <span className="font-semibold text-slate-900 block text-sm">{selectedPo.supplier?.name_ar}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block mb-1">{isAr ? "الرقم الضريبي:" : "Tax Number:"}</span>
+                    <span className="font-mono text-slate-900 block tabular-nums text-sm">{selectedPo.supplier?.tax_number || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block mb-1">{isAr ? "تاريخ الطلب:" : "Order Date:"}</span>
+                    <span className="text-slate-900 block text-sm font-mono">{new Date(selectedPo.order_date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block mb-1">{isAr ? "المستودع المستهدف:" : "Warehouse:"}</span>
+                    <span className="text-slate-900 block text-sm font-semibold">{selectedPo.target_warehouse?.name_ar || "-"}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lines Card */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">
+                  {isAr ? "بنود المواد والكميات" : "Order Items"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50 text-xs">
+                        <TableHead>{isAr ? "الصنف" : "Item"}</TableHead>
+                        <TableHead className="text-end">{isAr ? "الكمية المطلوبة" : "Ordered Qty"}</TableHead>
+                        <TableHead className="text-end">{isAr ? "سعر الوحدة" : "Unit Price"}</TableHead>
+                        <TableHead className="text-end">{isAr ? "الإجمالي شامل الضريبة" : "Total (inc VAT)"}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedPo.lines?.map((line) => (
+                        <TableRow key={line.id}>
+                          <TableCell>
+                            <span className="font-medium text-slate-900 block text-xs">
+                              {line.item?.sku} - {isAr ? line.item?.name_ar : line.item?.name_en}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-end font-mono tabular-nums text-xs">
+                            {line.ordered_qty.toLocaleString("en-US")} {line.item?.base_unit === "gram" ? "جم" : "حبة"}
+                          </TableCell>
+                          <TableCell className="text-end font-mono tabular-nums text-xs">
+                            {line.unit_price_ex_vat.toFixed(4)} ر.س
+                          </TableCell>
+                          <TableCell className="text-end font-mono font-semibold tabular-nums text-xs text-slate-900">
+                            {line.total_inc_vat.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side Column: Total Card */}
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm sticky top-6">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-bold text-slate-800">
+                  {isAr ? "الإجمالي المعتمد" : "Approved Total"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="p-4 bg-slate-900 text-white rounded-xl text-center space-y-1">
+                  <span className="text-xs text-slate-400 block">{isAr ? "إجمالي أمر الشراء النهائي (شامل 15% ضريبة):" : "Grand Total (inc 15% VAT):"}</span>
+                  <span className="text-2xl font-bold font-mono tabular-nums block text-emerald-400">
+                    {selectedPo.total_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                  </span>
+                </div>
+
+                <div className="pt-2">
+                  <Button variant="outline" onClick={() => setSelectedPo(null)} className="w-full">
+                    {isAr ? "العودة للقائمة" : "Back to List"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -359,15 +969,45 @@ export function PurchaseOrdersPage() {
                         {getStatusBadge(po.status)}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedPo(po)}
-                          className="gap-1 text-xs text-sky-700"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>{isAr ? "تفاصيل" : "View"}</span>
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedPo(po)}
+                            className="gap-1 text-xs text-sky-700"
+                            title={isAr ? "معاينة أمر الشراء كامل" : "View PO"}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{isAr ? "معاينة" : "View"}</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintPo(po, false)}
+                            className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
+                            title={isAr ? "طباعة A4" : "Print A4"}
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintPo(po, true)}
+                            className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
+                            title={isAr ? "حفظ PDF" : "Save PDF"}
+                          >
+                            <FileDown className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleShareWhatsapp(po)}
+                            className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
+                            title={isAr ? "مشاركة واتساب للمورد" : "WhatsApp"}
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -378,309 +1018,6 @@ export function PurchaseOrdersPage() {
         </CardContent>
       </Card>
 
-      {/* Create Purchase Order Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-sky-600" />
-              <span>{isAr ? "إنشاء أمر شراء وتوريد جديد" : "Create Purchase Order"}</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-6 pt-2">
-            {/* Header Form */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-              <div className="space-y-1.5">
-                <Label htmlFor="supplier_select">{isAr ? "المورد *" : "Supplier *"}</Label>
-                <select
-                  id="supplier_select"
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                  className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
-                >
-                  <option value="">{isAr ? "-- اختر المورد --" : "-- Select Supplier --"}</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name_ar}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="target_wh">{isAr ? "المستودع المستهدف" : "Target Warehouse"}</Label>
-                <select
-                  id="target_wh"
-                  value={targetWarehouseId}
-                  onChange={(e) => setTargetWarehouseId(e.target.value)}
-                  className="w-full h-9 rounded border border-slate-200 bg-white px-2 text-sm focus:ring-1 focus:ring-slate-900"
-                >
-                  <option value="">{isAr ? "-- اختر المستودع --" : "-- Select Warehouse --"}</option>
-                  {warehouses.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name_ar}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="del_date">{isAr ? "تاريخ التوريد المتوقع" : "Expected Delivery Date"}</Label>
-                <Input
-                  id="del_date"
-                  type="date"
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
-                  className="h-9"
-                />
-              </div>
-            </div>
-
-            {/* Lines Grid */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">{isAr ? "بنود أمر الشراء" : "Order Items"}</Label>
-                <Button type="button" size="sm" variant="outline" onClick={addLine} className="gap-1.5 text-xs">
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{isAr ? "إضافة بند" : "Add Line"}</span>
-                </Button>
-              </div>
-
-              <div className="border border-slate-200 rounded-md overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50 text-xs">
-                      <TableHead className="font-semibold">{isAr ? "الصنف *" : "Item *"}</TableHead>
-                      <TableHead className="w-36 text-end font-semibold">{isAr ? "الكمية المطلوبة *" : "Qty *"}</TableHead>
-                      <TableHead className="w-36 text-end font-semibold">{isAr ? "سعر الوحدة (بدون ضريبة)" : "Unit Price (ex VAT)"}</TableHead>
-                      <TableHead className="w-32 text-end font-semibold">{isAr ? "الإجمالي" : "Total (ex VAT)"}</TableHead>
-                      <TableHead className="w-12 text-center"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lines.map((line, idx) => {
-                      const selectedItem = items.find((i) => i.id === line.item_id);
-                      const lineTotal = (Number(line.ordered_qty) || 0) * (Number(line.unit_price_ex_vat) || 0);
-
-                      return (
-                        <TableRow key={idx}>
-                          <TableCell>
-                            <select
-                              value={line.item_id}
-                              onChange={(e) => updateLine(idx, "item_id", e.target.value)}
-                              className="w-full text-xs h-8 rounded border border-slate-200 bg-white px-2 focus:ring-1 focus:ring-slate-900"
-                            >
-                              <option value="">{isAr ? "-- اختر الصنف --" : "-- Select Item --"}</option>
-                              {items.map((it) => (
-                                <option key={it.id} value={it.id}>
-                                  {it.sku} - {it.name_ar} ({it.base_unit === "gram" ? "جرام" : "حبة"})
-                                </option>
-                              ))}
-                            </select>
-                            {selectedItem && (
-                              <span className="text-[10px] text-slate-400 block mt-0.5">
-                                {isAr ? "الوحدة: " : "Unit: "}{selectedItem.base_unit === "gram" ? "جرام (1 لتر = 1000 جم)" : "حبة"}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-end">
-                            <Input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={line.ordered_qty || ""}
-                              onChange={(e) => updateLine(idx, "ordered_qty", e.target.value)}
-                              className="h-8 text-xs text-end font-mono"
-                              placeholder="0"
-                            />
-                          </TableCell>
-                          <TableCell className="text-end">
-                            <Input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={line.unit_price_ex_vat || ""}
-                              onChange={(e) => updateLine(idx, "unit_price_ex_vat", e.target.value)}
-                              className="h-8 text-xs text-end font-mono"
-                              placeholder="0.00"
-                            />
-                          </TableCell>
-                          <TableCell className="text-end font-mono text-sm font-semibold tabular-nums text-slate-900">
-                            {lineTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeLine(idx)}
-                              disabled={lines.length === 1}
-                              className="text-rose-500 hover:text-rose-700 h-8 w-8 p-0"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-
-            {/* Totals Summary */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 rounded-lg border border-slate-200 gap-4">
-              <div className="w-full sm:w-1/2 space-y-1.5">
-                <Label htmlFor="po_notes">{isAr ? "ملاحظات أمر الشراء" : "Notes"}</Label>
-                <Input
-                  id="po_notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={isAr ? "شروط التسليم، مواصفات التعبئة..." : "Delivery terms..."}
-                  className="h-8 text-xs bg-white"
-                />
-              </div>
-
-              <div className="w-full sm:w-64 space-y-1.5 text-sm font-mono text-end">
-                <div className="flex justify-between text-slate-600">
-                  <span>{isAr ? "المجموع قبل الضريبة:" : "Subtotal:"}</span>
-                  <span className="tabular-nums">{subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>{isAr ? "ضريبة القيمة المضافة (15%):" : "VAT (15%):"}</span>
-                  <span className="tabular-nums">{vatAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</span>
-                </div>
-                <div className="flex justify-between text-base font-bold text-slate-900 border-t border-slate-200 pt-1">
-                  <span>{isAr ? "الإجمالي النهائي:" : "Grand Total:"}</span>
-                  <span className="tabular-nums">{totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-4 border-t border-slate-100">
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-              {isAr ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending || !supplierId || totalAmount <= 0}
-              className="bg-slate-900 text-white gap-2"
-            >
-              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              <span>{isAr ? "إرسال أمر الشراء للاعتماد" : "Submit for Approval"}</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* View PO Details and Approval Dialog */}
-      <Dialog open={!!selectedPo} onOpenChange={(open) => !open && setSelectedPo(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span className="font-mono text-slate-900">{selectedPo?.po_number}</span>
-              {selectedPo && getStatusBadge(selectedPo.status)}
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedPo && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-3 rounded text-xs">
-                <div>
-                  <span className="text-slate-400 block">{isAr ? "المورد:" : "Supplier:"}</span>
-                  <span className="font-semibold text-slate-900 block">{selectedPo.supplier?.name_ar}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">{isAr ? "الرقم الضريبي:" : "Tax Number:"}</span>
-                  <span className="font-mono text-slate-900 block tabular-nums">{selectedPo.supplier?.tax_number || "-"}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">{isAr ? "تاريخ الطلب:" : "Order Date:"}</span>
-                  <span className="text-slate-900 block">{new Date(selectedPo.order_date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">{isAr ? "المستودع:" : "Warehouse:"}</span>
-                  <span className="text-slate-900 block">{selectedPo.target_warehouse?.name_ar || "-"}</span>
-                </div>
-              </div>
-
-              {/* Lines */}
-              <div className="border border-slate-200 rounded overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50 text-xs">
-                      <TableHead>{isAr ? "الصنف" : "Item"}</TableHead>
-                      <TableHead className="text-end">{isAr ? "الكمية المطلوبة" : "Ordered Qty"}</TableHead>
-                      <TableHead className="text-end">{isAr ? "سعر الوحدة" : "Unit Price"}</TableHead>
-                      <TableHead className="text-end">{isAr ? "الإجمالي شامل الضريبة" : "Total (inc VAT)"}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedPo.lines?.map((line) => (
-                      <TableRow key={line.id}>
-                        <TableCell>
-                          <span className="font-medium text-slate-900 block text-xs">
-                            {line.item?.sku} - {isAr ? line.item?.name_ar : line.item?.name_en}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-end font-mono tabular-nums text-xs">
-                          {line.ordered_qty.toLocaleString("en-US")} {line.item?.base_unit === "gram" ? "جم" : "حبة"}
-                        </TableCell>
-                        <TableCell className="text-end font-mono tabular-nums text-xs">
-                          {line.unit_price_ex_vat.toFixed(4)} ر.س
-                        </TableCell>
-                        <TableCell className="text-end font-mono font-semibold tabular-nums text-xs text-slate-900">
-                          {line.total_inc_vat.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Total Card */}
-              <div className="flex justify-between items-center p-3 bg-slate-900 text-white rounded">
-                <span className="text-sm font-medium">{isAr ? "إجمالي أمر الشراء النهائي (شامل 15% ضريبة):" : "Grand Total (inc 15% VAT):"}</span>
-                <span className="text-lg font-bold font-mono tabular-nums">
-                  {selectedPo.total_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                </span>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <Button variant="outline" onClick={() => setSelectedPo(null)}>
-              {isAr ? "إغلاق" : "Close"}
-            </Button>
-
-            {/* Approval Buttons for Owner or Accountant */}
-            {(isOwner || isAccountant) && selectedPo?.status === "pending_approval" && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="destructive"
-                  onClick={() => updateStatusMutation.mutate({ id: selectedPo.id, status: "rejected", reason: "تم الرفض بواسطة الإدارة" })}
-                  disabled={updateStatusMutation.isPending}
-                  className="gap-1.5"
-                >
-                  <XCircle className="w-4 h-4" />
-                  <span>{isAr ? "رفض الأمر" : "Reject"}</span>
-                </Button>
-
-                <Button
-                  onClick={() => updateStatusMutation.mutate({ id: selectedPo.id, status: "approved" })}
-                  disabled={updateStatusMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  <span>{isAr ? "اعتماد أمر الشراء" : "Approve PO"}</span>
-                </Button>
-              </div>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

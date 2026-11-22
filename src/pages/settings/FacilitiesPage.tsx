@@ -15,20 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Warehouse as WarehouseIcon, Cylinder, Plus, Truck, Edit, AlertCircle } from "lucide-react";
+import { Warehouse as WarehouseIcon,
+  ArrowRight, Cylinder, Plus, Truck, Edit, AlertCircle } from "lucide-react";
 
 // Warehouse Schema
 const warehouseSchema = z.object({
@@ -279,6 +273,288 @@ export function FacilitiesPage() {
     }
   };
 
+
+  // Full-page in-place Canvas for Creating Warehouse
+  if (isWarehouseModalOpen) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setIsWarehouseModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة للمرافق والمستودعات</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <WarehouseIcon className="h-5 w-5 text-sky-600" />
+                <span>{t("facilities.createWarehouse")}</span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsWarehouseModalOpen(false)}
+              disabled={subWarehouse}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={subWarehouse}
+              onClick={handleSubWarehouse(onSubmitWarehouse)}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+            >
+              {subWarehouse ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-base font-semibold">بيانات المستودع</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubWarehouse(onSubmitWarehouse)} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="wh_code">{t("facilities.code")}</Label>
+                <Input
+                  id="wh_code"
+                  dir="ltr"
+                  placeholder="WH-RAW-01"
+                  className="font-mono text-sm h-10"
+                  disabled={subWarehouse}
+                  {...regWarehouse("code")}
+                />
+                {errWarehouse.code && (
+                  <p className="text-xs text-rose-600">{errWarehouse.code.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="wh_name_ar">{t("common.arabicName")}</Label>
+                  <Input
+                    id="wh_name_ar"
+                    placeholder="مستودع المواد الخام الرئيسي"
+                    className="h-10"
+                    disabled={subWarehouse}
+                    {...regWarehouse("name_ar")}
+                  />
+                  {errWarehouse.name_ar && (
+                    <p className="text-xs text-rose-600">{errWarehouse.name_ar.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="wh_name_en">{t("common.englishName")}</Label>
+                  <Input
+                    id="wh_name_en"
+                    dir="ltr"
+                    placeholder="Main Raw Materials Warehouse"
+                    className="h-10"
+                    disabled={subWarehouse}
+                    {...regWarehouse("name_en")}
+                  />
+                  {errWarehouse.name_en && (
+                    <p className="text-xs text-rose-600">{errWarehouse.name_en.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="wh_type">{t("facilities.type")}</Label>
+                <Select
+                  value={selectedWarehouseType}
+                  onValueChange={(val) => setValWarehouse("warehouse_type", val as WarehouseType)}
+                  disabled={subWarehouse}
+                >
+                  <SelectTrigger id="wh_type" className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="raw_materials">مستودع مواد خام (Raw Materials)</SelectItem>
+                    <SelectItem value="packaging">مستودع مواد تعبئة (Packaging)</SelectItem>
+                    <SelectItem value="finished_goods">مستودع منتج تام (Finished Goods)</SelectItem>
+                    <SelectItem value="sales_van">سيارة / فان مندوب مبيعات (Sales Van)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsWarehouseModalOpen(false)}
+                  disabled={subWarehouse}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={subWarehouse}
+                  className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+                >
+                  {subWarehouse ? t("common.saving") : t("common.save")}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Full-page in-place Canvas for Creating / Editing Tank
+  if (isTankModalOpen || !!editingTank) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => {
+                setIsTankModalOpen(false);
+                setEditingTank(null);
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة للمرافق والتانكات</span>
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Cylinder className="h-5 w-5 text-sky-600" />
+                <span>{editingTank ? t("common.edit") + " " + editingTank.tank_code : t("facilities.createTank")}</span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsTankModalOpen(false);
+                setEditingTank(null);
+              }}
+              disabled={subTank}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={subTank}
+              onClick={handleSubTank(onSubmitTank)}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+            >
+              {subTank ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-base font-semibold">مواصفات وسعة التانك</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubTank(onSubmitTank)} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="tk_code">{t("facilities.tankCode")}</Label>
+                <Input
+                  id="tk_code"
+                  dir="ltr"
+                  placeholder="TK-01"
+                  className="font-mono uppercase text-sm h-10"
+                  disabled={!!editingTank || subTank}
+                  {...regTank("tank_code")}
+                />
+                {errTank.tank_code && (
+                  <p className="text-xs text-rose-600">{errTank.tank_code.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="tk_name_ar">{t("common.arabicName")}</Label>
+                  <Input
+                    id="tk_name_ar"
+                    placeholder="تانك خلط رقم 1 (سائل غسيل)"
+                    className="h-10"
+                    disabled={subTank}
+                    {...regTank("name_ar")}
+                  />
+                  {errTank.name_ar && (
+                    <p className="text-xs text-rose-600">{errTank.name_ar.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="tk_name_en">{t("common.englishName")}</Label>
+                  <Input
+                    id="tk_name_en"
+                    dir="ltr"
+                    placeholder="Mixing Tank 01"
+                    className="h-10"
+                    disabled={subTank}
+                    {...regTank("name_en")}
+                  />
+                  {errTank.name_en && (
+                    <p className="text-xs text-rose-600">{errTank.name_en.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="tk_capacity">{t("facilities.capacityLiters")}</Label>
+                <Input
+                  id="tk_capacity"
+                  type="number"
+                  placeholder="5000"
+                  className="h-10 font-mono"
+                  disabled={subTank}
+                  {...regTank("capacity_liters")}
+                />
+                {errTank.capacity_liters && (
+                  <p className="text-xs text-rose-600">{errTank.capacity_liters.message}</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsTankModalOpen(false);
+                    setEditingTank(null);
+                  }}
+                  disabled={subTank}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={subTank}
+                  className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-6"
+                >
+                  {subTank ? t("common.saving") : t("common.save")}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -492,248 +768,8 @@ export function FacilitiesPage() {
       </Tabs>
 
       {/* CREATE WAREHOUSE DIALOG */}
-      <Dialog open={isWarehouseModalOpen} onOpenChange={setIsWarehouseModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("facilities.createWarehouse")}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubWarehouse(onSubmitWarehouse)} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="wh_code">{t("facilities.code")}</Label>
-              <Input
-                id="wh_code"
-                dir="ltr"
-                placeholder="WH-RAW-01"
-                className="font-mono"
-                disabled={subWarehouse}
-                {...regWarehouse("code")}
-              />
-              {errWarehouse.code && (
-                <p className="text-xs text-rose-600">{errWarehouse.code.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="wh_name_ar">{t("common.arabicName")}</Label>
-              <Input
-                id="wh_name_ar"
-                placeholder="مستودع المواد الخام الرئيسي"
-                disabled={subWarehouse}
-                {...regWarehouse("name_ar")}
-              />
-              {errWarehouse.name_ar && (
-                <p className="text-xs text-rose-600">{errWarehouse.name_ar.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="wh_name_en">{t("common.englishName")}</Label>
-              <Input
-                id="wh_name_en"
-                dir="ltr"
-                placeholder="Main Raw Materials Warehouse"
-                disabled={subWarehouse}
-                {...regWarehouse("name_en")}
-              />
-              {errWarehouse.name_en && (
-                <p className="text-xs text-rose-600">{errWarehouse.name_en.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="wh_type">{t("facilities.type")}</Label>
-              <Select
-                value={selectedWarehouseType}
-                onValueChange={(val) => setValWarehouse("warehouse_type", val as WarehouseType)}
-                disabled={subWarehouse}
-              >
-                <SelectTrigger id="wh_type">
-                  <SelectValue placeholder="اختر نوع المستودع" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="raw_materials">مستودع مواد خام (Raw Materials)</SelectItem>
-                  <SelectItem value="packaging">مستودع عبوات وتعبئة (Packaging)</SelectItem>
-                  <SelectItem value="finished_goods">مستودع المنتج التام (Finished Goods)</SelectItem>
-                  <SelectItem value="sales_van">سيارة توزيع مندوب (Sales Van)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedWarehouseType === "sales_van" && (
-              <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="wh_plate">{t("facilities.plateNumber")}</Label>
-                  <Input
-                    id="wh_plate"
-                    placeholder="أ ب ج 1234"
-                    disabled={subWarehouse}
-                    {...regWarehouse("plate_number")}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="wh_rep">{t("facilities.assignedRep")}</Label>
-                  <Select
-                    value={selectedRepId || "none"}
-                    onValueChange={(val) => setValWarehouse("assigned_rep_id", val === "none" ? null : val)}
-                    disabled={subWarehouse}
-                  >
-                    <SelectTrigger id="wh_rep">
-                      <SelectValue placeholder="اختر مندوب المبيعات" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">بدون تعيين حالياً</SelectItem>
-                      {reps.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.full_name} ({r.phone})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsWarehouseModalOpen(false)}
-                disabled={subWarehouse}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="submit"
-                variant="default"
-                isLoading={subWarehouse}
-                className="bg-industrial-primary text-white"
-              >
-                {t("common.save")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* CREATE / EDIT TANK DIALOG */}
-      <Dialog
-        open={isTankModalOpen || !!editingTank}
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsTankModalOpen(false);
-            setEditingTank(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingTank ? t("common.edit") + " " + editingTank.tank_code : t("facilities.createTank")}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubTank(onSubmitTank)} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="tk_code">{t("facilities.tankCode")}</Label>
-              <Input
-                id="tk_code"
-                dir="ltr"
-                placeholder="TK-01"
-                className="font-mono uppercase"
-                disabled={!!editingTank || subTank}
-                {...regTank("tank_code")}
-              />
-              {errTank.tank_code && (
-                <p className="text-xs text-rose-600">{errTank.tank_code.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="tk_name_ar">{t("common.arabicName")}</Label>
-              <Input
-                id="tk_name_ar"
-                placeholder="تانك خلط رقم 1 (سائل غسيل)"
-                disabled={subTank}
-                {...regTank("name_ar")}
-              />
-              {errTank.name_ar && (
-                <p className="text-xs text-rose-600">{errTank.name_ar.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="tk_name_en">{t("common.englishName")}</Label>
-              <Input
-                id="tk_name_en"
-                dir="ltr"
-                placeholder="Mixing Tank 01"
-                disabled={subTank}
-                {...regTank("name_en")}
-              />
-              {errTank.name_en && (
-                <p className="text-xs text-rose-600">{errTank.name_en.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="tk_capacity">{t("facilities.capacityLiters")}</Label>
-              <Input
-                id="tk_capacity"
-                type="number"
-                tabularNums
-                placeholder="2000"
-                disabled={subTank}
-                {...regTank("capacity_liters")}
-              />
-              {errTank.capacity_liters && (
-                <p className="text-xs text-rose-600">{errTank.capacity_liters.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="tk_status">{t("common.status")}</Label>
-              <Select
-                value={selectedTankStatus}
-                onValueChange={(val) => setValTank("status", val as TankStatus)}
-                disabled={subTank}
-              >
-                <SelectTrigger id="tk_status">
-                  <SelectValue placeholder="اختر حالة التانك" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="empty">فارغ وجاهز للخلط (Empty & Clean)</SelectItem>
-                  <SelectItem value="mixing">قيد الخلط (Mixing in Progress)</SelectItem>
-                  <SelectItem value="pending_qc">بانتظار فحص الجودة (Pending QC Gate)</SelectItem>
-                  <SelectItem value="ready_for_packaging">معتمد وجاهز للتعبئة (Approved for Bottling)</SelectItem>
-                  <SelectItem value="rework">إصلاح خلطة (Under Rework)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setIsTankModalOpen(false);
-                  setEditingTank(null);
-                }}
-                disabled={subTank}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="submit"
-                variant="default"
-                isLoading={subTank}
-                className="bg-industrial-primary text-white"
-              >
-                {t("common.save")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

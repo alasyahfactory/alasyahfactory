@@ -15,14 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -44,6 +36,7 @@ import {
   XCircle,
   FlaskConical,
   Scale,
+  ArrowRight,
 } from "lucide-react";
 
 export function ProductionShell() {
@@ -323,6 +316,480 @@ export function ProductionShell() {
       toast.error(msg);
     },
   });
+
+  // 1. QC Gate In-Page Canvas View
+  if (qcModalOpen && qcTargetBatch) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => {
+                setQcModalOpen(false);
+                setQcTargetBatch(null);
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة للصالة</span>
+            </Button>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5 text-sky-600" />
+                <span>فحص الجودة المخبري</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                باتش: {qcTargetBatch.batch_number}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              disabled={recordQcMutation.isPending}
+              onClick={() => recordQcMutation.mutate({ status: "needs_rework" })}
+              className="border-purple-300 text-purple-700 hover:bg-purple-50 text-xs"
+            >
+              <RotateCcw className="me-1 h-3.5 w-3.5" />
+              <span>إصلاح</span>
+            </Button>
+            <Button
+              disabled={recordQcMutation.isPending}
+              onClick={() => recordQcMutation.mutate({ status: "passed" })}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[40px] px-5 font-bold text-xs"
+            >
+              <CheckCircle2 className="me-1.5 h-4 w-4" />
+              <span>اعتماد الجودة</span>
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs font-semibold">pH المقاس *</Label>
+              <Input
+                type="number"
+                step="0.05"
+                value={qcPh}
+                onChange={(e) => setQcPh(Number(e.target.value))}
+                className="mt-1 font-mono text-center text-sm font-bold bg-white"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-semibold">اللزوجة المقاسة (cP) *</Label>
+              <Input
+                type="number"
+                step="50"
+                value={qcViscosity}
+                onChange={(e) => setQcViscosity(Number(e.target.value))}
+                className="mt-1 font-mono text-center text-sm font-bold bg-white"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-slate-200">
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <Checkbox id="c_odor" checked={qcOdorOk} onCheckedChange={(c) => setQcOdorOk(!!c)} />
+              <Label htmlFor="c_odor" className="text-xs cursor-pointer font-medium">الرائحة مطابقة للمواصفة</Label>
+            </div>
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <Checkbox id="c_color" checked={qcColorOk} onCheckedChange={(c) => setQcColorOk(!!c)} />
+              <Label htmlFor="c_color" className="text-xs cursor-pointer font-medium">اللون والمظهر شفاف ومطابق</Label>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold">ملاحظات الفاحص</Label>
+            <Input
+              value={qcNotes}
+              onChange={(e) => setQcNotes(e.target.value)}
+              placeholder="ملاحظات العينة..."
+              className="mt-1 text-xs bg-white"
+            />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 2. Start Batch In-Page Canvas View
+  if (startBatchModalOpen) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setStartBatchModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة للصالة</span>
+            </Button>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Droplets className="h-5 w-5 text-sky-600" />
+                <span>بدء تشغيلة خلط بالتانك</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                تحديد التانك والتركيبة وصرف المواد الخام
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setStartBatchModalOpen(false)}
+            >
+              إلغاء
+            </Button>
+            <Button
+              disabled={startBatchMutation.isPending || !selectedTankId || !selectedFormulaId}
+              onClick={() => startBatchMutation.mutate()}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-5 font-bold text-xs"
+            >
+              {startBatchMutation.isPending ? "جاري البدء..." : "تأكيد وبدء الخلط"}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm p-5 space-y-4">
+          <div>
+            <Label className="text-xs font-semibold">التانك *</Label>
+            <Select value={selectedTankId} onValueChange={setSelectedTankId}>
+              <SelectTrigger className="mt-1 bg-white">
+                <SelectValue placeholder="اختر تانك فارغ..." />
+              </SelectTrigger>
+              <SelectContent>
+                {tanks?.map((t) => (
+                  <SelectItem key={t.id} value={t.id} disabled={t.status !== "empty"}>
+                    {t.tank_code} - {isArabic ? t.name_ar : t.name_en} {t.status !== "empty" ? "(ممتلئ)" : "(فارغ)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold">التركيبة *</Label>
+            <Select
+              value={selectedFormulaId}
+              onValueChange={(val) => {
+                setSelectedFormulaId(val);
+                const f = formulas?.find((x) => x.id === val);
+                if (f) setPlannedBatchKg(f.batch_size_grams / 1000);
+              }}
+            >
+              <SelectTrigger className="mt-1 bg-white">
+                <SelectValue placeholder="اختر التركيبة..." />
+              </SelectTrigger>
+              <SelectContent>
+                {formulas?.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.name_ar}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold">الوزن المخطط (كجم) *</Label>
+            <Input
+              type="number"
+              value={plannedBatchKg}
+              onChange={(e) => setPlannedBatchKg(Number(e.target.value))}
+              min={100}
+              className="mt-1 font-mono text-center font-bold bg-white"
+            />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 3. Close Tank In-Page Canvas View
+  if (closeTankModalOpen && closeTargetBatch) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => {
+                setCloseTankModalOpen(false);
+                setCloseTargetBatch(null);
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة للصالة</span>
+            </Button>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-slate-700" />
+                <span>إغلاق التانك وتفريغه</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                باتش: {closeTargetBatch.batch_number}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setCloseTankModalOpen(false);
+                setCloseTargetBatch(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              disabled={closeTankMutation.isPending}
+              onClick={() => closeTankMutation.mutate()}
+              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[40px] px-5 font-bold text-xs"
+            >
+              {closeTankMutation.isPending ? "جاري الإغلاق..." : "تأكيد إغلاق التانك"}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm p-5 space-y-4">
+          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <span className="text-slate-500 text-xs">المتبقي دفترياً بالتانك:</span>
+            <span className="font-mono font-bold block text-sm mt-0.5">
+              {Math.round((closeTargetBatch.remaining_qty_grams || 0) / 1000)} كجم
+            </span>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold">الناتج الفعلي المستخرج (كجم) *</Label>
+            <Input
+              type="number"
+              value={actualYieldKg}
+              onChange={(e) => setActualYieldKg(Number(e.target.value))}
+              className="mt-1 font-mono text-center font-bold text-sm bg-white"
+            />
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              الفارق يُرحّل كفاقد غسيل تانك وهالك تشغيل
+            </span>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 4. Packaging from Tank In-Page Canvas View
+  if (packagingModalOpen) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setPackagingModalOpen(false)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة للصالة</span>
+            </Button>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Package className="h-5 w-5 text-sky-600" />
+                <span>أمر تعبئة من التانك</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                سحب السائل وتعبئته في عبوات معتمدة
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPackagingModalOpen(false)}
+            >
+              إلغاء
+            </Button>
+            <Button
+              disabled={executePackagingMutation.isPending || !pkgBatchId || !pkgSpecId}
+              onClick={() => executePackagingMutation.mutate()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[40px] px-5 font-bold text-xs"
+            >
+              {executePackagingMutation.isPending ? "جاري التنفيذ..." : "تنفيذ التعبئة"}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm p-5 space-y-4">
+          <div>
+            <Label className="text-xs font-semibold">التشغيلة المعتمدة *</Label>
+            <Select value={pkgBatchId} onValueChange={setPkgBatchId}>
+              <SelectTrigger className="mt-1 bg-white">
+                <SelectValue placeholder="اختر الباتش..." />
+              </SelectTrigger>
+              <SelectContent>
+                {approvedBatches?.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.batch_number} ({Math.round(b.remaining_qty_grams / 1000)} كجم متبقي)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {pkgBatchId && (
+            <div>
+              <Label className="text-xs font-semibold">المواصفة والحجم *</Label>
+              <Select value={pkgSpecId} onValueChange={setPkgSpecId}>
+                <SelectTrigger className="mt-1 bg-white">
+                  <SelectValue placeholder="اختر الحجم..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {specs?.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name_ar} ({s.volume_per_unit_grams / 1000} لتر)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div>
+            <Label className="text-xs font-semibold">عدد العبوات المطلوبة *</Label>
+            <Input
+              type="number"
+              value={unitsProduced}
+              onChange={(e) => setUnitsProduced(Number(e.target.value))}
+              min={1}
+              className="mt-1 font-mono text-center font-bold bg-white"
+            />
+          </div>
+
+          <div className="pt-2 border-t border-slate-200 space-y-2">
+            <span className="font-semibold text-slate-700 block text-xs">هالك مواد التعبئة:</span>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-[10px] text-slate-500">هالك عبوات</Label>
+                <Input
+                  type="number"
+                  value={wastedBottles}
+                  onChange={(e) => setWastedBottles(Number(e.target.value))}
+                  min={0}
+                  className="mt-1 font-mono text-center text-xs bg-white"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] text-slate-500">هالك استيكر</Label>
+                <Input
+                  type="number"
+                  value={wastedStickers}
+                  onChange={(e) => setWastedStickers(Number(e.target.value))}
+                  min={0}
+                  className="mt-1 font-mono text-center text-xs bg-white"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] text-slate-500">هالك كراتين</Label>
+                <Input
+                  type="number"
+                  value={wastedCartons}
+                  onChange={(e) => setWastedCartons(Number(e.target.value))}
+                  min={0}
+                  className="mt-1 font-mono text-center text-xs bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 5. Thermal Batch Label In-Page Canvas View
+  if (labelModalOpen && activeLabelData) {
+    const prodDate = new Date().toISOString().split("T")[0];
+    const pDateObj = new Date(prodDate);
+    pDateObj.setMonth(pDateObj.getMonth() + (activeLabelData.shelfLife || 24));
+    const expDate = pDateObj.toISOString().split("T")[0];
+
+    return (
+      <div className="space-y-6 max-w-lg mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => {
+                setLabelModalOpen(false);
+                setActiveLabelData(null);
+              }}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>العودة للصالة</span>
+            </Button>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Printer className="h-5 w-5 text-sky-600" />
+                <span>طباعة ملصق الباتش الحراري</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {activeLabelData.batchNumber}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setLabelModalOpen(false);
+                setActiveLabelData(null);
+              }}
+            >
+              إغلاق
+            </Button>
+            <Button
+              onClick={() => window.print()}
+              className="bg-sky-600 hover:bg-sky-700 text-white min-h-[40px] px-5 font-bold text-xs"
+            >
+              <Printer className="me-1.5 h-4 w-4" />
+              <span>طباعة فورية</span>
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-slate-200 shadow-sm p-6 flex flex-col items-center justify-center bg-slate-50">
+          <ThermalBatchLabel
+            productNameAr={activeLabelData.productNameAr}
+            productNameEn={activeLabelData.productNameEn}
+            batchNumber={activeLabelData.batchNumber}
+            productionDate={prodDate}
+            expiryDate={expDate}
+            sku={activeLabelData.sku}
+            widthMm={settings?.label_width_mm || 50}
+            heightMm={settings?.label_height_mm || 30}
+          />
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 max-w-lg mx-auto pb-16">
@@ -642,351 +1109,7 @@ export function ProductionShell() {
         </TabsContent>
       </Tabs>
 
-      {/* MODAL 1: QC Gate Input */}
-      <Dialog open={qcModalOpen} onOpenChange={setQcModalOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5 text-sky-600" />
-              <span>فحص الجودة المخبري</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              باتش: {qcTargetBatch?.batch_number}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 my-2 text-xs">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs font-semibold">pH المقاس *</Label>
-                <Input
-                  type="number"
-                  step="0.05"
-                  value={qcPh}
-                  onChange={(e) => setQcPh(Number(e.target.value))}
-                  className="mt-1 font-mono text-center text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">اللزوجة المقاسة (cP) *</Label>
-                <Input
-                  type="number"
-                  step="50"
-                  value={qcViscosity}
-                  onChange={(e) => setQcViscosity(Number(e.target.value))}
-                  className="mt-1 font-mono text-center text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-slate-200">
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Checkbox id="m_odor" checked={qcOdorOk} onCheckedChange={(c: any) => setQcOdorOk(!!c)} />
-                <Label htmlFor="m_odor" className="text-xs cursor-pointer">الرائحة مطابقة للمواصفة</Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Checkbox id="m_color" checked={qcColorOk} onCheckedChange={(c: any) => setQcColorOk(!!c)} />
-                <Label htmlFor="m_color" className="text-xs cursor-pointer">اللون والمظهر شفاف ومطابق</Label>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">ملاحظات الفاحص</Label>
-              <Input
-                value={qcNotes}
-                onChange={(e) => setQcNotes(e.target.value)}
-                placeholder="ملاحظات العينة..."
-                className="mt-1 text-xs"
-              />
-            </div>
           </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              disabled={recordQcMutation.isPending}
-              onClick={() => recordQcMutation.mutate({ status: "needs_rework" })}
-              className="border-purple-300 text-purple-700 min-h-[44px] flex-1 text-xs"
-            >
-              <RotateCcw className="me-1 h-3.5 w-3.5" />
-              إحالة للإصلاح (Rework)
-            </Button>
-            <Button
-              disabled={recordQcMutation.isPending}
-              onClick={() => recordQcMutation.mutate({ status: "passed" })}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[44px] flex-1 text-xs"
-            >
-              <CheckCircle2 className="me-1 h-3.5 w-3.5" />
-              اعتماد الجودة
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL 2: Start Batch */}
-      <Dialog open={startBatchModalOpen} onOpenChange={setStartBatchModalOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Droplets className="h-5 w-5 text-sky-600" />
-              <span>بدء تشغيلة خلط بالتانك</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 my-2 text-xs">
-            <div>
-              <Label className="text-xs font-semibold">التانك *</Label>
-              <Select value={selectedTankId} onValueChange={setSelectedTankId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="اختر تانك فارغ..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {tanks?.map((t) => (
-                    <SelectItem key={t.id} value={t.id} disabled={t.status !== "empty"}>
-                      {t.tank_code} - {isArabic ? t.name_ar : t.name_en} {t.status !== "empty" ? "(ممتلئ)" : "(فارغ)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">التركيبة *</Label>
-              <Select
-                value={selectedFormulaId}
-                onValueChange={(val) => {
-                  setSelectedFormulaId(val);
-                  const f = formulas?.find((x) => x.id === val);
-                  if (f) setPlannedBatchKg(f.batch_size_grams / 1000);
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="اختر التركيبة..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {formulas?.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.name_ar}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">الوزن المخطط (كجم) *</Label>
-              <Input
-                type="number"
-                value={plannedBatchKg}
-                onChange={(e) => setPlannedBatchKg(Number(e.target.value))}
-                min={100}
-                className="mt-1 font-mono text-center font-bold"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              disabled={startBatchMutation.isPending || !selectedTankId || !selectedFormulaId}
-              onClick={() => startBatchMutation.mutate()}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white min-h-[48px]"
-            >
-              {startBatchMutation.isPending ? "جاري البدء..." : "تأكيد وبدء الخلط"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL 3: Close Tank */}
-      <Dialog open={closeTankModalOpen} onOpenChange={setCloseTankModalOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-slate-700" />
-              <span>إغلاق التانك والناتج الفعلي</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 my-2 text-xs">
-            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-              <span className="text-slate-500">المتبقي دفترياً بالتانك:</span>
-              <span className="font-mono font-bold block text-sm mt-0.5">
-                {Math.round((closeTargetBatch?.remaining_qty_grams || 0) / 1000)} كجم
-              </span>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">الناتج الفعلي المستخرج (كجم) *</Label>
-              <Input
-                type="number"
-                value={actualYieldKg}
-                onChange={(e) => setActualYieldKg(Number(e.target.value))}
-                className="mt-1 font-mono text-center font-bold text-sm"
-              />
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                الفارق يُرحّل كفاقد غسيل تانك وهالك تشغيل
-              </span>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              disabled={closeTankMutation.isPending}
-              onClick={() => closeTankMutation.mutate()}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white min-h-[48px]"
-            >
-              {closeTankMutation.isPending ? "جاري الإغلاق..." : "تأكيد إغلاق وتفريغ التانك"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL 4: Packaging from Tank */}
-      <Dialog open={packagingModalOpen} onOpenChange={setPackagingModalOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Package className="h-5 w-5 text-sky-600" />
-              <span>أمر تعبئة من التانك</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 my-2 text-xs">
-            <div>
-              <Label className="text-xs font-semibold">التشغيلة المعتمدة *</Label>
-              <Select value={pkgBatchId} onValueChange={setPkgBatchId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="اختر الباتش..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {approvedBatches?.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.batch_number} ({Math.round(b.remaining_qty_grams / 1000)} كجم متبقي)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {pkgBatchId && (
-              <div>
-                <Label className="text-xs font-semibold">المواصفة والحجم *</Label>
-                <Select value={pkgSpecId} onValueChange={setPkgSpecId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="اختر الحجم..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {specs?.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name_ar} ({s.volume_per_unit_grams / 1000} لتر)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div>
-              <Label className="text-xs font-semibold">عدد العبوات المطلوبة *</Label>
-              <Input
-                type="number"
-                value={unitsProduced}
-                onChange={(e) => setUnitsProduced(Number(e.target.value))}
-                min={1}
-                className="mt-1 font-mono text-center font-bold"
-              />
-            </div>
-
-            <div className="pt-2 border-t border-slate-200 space-y-1.5">
-              <span className="font-semibold text-slate-700 block">هالك مواد التعبئة:</span>
-              <div className="grid grid-cols-3 gap-1.5">
-                <div>
-                  <Label className="text-[10px] text-slate-500">هالك عبوات</Label>
-                  <Input
-                    type="number"
-                    value={wastedBottles}
-                    onChange={(e) => setWastedBottles(Number(e.target.value))}
-                    min={0}
-                    className="mt-0.5 font-mono text-center text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-slate-500">هالك استيكر</Label>
-                  <Input
-                    type="number"
-                    value={wastedStickers}
-                    onChange={(e) => setWastedStickers(Number(e.target.value))}
-                    min={0}
-                    className="mt-0.5 font-mono text-center text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-slate-500">هالك كراتين</Label>
-                  <Input
-                    type="number"
-                    value={wastedCartons}
-                    onChange={(e) => setWastedCartons(Number(e.target.value))}
-                    min={0}
-                    className="mt-0.5 font-mono text-center text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              disabled={executePackagingMutation.isPending || !pkgBatchId || !pkgSpecId}
-              onClick={() => executePackagingMutation.mutate()}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white min-h-[48px]"
-            >
-              {executePackagingMutation.isPending ? "جاري التنفيذ..." : "تنفيذ التعبئة وترحيل المخزون"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL 5: Thermal Batch Label */}
-      <Dialog open={labelModalOpen} onOpenChange={setLabelModalOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Printer className="h-5 w-5 text-sky-600" />
-              <span>طباعة ملصق الباتش الحراري</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          {activeLabelData && (
-            <div className="flex flex-col items-center py-4">
-              {(() => {
-                const prodDate = new Date().toISOString().split("T")[0];
-                const pDateObj = new Date(prodDate);
-                pDateObj.setMonth(pDateObj.getMonth() + (activeLabelData.shelfLife || 24));
-                const expDate = pDateObj.toISOString().split("T")[0];
-
-                return (
-                  <ThermalBatchLabel
-                    productNameAr={activeLabelData.productNameAr}
-                    productNameEn={activeLabelData.productNameEn}
-                    batchNumber={activeLabelData.batchNumber}
-                    productionDate={prodDate}
-                    expiryDate={expDate}
-                    sku={activeLabelData.sku}
-                    widthMm={settings?.label_width_mm || 50}
-                    heightMm={settings?.label_height_mm || 30}
-                  />
-                );
-              })()}
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLabelModalOpen(false)}>
-              إغلاق
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
   );
 }
+export default ProductionShell;

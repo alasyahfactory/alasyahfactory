@@ -12,14 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
 import {
   Select,
   SelectContent,
@@ -30,6 +23,7 @@ import {
 
 import {
   Truck,
+  ArrowRight,
   Plus,
   Search,
   ArrowUpRight,
@@ -298,169 +292,6 @@ export function VanCustodyPage() {
       </Card>
 
       {/* Transfer Dialog (Load / Return) */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Truck className="h-5 w-5 text-sky-600" />
-              <span>
-                {transferType === "load_to_van" ? t("sales.loadVan") : t("sales.returnFromVan")}
-              </span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              {transferType === "load_to_van"
-                ? "صرف بضاعة تامة من المستودع الرئيسي وتحميلها على عهدة سيارة المندوب (1134 -> 1135)"
-                : "إرجاع متبقي البضاعة من سيارة المندوب إلى المستودع الرئيسي (1135 -> 1134)"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            <div>
-              <Label className="text-xs font-semibold">{t("sales.selectVan")} *</Label>
-              <Select value={vanWarehouseId} onValueChange={setVanWarehouseId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="اختر سيارة التوزيع..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {vans?.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name_ar} ({v.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Line Items */}
-            <div className="pt-2 border-t border-slate-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-800 text-xs">الأصناف والكميات:</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  type="button"
-                  onClick={() =>
-                    setLines([
-                      ...lines,
-                      { item_id: "", quantity: 10, unit_type: "carton" },
-                    ])
-                  }
-                  className="text-xs text-sky-700 border-sky-300"
-                >
-                  <Plus className="me-1 h-3.5 w-3.5" />
-                  إضافة صنف
-                </Button>
-              </div>
-
-              {lines.length === 0 ? (
-                <div className="text-center py-6 border border-dashed rounded-lg text-slate-400">
-                  اضغط "إضافة صنف" لإدراج المنتجات
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {lines.map((line, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"
-                    >
-                      <div className="flex-1">
-                        <Select
-                          value={line.item_id}
-                          onValueChange={(val) => {
-                            const updated = [...lines];
-                            updated[idx].item_id = val;
-                            setLines(updated);
-                          }}
-                        >
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="اختر المنتج..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {finishedGoods?.map((item) => (
-                              <SelectItem key={item.id} value={item.id}>
-                                {isArabic ? item.name_ar : item.name_en} ({item.sku})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="w-24">
-                        <Input
-                          type="number"
-                          placeholder="الكمية"
-                          value={line.quantity || ""}
-                          onChange={(e) => {
-                            const updated = [...lines];
-                            updated[idx].quantity = Number(e.target.value);
-                            setLines(updated);
-                          }}
-                          className="font-mono tabular-nums bg-white text-center text-xs"
-                        />
-                      </div>
-
-                      <div className="w-28">
-                        <Select
-                          value={line.unit_type}
-                          onValueChange={(val: "carton" | "piece") => {
-                            const updated = [...lines];
-                            updated[idx].unit_type = val;
-                            setLines(updated);
-                          }}
-                        >
-                          <SelectTrigger className="bg-white text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="carton">كرتون</SelectItem>
-                            <SelectItem value="piece">حبة</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        type="button"
-                        onClick={() => {
-                          const updated = lines.filter((_, i) => i !== idx);
-                          setLines(updated);
-                        }}
-                        className="text-rose-500 hover:bg-rose-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">ملاحظات الحركة</Label>
-              <Input
-                placeholder="ملاحظات التسليم والاستلام..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              disabled={executeTransferMutation.isPending}
-              onClick={() => executeTransferMutation.mutate()}
-              className="bg-slate-900 hover:bg-slate-800 text-white min-h-[44px]"
-            >
-              {executeTransferMutation.isPending ? t("common.saving") : "تأكيد وترحيل حركة العهدة"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

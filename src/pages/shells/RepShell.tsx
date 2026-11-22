@@ -15,14 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -47,6 +39,7 @@ import {
   Send,
   AlertCircle,
   FileCheck2,
+  ArrowRight,
 } from "lucide-react";
 
 export function RepShell() {
@@ -316,6 +309,69 @@ export function RepShell() {
       : `https://api.whatsapp.com/send?text=${encoded}`;
     window.open(waUrl, "_blank");
   };
+
+  // Full-page in-place Canvas for Created Invoice Success
+  if (createdInvoiceSuccess) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto pb-16 animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-emerald-200 dark:border-emerald-900 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="tonal"
+              size="sm"
+              onClick={() => setCreatedInvoiceSuccess(null)}
+              className="gap-1.5"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
+              <span>{isArabic ? "فاتورة جديدة / عودة" : "Back / New"}</span>
+            </Button>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-emerald-800 flex items-center gap-2">
+                <FileCheck2 className="h-5 w-5 text-emerald-600" />
+                <span>{isArabic ? "تم إصدار الفاتورة الضريبية بنجاح!" : "Invoice Issued Successfully!"}</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                رقم: {createdInvoiceSuccess.invoice_number} • {createdInvoiceSuccess.customerName}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              onClick={() => handleShareWhatsApp(createdInvoiceSuccess)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[40px] px-4 font-bold text-xs"
+            >
+              <Share2 className="me-2 h-4 w-4" />
+              <span>{isArabic ? "واتساب" : "WhatsApp"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCreatedInvoiceSuccess(null)}
+            >
+              {isArabic ? "إغلاق" : "Close"}
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-emerald-200 shadow-sm p-6 bg-white dark:bg-slate-900 space-y-4">
+          <div className="bg-slate-50 border rounded-xl p-4 text-xs space-y-3">
+            <div className="flex justify-between items-center font-bold text-slate-800 text-base">
+              <span>{isArabic ? "صافي المستحق للسداد:" : "Net Due:"}</span>
+              <span className="font-mono tabular-nums text-emerald-700 text-lg">
+                {Number(createdInvoiceSuccess.totalIncVat || 0).toFixed(2)} ر.س
+              </span>
+            </div>
+            <p className="text-slate-500 text-xs">
+              {isArabic
+                ? "تم سحب الكميات من عهدة السيارة، وترحيل القيد المحاسبي المزدوج وقيد عمولة المبيعات آلياً."
+                : "Stock deducted from van, JV posted, and commission credited."}
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 max-w-lg mx-auto pb-16">
@@ -718,58 +774,6 @@ export function RepShell() {
           )}
         </TabsContent>
       </Tabs>
-
-      {/* Invoice Success & WhatsApp Share Modal */}
-      <Dialog open={!!createdInvoiceSuccess} onOpenChange={(o) => !o && setCreatedInvoiceSuccess(null)}>
-        <DialogContent className="max-w-md text-center">
-          <DialogHeader>
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 mb-2">
-              <FileCheck2 className="h-8 w-8" />
-            </div>
-            <DialogTitle className="text-emerald-800 text-lg">
-              {isArabic ? "تم إصدار الفاتورة الضريبية بنجاح!" : "Invoice Issued Successfully!"}
-            </DialogTitle>
-            <DialogDescription>
-              {isArabic
-                ? `رقم الفاتورة: ${createdInvoiceSuccess?.invoice_number} • العميل: ${createdInvoiceSuccess?.customerName}`
-                : `Invoice: ${createdInvoiceSuccess?.invoice_number}`}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="bg-slate-50 border rounded-xl p-4 my-2 text-xs space-y-2">
-            <div className="flex justify-between font-bold text-slate-800 text-sm">
-              <span>{isArabic ? "صافي المستحق للسداد:" : "Net Due:"}</span>
-              <span className="font-mono tabular-nums text-emerald-700">
-                {Number(createdInvoiceSuccess?.totalIncVat || 0).toFixed(2)} ر.س
-              </span>
-            </div>
-            <p className="text-slate-500 text-[11px]">
-              {isArabic
-                ? "تم سحب الكميات من عهدة السيارة، وترحيل القيد المحاسبي المزدوج وقيد عمولة المبيعات."
-                : "Stock deducted from van, JV posted, and commission credited."}
-            </p>
-          </div>
-
-          <DialogFooter className="flex flex-col gap-2">
-            <Button
-              onClick={() => handleShareWhatsApp(createdInvoiceSuccess)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white min-h-[42px] font-bold text-xs"
-            >
-              <Share2 className="me-2 h-4 w-4" />
-              <span>{isArabic ? "إرسال الفاتورة للعميل عبر واتساب" : "Send Invoice via WhatsApp"}</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreatedInvoiceSuccess(null)}
-              className="w-full"
-            >
-              {isArabic ? "إغلاق" : "Close"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -307,7 +307,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       )}
     >
       <div className="flex flex-1 flex-col justify-between p-3 space-y-4">
-        <nav className="space-y-4">
+        <nav aria-label={isArabic ? "القائمة الرئيسية" : "Main Navigation"} className="space-y-4">
           {sections.map((sec, secIdx) => {
             const visibleItems = sec.items.filter((i) => i.show);
             if (visibleItems.length === 0) return null;
