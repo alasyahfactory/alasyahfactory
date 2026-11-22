@@ -63,8 +63,11 @@ export function BottomNav() {
   if (navItems.length === 0) return null;
 
   return (
-    <nav aria-label={isArabic ? "التنقل السريع للجوال" : "Quick Navigation"} className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-industrial-border pb-safe">
-      <div className="flex items-center justify-around h-16 px-1">
+    <nav
+      aria-label={isArabic ? "التنقل السريع للجوال" : "Quick Navigation"}
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] pb-safe"
+    >
+      <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -74,17 +77,24 @@ export function BottomNav() {
               end={item.to === "/" || item.to === "/accounting"}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-1 flex-col items-center justify-center min-h-[44px] py-1 text-center transition-colors select-none",
+                  "relative flex flex-1 flex-col items-center justify-center min-h-[48px] py-1 text-center transition-all duration-150 select-none rounded-xl active:scale-95",
                   isActive
-                    ? "text-accent font-semibold"
+                    ? "text-sky-600 font-semibold"
                     : "text-slate-500 hover:text-slate-800"
                 )
               }
             >
-              <Icon className="h-5 w-5 mb-0.5" />
-              <span className="text-[10px] tracking-tight truncate max-w-[64px]">
-                {item.label}
-              </span>
+              {({ isActive }) => (
+                <>
+                  <Icon className={cn("h-5 w-5 mb-0.5 transition-transform duration-150", isActive && "scale-110")} />
+                  <span className="text-[10px] tracking-tight truncate max-w-[64px]">
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <span className="absolute top-1 h-1 w-6 bg-sky-600 rounded-full" />
+                  )}
+                </>
+              )}
             </NavLink>
           );
         })}

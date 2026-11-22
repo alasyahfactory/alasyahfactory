@@ -961,43 +961,55 @@ export function SalesInvoicesPage() {
         )}
       </div>
 
-      {/* Material Design 3 KPI Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card variant="elevated" className="p-4 border-slate-100">
-          <span className="text-xs text-slate-500 font-medium block mb-1">
+      {/* 2026 Modern Industrial KPI Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="stat-card-2026 accent-indigo">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
             {isArabic ? "إجمالي المبيعات شامل الضريبة" : "Total Sales (Inc. VAT)"}
           </span>
-          <span className="text-lg sm:text-xl font-bold font-mono text-slate-900 tabular-nums">
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-900 tabular-nums tracking-tight">
             {totalSalesAll.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-          </span>
-        </Card>
+          </div>
+          <div className="mt-2 text-[11px] text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full inline-block border border-indigo-200/60">
+            {isArabic ? "مبيعات معتمدة" : "Gross Revenue"}
+          </div>
+        </div>
 
-        <Card variant="elevated" className="p-4 border-slate-100">
-          <span className="text-xs text-slate-500 font-medium block mb-1">
+        <div className="stat-card-2026 accent-sky">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
             {isArabic ? "ضريبة القيمة المضافة (15%)" : "Total VAT (15%)"}
           </span>
-          <span className="text-lg sm:text-xl font-bold font-mono text-sky-700 tabular-nums">
+          <div className="text-xl sm:text-2xl font-black font-mono text-sky-700 tabular-nums tracking-tight">
             {totalVatAll.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-          </span>
-        </Card>
+          </div>
+          <div className="mt-2 text-[11px] text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded-full inline-block border border-sky-200/60">
+            {isArabic ? "إقرار ZATCA" : "Output VAT"}
+          </div>
+        </div>
 
-        <Card variant="elevated" className="p-4 border-slate-100">
-          <span className="text-xs text-slate-500 font-medium block mb-1">
+        <div className="stat-card-2026 accent-emerald">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
             {isArabic ? "صافي المستحق للتحصيل" : "Net Due Amount"}
           </span>
-          <span className="text-lg sm:text-xl font-bold font-mono text-emerald-700 tabular-nums">
+          <div className="text-xl sm:text-2xl font-black font-mono text-emerald-700 tabular-nums tracking-tight">
             {totalNetDueAll.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-          </span>
-        </Card>
+          </div>
+          <div className="mt-2 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full inline-block border border-emerald-200/60">
+            {isArabic ? "رصيد المدينين" : "Receivables"}
+          </div>
+        </div>
 
-        <Card variant="elevated" className="p-4 border-slate-100">
-          <span className="text-xs text-slate-500 font-medium block mb-1">
+        <div className="stat-card-2026 accent-amber">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
             {isArabic ? "إجمالي عدد الفواتير" : "Total Invoices Count"}
           </span>
-          <span className="text-lg sm:text-xl font-bold font-mono text-slate-800 tabular-nums">
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-800 tabular-nums tracking-tight">
             {totalCountAll} {isArabic ? "فاتورة" : "Invoices"}
-          </span>
-        </Card>
+          </div>
+          <div className="mt-2 text-[11px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full inline-block border border-amber-200/60">
+            {isArabic ? "سجل الفوترة" : "Invoiced"}
+          </div>
+        </div>
       </div>
 
       {/* Search Bar */}

@@ -3,15 +3,8 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Material Design 3 (M3) Button System
- * Single Source of Truth: references/component-selection.md & references/shape-and-elevation.md
- *
- * M3 Action Hierarchy:
- * - filled: Highest-emphasis primary action (M3 Filled Button)
- * - tonal: Important but softer secondary action (M3 Filled Tonal Button)
- * - elevated: Medium-emphasis with elevation separation (M3 Elevated Button)
- * - outlined: Medium-emphasis bordered alternative (M3 Outlined Button)
- * - text: Low-emphasis contextual action (M3 Text Button)
+ * 2026 Industrial Enterprise Button System
+ * Built on Material Design 3 + Swiss Minimalism
  */
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -50,54 +43,54 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    // M3 Base state layer and interactive transitions
+    // 2026 Interactive transitions with tactile feedback
     const baseStyles =
-      "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 select-none active:scale-[0.98]";
+      "inline-flex items-center justify-center whitespace-nowrap text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 select-none active:scale-[0.975] cursor-pointer";
 
     const shapeStyles = {
       rounded: "rounded-xl",
       pill: "rounded-full",
-      square: "rounded-md",
+      square: "rounded-lg",
     };
 
     const variantStyles: Record<string, string> = {
-      // M3 Official Variants
+      // 2026 Core Variants
       filled:
-        "bg-industrial-primary text-white hover:bg-slate-800 shadow-sm hover:shadow hover:brightness-105 active:shadow-none",
+        "bg-slate-900 text-white hover:bg-slate-800 shadow-sm shadow-slate-900/10 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-none",
       tonal:
-        "bg-sky-50 text-sky-900 border border-sky-100/80 hover:bg-sky-100 hover:border-sky-200 active:bg-sky-200/80",
+        "bg-sky-50 text-sky-900 border border-sky-200/70 hover:bg-sky-100/80 hover:border-sky-300 active:bg-sky-200/80",
       elevated:
-        "bg-white text-slate-800 border border-slate-100 shadow-sm hover:shadow-md hover:bg-slate-50/80 active:shadow-sm",
+        "bg-white text-slate-800 border border-slate-200/80 shadow-sm hover:shadow-md hover:bg-slate-50/80 hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm",
       outlined:
-        "border border-slate-300 bg-white/50 text-slate-800 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-400 active:bg-slate-200/60",
+        "border border-slate-200/90 bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-950 hover:border-slate-300 shadow-subtle active:bg-slate-100",
       text:
         "text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 active:bg-slate-200/70",
 
-      // Legacy Mappings
+      // Semantic Variants
       default:
-        "bg-industrial-primary text-white hover:bg-slate-800 shadow-sm hover:shadow hover:brightness-105 active:shadow-none",
+        "bg-slate-900 text-white hover:bg-slate-800 shadow-sm shadow-slate-900/10 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-none",
       destructive:
-        "bg-rose-600 text-white hover:bg-rose-700 shadow-sm hover:shadow active:bg-rose-800",
+        "bg-rose-600 text-white hover:bg-rose-700 shadow-sm shadow-rose-600/20 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:bg-rose-800",
       outline:
-        "border border-industrial-border bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-900",
+        "border border-slate-200/90 bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-950 hover:border-slate-300 shadow-subtle active:bg-slate-100",
       secondary:
-        "bg-slate-100 text-slate-900 hover:bg-slate-200 active:bg-slate-300",
+        "bg-slate-100 text-slate-800 hover:bg-slate-200/80 hover:text-slate-950 active:bg-slate-200",
       ghost:
-        "hover:bg-slate-100 text-slate-700 hover:text-slate-900 active:bg-slate-200",
+        "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 active:bg-slate-200/70",
       link:
-        "text-accent underline-offset-4 hover:underline",
+        "text-sky-600 underline-offset-4 hover:underline p-0 h-auto font-medium",
       accent:
-        "bg-accent text-white hover:bg-sky-700 shadow-sm hover:shadow active:bg-sky-800",
+        "bg-gradient-to-r from-sky-600 to-sky-700 text-white hover:from-sky-700 hover:to-sky-800 shadow-sm shadow-sky-600/20 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
       emerald:
-        "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow active:bg-emerald-800",
+        "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 shadow-sm shadow-emerald-600/20 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
     };
 
     const sizeStyles = {
-      default: "h-10 px-4 py-2",
+      default: "h-9 px-4 py-2",
       sm: "h-8 px-3 text-xs",
-      lg: "h-12 px-8 text-base font-semibold",
-      icon: "h-10 w-10 p-0 rounded-full",
-      mobile: "min-h-[48px] px-5 py-3 text-base font-semibold w-full",
+      lg: "h-11 px-6 text-sm font-semibold",
+      icon: "h-9 w-9 p-0",
+      mobile: "min-h-[48px] px-5 py-3 text-sm font-semibold w-full",
     };
 
     return (
@@ -106,7 +99,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         className={cn(
           baseStyles,
-          shapeStyles[size === "icon" ? "pill" : shape],
+          shapeStyles[size === "icon" ? "rounded" : shape],
           variantStyles[variant] || variantStyles.default,
           sizeStyles[size],
           className
@@ -114,7 +107,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {isLoading && (
-          <Loader2 className="me-2 h-4 w-4 animate-spin text-current" />
+          <Loader2 className="me-2 h-3.5 w-3.5 animate-spin text-current" />
         )}
         {children}
       </button>

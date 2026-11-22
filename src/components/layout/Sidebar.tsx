@@ -48,7 +48,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {
           to: isOwner ? "/" : "/accounting",
           icon: LayoutDashboard,
-          label: isOwner ? (isArabic ? "لوحة المدير" : "Dashboard") : (isArabic ? "لوحة المحاسب" : "Accounting"),
+          label: isOwner ? (isArabic ? "لوحة المدير التنفيذي" : "Executive Dashboard") : (isArabic ? "لوحة المحاسب" : "Accounting"),
           show: isOwner || isAccountant,
         },
         {
@@ -302,7 +302,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col border-e border-industrial-border bg-white transition-all duration-300 select-none overflow-y-auto",
+        "hidden md:flex flex-col border-e border-slate-200/80 bg-white/95 backdrop-blur-md transition-all duration-300 select-none overflow-y-auto scrollbar-none",
         collapsed ? "w-16" : "w-64"
       )}
     >
@@ -315,7 +315,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             return (
               <div key={secIdx} className="space-y-1">
                 {!collapsed && (
-                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     {sec.title}
                   </div>
                 )}
@@ -328,16 +328,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       end={item.to === "/" || item.to === "/accounting"}
                       className={({ isActive }) =>
                         cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          "group flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-150",
                           isActive
-                            ? "bg-slate-900 text-white shadow-sm"
-                            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
+                            ? "bg-slate-900 text-white shadow-sm shadow-slate-900/10 font-semibold"
+                            : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900",
                           collapsed && "justify-center px-2"
                         )
                       }
                       title={collapsed ? item.label : undefined}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-105" />
                       {!collapsed && <span className="truncate">{item.label}</span>}
                     </NavLink>
                   );
@@ -348,10 +348,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </nav>
 
         {/* Collapse toggle at bottom */}
-        <div className="border-t border-industrial-border pt-2">
+        <div className="border-t border-slate-200/70 pt-2">
           <button
             onClick={onToggle}
-            className="flex w-full items-center justify-center gap-2 rounded-md p-2 text-xs text-slate-500 hover:bg-slate-100"
+            className="flex w-full items-center justify-center gap-2 rounded-xl p-2 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
           >
             {isArabic ? (
               collapsed ? (
@@ -376,4 +376,3 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     </aside>
   );
 }
-

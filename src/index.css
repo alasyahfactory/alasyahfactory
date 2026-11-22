@@ -51,7 +51,13 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 199 89% 48%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 222 47% 11%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-border: 214.3 31.8% 91.4%;
   }
 }
 
@@ -266,3 +272,121 @@ html,
     radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / 0.08), transparent) bottom / 100% 0.5rem no-repeat,
     #ffffff;
 }
+
+/* ==========================================================================
+   2026 Ultra-Modern Enterprise ERP Design Enhancements
+   ========================================================================== */
+
+/* Subtle ambient industrial canvas pattern */
+.bg-industrial-canvas {
+  background-color: #f8fafc;
+  background-image: radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.03) 0px, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* 2026 Modern Card with soft micro-border & ambient elevation */
+.card-modern {
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  border-radius: 1rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-modern:hover {
+  border-color: rgba(203, 213, 225, 0.95);
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
+}
+
+/* Modern Glass Card */
+.card-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+}
+
+/* 2026 KPI Stat Card */
+.stat-card-2026 {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stat-card-2026:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.07);
+  border-color: rgba(186, 230, 253, 0.8);
+}
+
+.stat-card-2026::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: background 0.25s ease;
+}
+
+.stat-card-2026.accent-sky::before {
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+}
+
+.stat-card-2026.accent-emerald::before {
+  background: linear-gradient(90deg, #059669, #34d399);
+}
+
+.stat-card-2026.accent-indigo::before {
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+}
+
+.stat-card-2026.accent-amber::before {
+  background: linear-gradient(90deg, #d97706, #fbbf24);
+}
+
+/* Modern Sticky Table Header */
+.table-header-glass {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(248, 250, 252, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Modern Button Ripple / Tactile Feel */
+.btn-tactile {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-tactile:active {
+  transform: scale(0.975);
+}
+
+/* Subtle glow badges */
+.badge-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+/* RTL-aware transition helper */
+[dir="rtl"] .hover-shift-start:hover {
+  transform: translateX(-3px);
+}
+[dir="ltr"] .hover-shift-start:hover {
+  transform: translateX(3px);
+}
+

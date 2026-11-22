@@ -16,7 +16,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         type={type}
         inputMode={resolvedInputMode}
         className={cn(
-          "flex h-9 w-full rounded-md border border-industrial-border bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-rose-500 aria-[invalid=true]:focus-visible:ring-rose-500",
+          "flex h-10 w-full rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 shadow-subtle transition-all duration-150 file:border-0 file:bg-transparent file:text-xs file:font-semibold placeholder:text-slate-400 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/20 focus-visible:border-sky-500 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-rose-500 aria-[invalid=true]:focus-visible:ring-rose-500/20",
           tabularNums && "tabular-nums font-mono",
           className
         )}

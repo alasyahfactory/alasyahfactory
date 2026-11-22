@@ -793,18 +793,22 @@ export function ProductionShell() {
 
   return (
     <div className="space-y-4 max-w-lg mx-auto pb-16">
-      {/* Mobile Top Header Banner */}
-      <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400">
+      {/* 2026 Modern Mobile Top Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-850 p-5 text-white shadow-card flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500/20 to-sky-600/10 text-sky-400 ring-1 ring-sky-500/30 shadow-inner">
             <Factory className="h-6 w-6" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
+            </span>
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight">صالة الإنتاج والتشغيل</h1>
-            <p className="text-[11px] text-slate-300">بوابة مشرف الإنتاج الميدانية</p>
+            <h1 className="text-base font-black tracking-tight text-white">صالة الإنتاج والتشغيل</h1>
+            <p className="text-[11px] text-slate-300 font-medium">بوابة مشرف الإنتاج الميدانية • 2026</p>
           </div>
         </div>
-        <Badge variant="emerald" className="text-[10px] py-0.5">
+        <Badge variant="emerald" withDot className="text-[10px] py-1 px-3">
           مرحلة 3 نشطة
         </Badge>
       </div>

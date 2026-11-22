@@ -273,84 +273,84 @@ export function AnalyticsReportsPage() {
         </Button>
       </div>
 
-      {/* Navigation Buttons for the 6 Analytic Reports */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      {/* 2026 Modern Navigation Cards for the 6 Analytic Reports */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <button
           onClick={() => setSelectedReport("items_profit")}
-          className={`p-3 rounded-lg border text-start transition-all ${
+          className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-95 hover:-translate-y-0.5 ${
             selectedReport === "items_profit"
-              ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-              : "border-industrial-border bg-white text-slate-700 hover:bg-slate-50"
+              ? "border-slate-900 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-card ring-1 ring-white/10"
+              : "border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-subtle"
           }`}
         >
-          <TrendingUp className="h-4 w-4 mb-1.5" />
+          <TrendingUp className={`h-4 w-4 mb-2 ${selectedReport === "items_profit" ? "text-sky-400" : "text-sky-600"}`} />
           <div className="font-bold text-xs">1. ربحية الأصناف</div>
-          <div className="text-[10px] opacity-75 mt-0.5">حجم المبيعات والإيراد</div>
+          <div className={`text-[10px] mt-0.5 ${selectedReport === "items_profit" ? "text-slate-300" : "text-slate-400"}`}>حجم المبيعات والإيراد</div>
         </button>
 
         <button
           onClick={() => setSelectedReport("customers_velocity")}
-          className={`p-3 rounded-lg border text-start transition-all ${
+          className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-95 hover:-translate-y-0.5 ${
             selectedReport === "customers_velocity"
-              ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-              : "border-industrial-border bg-white text-slate-700 hover:bg-slate-50"
+              ? "border-slate-900 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-card ring-1 ring-white/10"
+              : "border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-subtle"
           }`}
         >
-          <Users className="h-4 w-4 mb-1.5" />
+          <Users className={`h-4 w-4 mb-2 ${selectedReport === "customers_velocity" ? "text-indigo-400" : "text-indigo-600"}`} />
           <div className="font-bold text-xs">2. تحصيل العملاء</div>
-          <div className="text-[10px] opacity-75 mt-0.5">سرعة السداد والمديونيات</div>
+          <div className={`text-[10px] mt-0.5 ${selectedReport === "customers_velocity" ? "text-slate-300" : "text-slate-400"}`}>سرعة السداد والمديونيات</div>
         </button>
 
         <button
           onClick={() => setSelectedReport("rep_vehicle_profit")}
-          className={`p-3 rounded-lg border text-start transition-all ${
+          className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-95 hover:-translate-y-0.5 ${
             selectedReport === "rep_vehicle_profit"
-              ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-              : "border-industrial-border bg-white text-slate-700 hover:bg-slate-50"
+              ? "border-slate-900 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-card ring-1 ring-white/10"
+              : "border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-subtle"
           }`}
         >
-          <Truck className="h-4 w-4 mb-1.5" />
+          <Truck className={`h-4 w-4 mb-2 ${selectedReport === "rep_vehicle_profit" ? "text-amber-400" : "text-amber-600"}`} />
           <div className="font-bold text-xs">3. المناديب والسيارات</div>
-          <div className="text-[10px] opacity-75 mt-0.5">العمولات ومصاريف 6109</div>
+          <div className={`text-[10px] mt-0.5 ${selectedReport === "rep_vehicle_profit" ? "text-slate-300" : "text-slate-400"}`}>العمولات ومصاريف 6109</div>
         </button>
 
         <button
           onClick={() => setSelectedReport("mixing_variances")}
-          className={`p-3 rounded-lg border text-start transition-all ${
+          className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-95 hover:-translate-y-0.5 ${
             selectedReport === "mixing_variances"
-              ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-              : "border-industrial-border bg-white text-slate-700 hover:bg-slate-50"
+              ? "border-slate-900 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-card ring-1 ring-white/10"
+              : "border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-subtle"
           }`}
         >
-          <FlaskConical className="h-4 w-4 mb-1.5" />
+          <FlaskConical className={`h-4 w-4 mb-2 ${selectedReport === "mixing_variances" ? "text-purple-400" : "text-purple-600"}`} />
           <div className="font-bold text-xs">4. انحراف الخلطات</div>
-          <div className="text-[10px] opacity-75 mt-0.5">فاقد التانكات وهالك 6105</div>
+          <div className={`text-[10px] mt-0.5 ${selectedReport === "mixing_variances" ? "text-slate-300" : "text-slate-400"}`}>فاقد التانكات وهالك 6105</div>
         </button>
 
         <button
           onClick={() => setSelectedReport("near_expiry")}
-          className={`p-3 rounded-lg border text-start transition-all ${
+          className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-95 hover:-translate-y-0.5 ${
             selectedReport === "near_expiry"
-              ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-              : "border-industrial-border bg-white text-slate-700 hover:bg-slate-50"
+              ? "border-slate-900 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-card ring-1 ring-white/10"
+              : "border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-subtle"
           }`}
         >
-          <AlertTriangle className="h-4 w-4 mb-1.5" />
+          <AlertTriangle className={`h-4 w-4 mb-2 ${selectedReport === "near_expiry" ? "text-rose-400" : "text-rose-600"}`} />
           <div className="font-bold text-xs">5. قرب الانتهاء</div>
-          <div className="text-[10px] opacity-75 mt-0.5">المخزون الحرج والأقدمية</div>
+          <div className={`text-[10px] mt-0.5 ${selectedReport === "near_expiry" ? "text-slate-300" : "text-slate-400"}`}>المخزون الحرج والأقدمية</div>
         </button>
 
         <button
           onClick={() => setSelectedReport("final_unit_cost")}
-          className={`p-3 rounded-lg border text-start transition-all ${
+          className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-95 hover:-translate-y-0.5 ${
             selectedReport === "final_unit_cost"
-              ? "border-emerald-700 bg-emerald-700 text-white shadow-sm"
-              : "border-industrial-border bg-white text-emerald-800 hover:bg-emerald-50"
+              ? "border-slate-900 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-card ring-1 ring-white/10"
+              : "border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-subtle"
           }`}
         >
-          <Calculator className="h-4 w-4 mb-1.5" />
-          <div className="font-bold text-xs">التكلفة النهائية للوحدة</div>
-          <div className="text-[10px] opacity-75 mt-0.5">حاسبة تكاليف التشغيل</div>
+          <Calculator className={`h-4 w-4 mb-2 ${selectedReport === "final_unit_cost" ? "text-emerald-400" : "text-emerald-600"}`} />
+          <div className="font-bold text-xs">6. تكلفة الوحدة</div>
+          <div className={`text-[10px] mt-0.5 ${selectedReport === "final_unit_cost" ? "text-slate-300" : "text-slate-400"}`}>تحميل المصاريف غير المباشرة</div>
         </button>
       </div>
 

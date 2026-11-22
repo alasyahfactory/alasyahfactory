@@ -641,23 +641,26 @@ export function WarehouseShell() {
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto pb-16">
-      {/* Top Warehouse Header Banner */}
-      <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+      {/* 2026 Modern Top Warehouse Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-850 p-5 text-white shadow-card flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 text-emerald-400 ring-1 ring-emerald-500/30 shadow-inner">
             <Package className="h-6 w-6" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight">
+            <h1 className="text-base font-black tracking-tight text-white">
               {isArabic ? "بوابة المستودع والوزن الميداني" : "Warehouse Operations Portal"}
             </h1>
-            <p className="text-[11px] text-slate-300">
+            <p className="text-[11px] text-slate-300 font-medium">
               {profile?.full_name || "أمين المستودع"} • {isArabic ? "استلام الميزان، الصرف والجرد" : "Scale Receiving & Logistics"}
             </p>
           </div>
         </div>
-        <Badge variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-950/40 text-[10px] py-0.5">
-          <ShieldCheck className="me-1 h-3 w-3" />
+        <Badge variant="emerald" withDot className="text-[10px] py-1 px-3">
           {isArabic ? "أمين مستودع" : "Warehouse"}
         </Badge>
       </div>

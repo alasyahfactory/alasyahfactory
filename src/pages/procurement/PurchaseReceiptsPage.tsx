@@ -951,8 +951,59 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
         </Button>
       </div>
 
+      {/* 2026 Modern GRN KPI Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="stat-card-2026 accent-slate">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "إجمالي سندات الاستلام (GRN)" : "Total Receipts"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-900 tabular-nums tracking-tight">
+            {receipts.length} {isAr ? "سند" : "GRNs"}
+          </div>
+          <div className="mt-2 text-[11px] text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded-full inline-block">
+            {isAr ? "موزونة ومثبتة" : "Scale Verified"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-sky">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "إجمالي الوزن المستلم (الميزان)" : "Total Scale Weight"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-sky-700 tabular-nums tracking-tight">
+            {receipts.reduce((sum, r) => sum + ((r as any).lines?.reduce((acc: number, l: any) => acc + (l.weight_kg || 0), 0) || 0), 0).toLocaleString("en-US", { maximumFractionDigits: 1 })} {isAr ? "كجم" : "Kg"}
+          </div>
+          <div className="mt-2 text-[11px] text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded-full inline-block border border-sky-200/60">
+            {isAr ? "وزن فعلي مدقق" : "Actual Scale Weight"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-emerald">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "إجمالي القيمة قبل الضريبة" : "Total Cost Value"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-emerald-700 tabular-nums tracking-tight">
+            {receipts.reduce((sum, r) => sum + ((r as any).lines?.reduce((acc: number, l: any) => acc + (l.received_qty * l.unit_cost_ex_vat || 0), 0) || 0), 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+          </div>
+          <div className="mt-2 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full inline-block border border-emerald-200/60">
+            {isAr ? "طبقات FIFO مباشرة" : "FIFO Inbound"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-amber">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "استلامات اليوم" : "Today's Receipts"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-amber-700 tabular-nums tracking-tight">
+            {receipts.filter((r) => r.receipt_date === new Date().toISOString().split("T")[0]).length} {isAr ? "شحنة اليوم" : "Today"}
+          </div>
+          <div className="mt-2 text-[11px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full inline-block border border-amber-200/60">
+            {isAr ? "صالة الاستلام" : "Receiving Dock"}
+          </div>
+        </div>
+      </div>
+
       {/* Search Bar */}
-      <Card>
+      <Card className="border-slate-200/80 bg-white/95 backdrop-blur-sm shadow-subtle rounded-2xl">
         <CardContent className="p-4 flex items-center justify-between gap-4">
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />

@@ -249,61 +249,61 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
         </div>
       </div>
 
-      {/* Date Filter Bar */}
-      <Card className="border-industrial-border bg-white shadow-sm">
-        <CardContent className="p-3.5 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">من:</span>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-8 text-xs font-mono w-36 bg-slate-50 border-industrial-border"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">إلى:</span>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="h-8 text-xs font-mono w-36 bg-slate-50 border-industrial-border"
-              />
-            </div>
+      {/* 2026 Modern Date Filter & Shortcut Bar */}
+      <div className="card-modern p-4 bg-white/95 backdrop-blur-sm flex flex-col lg:flex-row items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-200/80 shrink-0">
+            <Calendar className="h-4 w-4" />
           </div>
-
-          {/* Quick Date Shortcuts */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={setThisMonth}
-              className="px-2.5 py-1 text-xs font-medium rounded border border-industrial-border bg-slate-50 hover:bg-slate-100 text-slate-700"
-            >
-              هذا الشهر
-            </button>
-            <button
-              onClick={setThisQuarter}
-              className="px-2.5 py-1 text-xs font-medium rounded border border-industrial-border bg-slate-50 hover:bg-slate-100 text-slate-700"
-            >
-              الربع الحالي
-            </button>
-            <button
-              onClick={setYearToDate}
-              className="px-2.5 py-1 text-xs font-medium rounded border border-industrial-border bg-slate-50 hover:bg-slate-100 text-slate-700"
-            >
-              منذ بداية السنة
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">من:</span>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="h-9 text-xs font-mono w-36 bg-slate-50/80 border-slate-200"
+            />
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">إلى:</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="h-9 text-xs font-mono w-36 bg-slate-50/80 border-slate-200"
+            />
+          </div>
+        </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg border border-industrial-border overflow-x-auto">
+        {/* Quick Date Shortcuts */}
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60">
+          <button
+            onClick={setThisMonth}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white shadow-subtle hover:bg-slate-50 text-slate-800 transition-all cursor-pointer active:scale-95"
+          >
+            هذا الشهر
+          </button>
+          <button
+            onClick={setThisQuarter}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white shadow-subtle hover:bg-slate-50 text-slate-800 transition-all cursor-pointer active:scale-95"
+          >
+            الربع الحالي
+          </button>
+          <button
+            onClick={setYearToDate}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white shadow-subtle hover:bg-slate-50 text-slate-800 transition-all cursor-pointer active:scale-95"
+          >
+            منذ بداية السنة
+          </button>
+        </div>
+      </div>
+
+      {/* 2026 Modern Report Selector Dock */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/70 overflow-x-auto scrollbar-none shadow-inner-subtle">
         <button
           onClick={() => setActiveTab("trial_balance")}
-          className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === "trial_balance" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer active:scale-95 ${
+            activeTab === "trial_balance" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
           }`}
         >
           <Scale className="h-3.5 w-3.5" />
@@ -312,8 +312,8 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
 
         <button
           onClick={() => setActiveTab("income_statement")}
-          className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === "income_statement" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer active:scale-95 ${
+            activeTab === "income_statement" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
           }`}
         >
           <TrendingUp className="h-3.5 w-3.5" />
@@ -322,8 +322,8 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
 
         <button
           onClick={() => setActiveTab("balance_sheet")}
-          className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === "balance_sheet" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer active:scale-95 ${
+            activeTab === "balance_sheet" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
           }`}
         >
           <Building className="h-3.5 w-3.5" />
@@ -332,8 +332,8 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
 
         <button
           onClick={() => setActiveTab("vat_return")}
-          className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === "vat_return" ? "bg-emerald-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer active:scale-95 ${
+            activeTab === "vat_return" ? "bg-emerald-700 text-white shadow-sm shadow-emerald-700/20" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
           }`}
         >
           <FileCheck2 className="h-3.5 w-3.5" />
@@ -342,8 +342,8 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
 
         <button
           onClick={() => setActiveTab("ledger")}
-          className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === "ledger" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer active:scale-95 ${
+            activeTab === "ledger" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
           }`}
         >
           <ListOrdered className="h-3.5 w-3.5" />
@@ -352,8 +352,8 @@ _صادر من النظام المالي - مصنع الأسياح للمنتج�
 
         <button
           onClick={() => setActiveTab("aging")}
-          className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === "aging" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer active:scale-95 ${
+            activeTab === "aging" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
           }`}
         >
           <Clock className="h-3.5 w-3.5" />

@@ -25,6 +25,10 @@ import {
   AlertTriangle,
   Receipt,
   Scale,
+  Sparkles,
+  Zap,
+  Activity,
+  Layers,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -111,171 +115,264 @@ export function OwnerDashboard() {
     fetchStats();
   }, []);
 
+  // Format today's date in Arabic / English
+  const formattedDate = new Intl.DateTimeFormat(isArabic ? "ar-SA" : "en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
+
   return (
-    <div className="space-y-6">
-      {/* Welcome Hero Banner */}
-      <div className="rounded-lg border border-industrial-border bg-white p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {isArabic ? `مرحباً، ${profile?.full_name}` : `Welcome, ${profile?.full_name}`}
-              </h1>
-              <Badge variant="emerald" className="text-xs">
-                {isArabic ? "نظام ERP متكامل نشط" : "Full Industrial ERP Active"}
+    <div className="space-y-6 sm:space-y-8 animate-fade-in">
+      {/* 2026 Executive Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/60 to-sky-50/30 p-6 sm:p-8 shadow-card">
+        {/* Ambient background glow element */}
+        <div className="pointer-events-none absolute -end-12 -top-12 h-64 w-64 rounded-full bg-sky-500/5 blur-3xl" />
+        <div className="pointer-events-none absolute start-1/3 -bottom-16 h-48 w-48 rounded-full bg-emerald-500/5 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
+                <Sparkles className="h-3 w-3 text-sky-400" />
+                <span>{isArabic ? "مصنع الأسياح للمنظفات" : "Al-Asyah Detergents Factory"}</span>
+              </span>
+              <Badge variant="emerald" withDot className="text-xs">
+                {isArabic ? "منظومة 2026 الذكية نشطة" : "Enterprise v3.2 Active"}
               </Badge>
             </div>
-            <p className="mt-1 text-xs sm:text-sm text-slate-500">
+
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              {isArabic ? `أهلاً بك، ${profile?.full_name || "المدير العام"}` : `Welcome, ${profile?.full_name || "General Manager"}`}
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
               {isArabic
-                ? "لوحة التحكم التنفيذية الشاملة — متابعة السيولة، الإنتاج الحي، المبيعات والفوترة ZATCA، والتقارير المالية"
-                : "Executive Operations Console — Live Liquidity, Production Floor, ZATCA Invoicing & Ledger"}
+                ? "لوحة التحكم التنفيذية الشاملة — متابعة السيولة اللحظية، تشغيل التانكات، الفوترة الضريبية ZATCA، وهامش ربح FIFO المباشر."
+                : "Executive Operations Console — Real-time Cashflow, Mixing Floor, ZATCA Invoicing & FIFO Margin Tracking."}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              {isArabic ? "قاعدة البيانات متصلة (Supabase)" : "Database Online"}
-            </span>
+          <div className="flex flex-wrap md:flex-col items-start md:items-end gap-2.5 shrink-0">
+            <div className="flex items-center gap-2 rounded-2xl bg-white/90 backdrop-blur-sm border border-slate-200/80 px-4 py-2 shadow-subtle text-xs">
+              <Calendar className="h-4 w-4 text-sky-600" />
+              <span className="font-semibold text-slate-700">{formattedDate}</span>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-2xl bg-white/90 backdrop-blur-sm border border-emerald-200/80 px-3.5 py-1.5 shadow-subtle text-xs text-emerald-700 font-semibold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span>{isArabic ? "الخادم متصل • مزامنة فورية" : "Live Cloud Sync Active"}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 2026 KPI Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {/* Liquidity */}
-        <Card className="border-industrial-border bg-white shadow-sm p-4">
-          <span className="text-xs text-slate-500 font-semibold block flex items-center justify-between">
-            <span>{isArabic ? "السيولة النقدية والبنك" : "Cash & Bank Liquidity"}</span>
-            <Coins className="h-4 w-4 text-emerald-600" />
-          </span>
-          <div className="font-mono font-black text-2xl text-slate-900 mt-1">
-            {loading ? <Skeleton className="h-8 w-24" /> : `${stats.totalCashLiquidity.toFixed(2)} ر.س`}
+        <div className="stat-card-2026 accent-emerald">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {isArabic ? "السيولة النقدية والبنك" : "Cash & Bank Liquidity"}
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200/80">
+              <Coins className="h-4 w-4" />
+            </div>
           </div>
-          <span className="text-[11px] text-emerald-700 mt-1 block font-medium">
-            حسابات 1101 (صندوق) + 1102 (بنك)
-          </span>
-        </Card>
+          <div className="mt-3">
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-900 tracking-tight tabular-nums">
+              {loading ? <Skeleton className="h-9 w-32 rounded-lg" /> : `${stats.totalCashLiquidity.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`}
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[11px]">
+              <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                {isArabic ? "حساب 1101 + 1102" : "Vault & Bank Accounts"}
+              </span>
+              <span className="text-slate-400 font-medium">{isArabic ? "جاهزة للتشغيل" : "Available"}</span>
+            </div>
+          </div>
+        </div>
 
         {/* Live Daily Operations */}
-        <Card className="border-industrial-border bg-white shadow-sm p-4">
-          <span className="text-xs text-slate-500 font-semibold block flex items-center justify-between">
-            <span>{isArabic ? "تانكات الخلط قيد التشغيل" : "Active Mixing Tanks"}</span>
-            <Building2 className="h-4 w-4 text-sky-600" />
-          </span>
-          <div className="font-mono font-black text-2xl text-slate-900 mt-1">
-            {loading ? <Skeleton className="h-8 w-12" /> : `${stats.todayBatchesMixing} تانك`}
+        <div className="stat-card-2026 accent-sky">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {isArabic ? "تانكات الخلط قيد التشغيل" : "Active Mixing Tanks"}
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-200/80">
+              <Building2 className="h-4 w-4" />
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            تشغيلات خلط وتعبئة جارية بصالة الإنتاج
-          </span>
-        </Card>
+          <div className="mt-3">
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-900 tracking-tight tabular-nums">
+              {loading ? <Skeleton className="h-9 w-20 rounded-lg" /> : `${stats.todayBatchesMixing} ${isArabic ? "تانك" : "Tanks"}`}
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[11px]">
+              <span className="text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/60">
+                {isArabic ? "تشغيل وتعبئة" : "Active Batches"}
+              </span>
+              <span className="text-slate-400 font-medium">{isArabic ? "بصالة الإنتاج" : "Floor Ready"}</span>
+            </div>
+          </div>
+        </div>
 
         {/* Today's Sales */}
-        <Card className="border-industrial-border bg-white shadow-sm p-4">
-          <span className="text-xs text-slate-500 font-semibold block flex items-center justify-between">
-            <span>{isArabic ? "مبيعات فواتير اليوم" : "Today's Invoices"}</span>
-            <Receipt className="h-4 w-4 text-indigo-600" />
-          </span>
-          <div className="font-mono font-black text-2xl text-slate-900 mt-1">
-            {loading ? <Skeleton className="h-8 w-20" /> : `${stats.todaySales.toFixed(2)} ر.س`}
+        <div className="stat-card-2026 accent-indigo">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {isArabic ? "مبيعات فواتير اليوم" : "Today's Invoices"}
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200/80">
+              <Receipt className="h-4 w-4" />
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            فواتير مبيعات ضريبية ZATCA
-          </span>
-        </Card>
+          <div className="mt-3">
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-900 tracking-tight tabular-nums">
+              {loading ? <Skeleton className="h-9 w-28 rounded-lg" /> : `${stats.todaySales.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`}
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[11px]">
+              <span className="text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200/60">
+                {isArabic ? "فوترة ضريبية ZATCA" : "ZATCA Compliant"}
+              </span>
+              <span className="text-slate-400 font-medium">{isArabic ? "فوري مباشر" : "Live Feed"}</span>
+            </div>
+          </div>
+        </div>
 
         {/* Facilities & Tanks */}
-        <Card className="border-industrial-border bg-white shadow-sm p-4">
-          <span className="text-xs text-slate-500 font-semibold block flex items-center justify-between">
-            <span>{isArabic ? "التانكات والمستودعات" : "Tanks & Facilities"}</span>
-            <Warehouse className="h-4 w-4 text-amber-600" />
-          </span>
-          <div className="font-mono font-black text-2xl text-slate-900 mt-1">
-            {loading ? <Skeleton className="h-8 w-16" /> : `${stats.tanksCount} / ${stats.warehousesCount}`}
+        <div className="stat-card-2026 accent-amber">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {isArabic ? "الأصول والمستودعات" : "Tanks & Warehouses"}
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-200/80">
+              <Warehouse className="h-4 w-4" />
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            {stats.tanksCount} تانك خلط • {stats.warehousesCount} مستودع
-          </span>
-        </Card>
+          <div className="mt-3">
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-900 tracking-tight tabular-nums">
+              {loading ? <Skeleton className="h-9 w-24 rounded-lg" /> : `${stats.tanksCount} / ${stats.warehousesCount}`}
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[11px]">
+              <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+                {stats.tanksCount} {isArabic ? "تانك" : "Tanks"} • {stats.warehousesCount} {isArabic ? "مستودع" : "WH"}
+              </span>
+              <span className="text-slate-400 font-medium">{isArabic ? "جاهزية كاملة" : "Operational"}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Live Gross Margin Guard & Approvals Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Gross Margin Guard */}
-        <Card className="border-industrial-border bg-white shadow-sm p-4 space-y-3">
+        <div className="card-modern p-5 sm:p-6 space-y-4 relative overflow-hidden bg-white">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span>{isArabic ? "حارس هامش الربح الحي (Gross Margin Guard)" : "Gross Margin Guard"}</span>
-            </h3>
-            <Badge variant="emerald" className="text-[10px]">مراقبة لحظية</Badge>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200/80">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-sm">
+                {isArabic ? "حارس هامش الربح الحي (Gross Margin Guard)" : "Gross Margin Guard"}
+              </h3>
+            </div>
+            <Badge variant="emerald" withDot className="text-[11px]">
+              {isArabic ? "مراقبة لحظية" : "Live Monitor"}
+            </Badge>
           </div>
-          <p className="text-xs text-slate-500">
-            يقوم النظام بمقارنة أسعار البيع بالفواتير مقابل آخر تكلفة شراء/إنتاج طبقة FIFO لضمان عدم بيع أي صنف بهامش سالب أو بأقل من التكلفة الصناعية.
+
+          <p className="text-xs text-slate-500 leading-relaxed">
+            {isArabic
+              ? "يقوم النظام بمقارنة أسعار البيع بالفواتير مقابل آخر تكلفة شراء/إنتاج طبقة FIFO لضمان عدم بيع أي صنف بهامش سالب أو بأقل من التكلفة الصناعية."
+              : "Continuous real-time comparison of sales invoice unit prices against live FIFO layers to prevent selling below industrial cost."}
           </p>
-          <div className="flex items-center gap-3 pt-1 text-xs">
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
             <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold">
               <CheckCircle2 className="h-4 w-4" />
-              <span>كافة الأصناف تباع فوق تكلفة FIFO</span>
+              <span>{isArabic ? "كافة الأصناف تباع فوق تكلفة FIFO الصناعية" : "All products priced above FIFO cost"}</span>
             </span>
+            <span className="text-[11px] font-mono text-slate-400">100% Secure</span>
           </div>
-        </Card>
+        </div>
 
         {/* Approvals Center */}
-        <Card className="border-industrial-border bg-white shadow-sm p-4 space-y-3">
+        <div className="card-modern p-5 sm:p-6 space-y-4 bg-white">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 text-industrial-accent" />
-              <span>{isArabic ? "مركز الاعتمادات والرقابة الإدارية" : "Approvals Center"}</span>
-            </h3>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-200/80">
+                <CheckSquare className="h-4 w-4" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-sm">
+                {isArabic ? "مركز الاعتمادات والرقابة الإدارية" : "Executive Approvals Center"}
+              </h3>
+            </div>
+
             {stats.pendingApprovalsCount > 0 ? (
-              <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-800 border-amber-300 font-bold">
-                {stats.pendingApprovalsCount} طلب معلق
+              <Badge variant="amber" withDot className="text-[11px] font-bold">
+                {stats.pendingApprovalsCount} {isArabic ? "طلب معلق" : "Pending"}
               </Badge>
             ) : (
-              <Badge variant="outline" className="text-[10px]">المدير العام</Badge>
+              <Badge variant="secondary" className="text-[11px]">
+                {isArabic ? "مكتمل الاعتمادات" : "All Cleared"}
+              </Badge>
             )}
           </div>
-          <p className="text-xs text-slate-500">
-            اعتماد طلبات الشراء ذات المبالغ الكبيرة، تجاوزات الحدود الائتمانية للعملاء، القيود اليدوية، وهالك الإنتاج الكبير.
+
+          <p className="text-xs text-slate-500 leading-relaxed">
+            {isArabic
+              ? "اعتماد طلبات الشراء الكبيرة، تجاوزات الحدود الائتمانية للعملاء، القيود اليدوية، وهالك الإنتاج بصالة التصنيع."
+              : "Review and approve major purchase orders, customer credit overrides, manual journal entries, and production scrap."}
           </p>
-          <div className="flex items-center justify-between pt-1 text-xs">
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
             {stats.pendingApprovalsCount > 0 ? (
               <span className="text-amber-700 font-bold flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                <span>يوجد {stats.pendingApprovalsCount} طلب بانتظار قرارك</span>
+                <span>{isArabic ? `يوجد ${stats.pendingApprovalsCount} طلب بانتظار قرارك` : `${stats.pendingApprovalsCount} requests awaiting decision`}</span>
               </span>
             ) : (
-              <span className="text-slate-400">لا توجد طلبات معلقة بانتظار الاعتماد حالياً</span>
+              <span className="text-slate-400 font-medium">
+                {isArabic ? "لا توجد طلبات معلقة بانتظار الاعتماد حالياً" : "No pending approvals at this moment"}
+              </span>
             )}
+
             <Link to="/approvals">
-              <Button size="sm" variant="outline" className="h-7 text-xs border-industrial-accent text-industrial-accent hover:bg-industrial-accent hover:text-white">
-                <span>{isArabic ? "عرض الاعتمادات" : "Review"}</span>
-                <Arrow className="ms-1 h-3.5 w-3.5" />
+              <Button size="sm" variant="tonal" className="h-8 text-xs font-semibold">
+                <span>{isArabic ? "مراجعة الاعتمادات" : "Review"}</span>
+                <Arrow className="ms-1.5 h-3.5 w-3.5" />
               </Button>
             </Link>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Quick Launchpad to Key Modules */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
-          {isArabic ? "لوحات التحكم والتقارير التنفيذية" : "Executive Quick Launchpad"}
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            {isArabic ? "لوحات التحكم والتقارير التنفيذية السريعة" : "Executive Control Modules"}
+          </h2>
+          <span className="text-[11px] text-slate-400 font-medium">
+            {isArabic ? "وصول مباشر سريع" : "Quick Access"}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           <Link
             to="/accounting/reports"
-            className="group block rounded-lg border border-industrial-border bg-white p-5 shadow-sm transition hover:border-accent hover:shadow-md"
+            className="group block rounded-2xl border border-slate-200/80 bg-white p-5 shadow-subtle transition-all duration-200 hover:border-slate-300 hover:shadow-card-hover hover:-translate-y-0.5"
           >
             <div className="flex items-start justify-between">
-              <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70 transition-transform duration-200 group-hover:scale-105">
                 <FileText className="h-5 w-5" />
               </div>
-              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-accent group-hover:translate-x-[-2px] transition-transform" />
+              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-[-3px] transition-all" />
             </div>
-            <h3 className="mt-3 text-sm font-semibold text-industrial-primary">
+            <h3 className="mt-3.5 text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
               التقارير المالية وإقرار ZATCA
             </h3>
             <p className="mt-1 text-xs text-slate-500 leading-relaxed">
@@ -285,15 +382,15 @@ export function OwnerDashboard() {
 
           <Link
             to="/reports/director-analytics"
-            className="group block rounded-lg border border-industrial-border bg-white p-5 shadow-sm transition hover:border-accent hover:shadow-md"
+            className="group block rounded-2xl border border-slate-200/80 bg-white p-5 shadow-subtle transition-all duration-200 hover:border-slate-300 hover:shadow-card-hover hover:-translate-y-0.5"
           >
             <div className="flex items-start justify-between">
-              <div className="rounded-lg bg-indigo-50 p-2 text-indigo-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/70 transition-transform duration-200 group-hover:scale-105">
                 <BarChart3 className="h-5 w-5" />
               </div>
-              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-accent group-hover:translate-x-[-2px] transition-transform" />
+              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-[-3px] transition-all" />
             </div>
-            <h3 className="mt-3 text-sm font-semibold text-industrial-primary">
+            <h3 className="mt-3.5 text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
               التقارير التحليلية الخمسة للمدير
             </h3>
             <p className="mt-1 text-xs text-slate-500 leading-relaxed">
@@ -303,15 +400,15 @@ export function OwnerDashboard() {
 
           <Link
             to="/accounting/vouchers"
-            className="group block rounded-lg border border-industrial-border bg-white p-5 shadow-sm transition hover:border-accent hover:shadow-md"
+            className="group block rounded-2xl border border-slate-200/80 bg-white p-5 shadow-subtle transition-all duration-200 hover:border-slate-300 hover:shadow-card-hover hover:-translate-y-0.5"
           >
             <div className="flex items-start justify-between">
-              <div className="rounded-lg bg-sky-50 p-2 text-sky-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-200/70 transition-transform duration-200 group-hover:scale-105">
                 <Receipt className="h-5 w-5" />
               </div>
-              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-accent group-hover:translate-x-[-2px] transition-transform" />
+              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-[-3px] transition-all" />
             </div>
-            <h3 className="mt-3 text-sm font-semibold text-industrial-primary">
+            <h3 className="mt-3.5 text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
               سندات القبض والصرف (Vouchers)
             </h3>
             <p className="mt-1 text-xs text-slate-500 leading-relaxed">
@@ -321,15 +418,15 @@ export function OwnerDashboard() {
 
           <Link
             to="/hr/payroll"
-            className="group block rounded-lg border border-industrial-border bg-white p-5 shadow-sm transition hover:border-accent hover:shadow-md"
+            className="group block rounded-2xl border border-slate-200/80 bg-white p-5 shadow-subtle transition-all duration-200 hover:border-slate-300 hover:shadow-card-hover hover:-translate-y-0.5"
           >
             <div className="flex items-start justify-between">
-              <div className="rounded-lg bg-amber-50 p-2 text-amber-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-200/70 transition-transform duration-200 group-hover:scale-105">
                 <Coins className="h-5 w-5" />
               </div>
-              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-accent group-hover:translate-x-[-2px] transition-transform" />
+              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-[-3px] transition-all" />
             </div>
-            <h3 className="mt-3 text-sm font-semibold text-industrial-primary">
+            <h3 className="mt-3.5 text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
               مسيرات الرواتب والسُلف (HR)
             </h3>
             <p className="mt-1 text-xs text-slate-500 leading-relaxed">
@@ -339,15 +436,15 @@ export function OwnerDashboard() {
 
           <Link
             to="/assets/registry"
-            className="group block rounded-lg border border-industrial-border bg-white p-5 shadow-sm transition hover:border-accent hover:shadow-md"
+            className="group block rounded-2xl border border-slate-200/80 bg-white p-5 shadow-subtle transition-all duration-200 hover:border-slate-300 hover:shadow-card-hover hover:-translate-y-0.5"
           >
             <div className="flex items-start justify-between">
-              <div className="rounded-lg bg-purple-50 p-2 text-purple-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-700 ring-1 ring-purple-200/70 transition-transform duration-200 group-hover:scale-105">
                 <Wrench className="h-5 w-5" />
               </div>
-              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-accent group-hover:translate-x-[-2px] transition-transform" />
+              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-[-3px] transition-all" />
             </div>
-            <h3 className="mt-3 text-sm font-semibold text-industrial-primary">
+            <h3 className="mt-3.5 text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
               الأصول الثابتة والإهلاك
             </h3>
             <p className="mt-1 text-xs text-slate-500 leading-relaxed">
@@ -357,15 +454,15 @@ export function OwnerDashboard() {
 
           <Link
             to="/accounting/journal-entries"
-            className="group block rounded-lg border border-industrial-border bg-white p-5 shadow-sm transition hover:border-accent hover:shadow-md"
+            className="group block rounded-2xl border border-slate-200/80 bg-white p-5 shadow-subtle transition-all duration-200 hover:border-slate-300 hover:shadow-card-hover hover:-translate-y-0.5"
           >
             <div className="flex items-start justify-between">
-              <div className="rounded-lg bg-slate-100 p-2 text-slate-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-800 ring-1 ring-slate-200/80 transition-transform duration-200 group-hover:scale-105">
                 <BookOpen className="h-5 w-5" />
               </div>
-              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-accent group-hover:translate-x-[-2px] transition-transform" />
+              <Arrow className="h-4 w-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-[-3px] transition-all" />
             </div>
-            <h3 className="mt-3 text-sm font-semibold text-industrial-primary">
+            <h3 className="mt-3.5 text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
               دفتر قيود اليومية العامة
             </h3>
             <p className="mt-1 text-xs text-slate-500 leading-relaxed">

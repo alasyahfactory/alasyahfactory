@@ -877,8 +877,59 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
         </Button>
       </div>
 
+      {/* 2026 Modern Procurement KPI Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="stat-card-2026 accent-slate">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "إجمالي أوامر الشراء" : "Total Orders"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-900 tabular-nums tracking-tight">
+            {purchaseOrders.length} {isAr ? "أمر توريد" : "POs"}
+          </div>
+          <div className="mt-2 text-[11px] text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded-full inline-block">
+            {isAr ? "سجل التوريدات" : "Procurement"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-emerald">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "إجمالي قيمة المشتريات" : "Total Purchasing Value"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-emerald-700 tabular-nums tracking-tight">
+            {purchaseOrders.reduce((sum, po) => sum + (po.total_amount || 0), 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+          </div>
+          <div className="mt-2 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full inline-block border border-emerald-200/60">
+            {isAr ? "شامل ضريبة 15%" : "Inc. 15% VAT"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-amber">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "أوامر بانتظار الاعتماد" : "Pending Approval"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-amber-700 tabular-nums tracking-tight">
+            {purchaseOrders.filter((po) => po.status === "draft" || (po.status as any) === "pending_approval").length} {isAr ? "أمر معلق" : "Pending"}
+          </div>
+          <div className="mt-2 text-[11px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full inline-block border border-amber-200/60">
+            {isAr ? "موافقة الإدارة" : "Review Required"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-sky">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "جاهزة لاستلام الميزان" : "Ready for Receiving"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-sky-700 tabular-nums tracking-tight">
+            {purchaseOrders.filter((po) => po.status === "approved" || po.status === "partially_received").length} {isAr ? "أمر للشحن" : "POs"}
+          </div>
+          <div className="mt-2 text-[11px] text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded-full inline-block border border-sky-200/60">
+            {isAr ? "المستودع والميزان" : "Warehouse GRN"}
+          </div>
+        </div>
+      </div>
+
       {/* Search and Counts */}
-      <Card>
+      <Card className="border-slate-200/80 bg-white/95 backdrop-blur-sm shadow-subtle rounded-2xl">
         <CardContent className="p-4 flex items-center justify-between gap-4">
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -889,7 +940,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
               className="ps-9"
             />
           </div>
-          <div className="text-xs text-slate-500 font-medium">
+          <div className="text-xs text-slate-500 font-semibold">
             {isAr ? `إجمالي الأوامر: ${purchaseOrders.length}` : `Total POs: ${purchaseOrders.length}`}
           </div>
         </CardContent>

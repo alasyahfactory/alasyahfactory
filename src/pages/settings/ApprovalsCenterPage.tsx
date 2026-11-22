@@ -447,59 +447,83 @@ export function ApprovalsCenterPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-industrial-border bg-white shadow-sm p-4">
-          <span className="text-xs text-slate-500 font-semibold block flex items-center justify-between">
-            <span>{isAr ? "طلبات معلقة بانتظار البت" : "Pending Approvals"}</span>
-            <Clock className="h-4 w-4 text-amber-500" />
-          </span>
-          <div className="font-mono font-black text-2xl text-amber-600 mt-1">
-            {isLoading ? "..." : pendingCount}
+      {/* 2026 Modern Industrial KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="stat-card-2026 accent-amber">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {isAr ? "طلبات معلقة بانتظار البت" : "Pending Approvals"}
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-200/80">
+              <Clock className="h-4 w-4" />
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            {isAr ? "تتطلب قرار المدير العام" : "Requires GM approval"}
-          </span>
-        </Card>
+          <div className="mt-3">
+            <div className="font-mono font-black text-2xl sm:text-3xl text-amber-600 tracking-tight tabular-nums">
+              {isLoading ? "..." : pendingCount}
+            </div>
+            <div className="mt-2 text-[11px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full inline-block border border-amber-200/60">
+              {isAr ? "تتطلب قرار المدير العام" : "Requires GM approval"}
+            </div>
+          </div>
+        </div>
 
-        <Card className="border-industrial-border bg-white shadow-sm p-4">
-          <span className="text-xs text-slate-500 font-semibold block flex items-center justify-between">
-            <span>{isAr ? "قيمة الطلبات المعلقة" : "Pending Amount"}</span>
-            <DollarSign className="h-4 w-4 text-industrial-accent" />
-          </span>
-          <div className="font-mono font-black text-2xl text-slate-900 mt-1">
-            {isLoading ? "..." : `${pendingValue.toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س`}
+        <div className="stat-card-2026 accent-sky">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {isAr ? "قيمة الطلبات المعلقة" : "Pending Amount"}
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-200/80">
+              <DollarSign className="h-4 w-4" />
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            {isAr ? "إجمالي السيولة المقيدة للطلبات" : "Total contingent liquidity"}
-          </span>
-        </Card>
+          <div className="mt-3">
+            <div className="font-mono font-black text-2xl sm:text-3xl text-slate-900 tracking-tight tabular-nums">
+              {isLoading ? "..." : `${pendingValue.toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س`}
+            </div>
+            <div className="mt-2 text-[11px] text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded-full inline-block border border-sky-200/60">
+              {isAr ? "إجمالي السيولة المقيدة" : "Contingent Liquidity"}
+            </div>
+          </div>
+        </div>
 
-        <Card className="border-industrial-border bg-white shadow-sm p-4">
-          <span className="text-xs text-slate-500 font-semibold block flex items-center justify-between">
-            <span>{isAr ? "طلبات معتمدة" : "Approved Requests"}</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          </span>
-          <div className="font-mono font-black text-2xl text-emerald-600 mt-1">
-            {isLoading ? "..." : approvedCount}
+        <div className="stat-card-2026 accent-emerald">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {isAr ? "طلبات معتمدة" : "Approved Requests"}
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200/80">
+              <CheckCircle2 className="h-4 w-4" />
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            {isAr ? "تم اعتمادها ومباشرة أثرها" : "Approved and executed"}
-          </span>
-        </Card>
+          <div className="mt-3">
+            <div className="font-mono font-black text-2xl sm:text-3xl text-emerald-600 tracking-tight tabular-nums">
+              {isLoading ? "..." : approvedCount}
+            </div>
+            <div className="mt-2 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full inline-block border border-emerald-200/60">
+              {isAr ? "معتمدة ونافذة فوراً" : "Approved & Executed"}
+            </div>
+          </div>
+        </div>
 
-        <Card className="border-industrial-border bg-white shadow-sm p-4">
-          <span className="text-xs text-slate-500 font-semibold block flex items-center justify-between">
-            <span>{isAr ? "طلبات مرفوضة" : "Rejected Requests"}</span>
-            <XCircle className="h-4 w-4 text-rose-600" />
-          </span>
-          <div className="font-mono font-black text-2xl text-rose-600 mt-1">
-            {isLoading ? "..." : rejectedCount}
+        <div className="stat-card-2026 accent-rose">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {isAr ? "طلبات مرفوضة" : "Rejected Requests"}
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-200/80">
+              <XCircle className="h-4 w-4" />
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            {isAr ? "تم رفضها مع ذكر الأسباب" : "Rejected with justification"}
-          </span>
-        </Card>
+          <div className="mt-3">
+            <div className="font-mono font-black text-2xl sm:text-3xl text-rose-600 tracking-tight tabular-nums">
+              {isLoading ? "..." : rejectedCount}
+            </div>
+            <div className="mt-2 text-[11px] text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded-full inline-block border border-rose-200/60">
+              {isAr ? "مرفوضة مع التسبيب" : "Rejected with Reason"}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Filter Toolbar */}

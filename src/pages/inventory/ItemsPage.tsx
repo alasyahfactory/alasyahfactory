@@ -904,46 +904,97 @@ export function ItemsPage() {
         </Button>
       </div>
 
+      {/* 2026 Modern Inventory KPI Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="stat-card-2026 accent-slate">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "إجمالي الأصناف المسجلة" : "Total Catalog Items"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-900 tabular-nums tracking-tight">
+            {items.length} {isAr ? "صنف" : "Items"}
+          </div>
+          <div className="mt-2 text-[11px] text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded-full inline-block">
+            {isAr ? "المستودع والمصنع" : "Factory Wide"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-sky">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "خامات كيميائية أولية" : "Raw Materials"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-sky-700 tabular-nums tracking-tight">
+            {items.filter((i) => i.item_type === "raw_material").length} {isAr ? "خامة" : "Materials"}
+          </div>
+          <div className="mt-2 text-[11px] text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded-full inline-block border border-sky-200/60">
+            {isAr ? "طبقات FIFO" : "FIFO Tracked"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-emerald">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "منتجات تامة معبأة" : "Finished Goods"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-emerald-700 tabular-nums tracking-tight">
+            {items.filter((i) => i.item_type === "finished_good").length} {isAr ? "منتج تام" : "Products"}
+          </div>
+          <div className="mt-2 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full inline-block border border-emerald-200/60">
+            {isAr ? "جاهزة للبيع والتوزيع" : "Ready for Sale"}
+          </div>
+        </div>
+
+        <div className="stat-card-2026 accent-rose">
+          <span className="text-xs font-bold text-slate-500 tracking-tight block mb-1">
+            {isAr ? "تنبيهات حد إعادة الطلب" : "Low Stock Alerts"}
+          </span>
+          <div className="text-xl sm:text-2xl font-black font-mono text-rose-700 tabular-nums tracking-tight">
+            {items.filter((i) => i.reorder_point > 0 && i.current_stock <= i.reorder_point).length} {isAr ? "صنف منخفض" : "Low Stock"}
+          </div>
+          <div className="mt-2 text-[11px] text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded-full inline-block border border-rose-200/60">
+            {isAr ? "يتطلب أمر شراء" : "Reorder Needed"}
+          </div>
+        </div>
+      </div>
+
       {/* Tabs and Search Bar */}
-      <Card>
-        <CardContent className="p-4 space-y-4">
+      <Card className="border-slate-200/80 bg-white/95 backdrop-blur-sm shadow-subtle rounded-2xl">
+        <CardContent className="p-4 sm:p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Category Filter Pills */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
               <Button
-                variant={activeTab === "all" ? "default" : "outline"}
+                variant={activeTab === "all" ? "filled" : "ghost"}
                 size="sm"
                 onClick={() => setActiveTab("all")}
-                className="gap-2"
+                className="gap-1.5 text-xs font-bold rounded-lg h-8"
               >
-                <Package className="w-4 h-4" />
+                <Package className="w-3.5 h-3.5" />
                 <span>{isAr ? "الكل" : "All"} ({items.length})</span>
               </Button>
               <Button
-                variant={activeTab === "raw_material" ? "default" : "outline"}
+                variant={activeTab === "raw_material" ? "filled" : "ghost"}
                 size="sm"
                 onClick={() => setActiveTab("raw_material")}
-                className="gap-2"
+                className="gap-1.5 text-xs font-bold rounded-lg h-8"
               >
-                <FlaskConical className="w-4 h-4" />
+                <FlaskConical className="w-3.5 h-3.5 text-sky-500" />
                 <span>{isAr ? "خامات كيميائية" : "Raw Materials"}</span>
               </Button>
               <Button
-                variant={activeTab === "packaging" ? "default" : "outline"}
+                variant={activeTab === "packaging" ? "filled" : "ghost"}
                 size="sm"
                 onClick={() => setActiveTab("packaging")}
-                className="gap-2"
+                className="gap-1.5 text-xs font-bold rounded-lg h-8"
               >
-                <Box className="w-4 h-4" />
+                <Box className="w-3.5 h-3.5 text-amber-500" />
                 <span>{isAr ? "مواد تعبئة" : "Packaging"}</span>
               </Button>
               <Button
-                variant={activeTab === "finished_good" ? "default" : "outline"}
+                variant={activeTab === "finished_good" ? "filled" : "ghost"}
                 size="sm"
                 onClick={() => setActiveTab("finished_good")}
-                className="gap-2"
+                className="gap-1.5 text-xs font-bold rounded-lg h-8"
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
                 <span>{isAr ? "منتج تام" : "Finished Goods"}</span>
               </Button>
             </div>

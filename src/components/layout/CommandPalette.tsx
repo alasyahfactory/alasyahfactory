@@ -74,11 +74,11 @@ export function CommandPalette() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="hidden md:flex items-center gap-2 rounded-md border border-industrial-border bg-white px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-accent"
+        className="hidden md:flex items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3.5 py-1.5 text-xs text-slate-500 hover:bg-slate-100/90 hover:text-slate-800 hover:border-slate-300 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-sky-500/20 active:scale-95 min-w-[220px] justify-between"
       >
-        <span>{t("common.search")}</span>
-        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-slate-200 bg-slate-100 px-1.5 font-mono text-[10px] font-medium text-slate-600">
-          <span className="text-xs">Ctrl</span>K
+        <span className="font-normal">{t("common.search")}</span>
+        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 font-mono text-[10px] font-semibold text-slate-600 shadow-sm">
+          <span>⌘</span>K
         </kbd>
       </button>
 
