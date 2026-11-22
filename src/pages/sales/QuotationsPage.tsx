@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -55,16 +56,14 @@ export function QuotationsPage() {
     },
   });
 
-  const handlePrintQuotation = (q: Quotation, isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-    const docTitle = isPdf ? `عرض_سعر_${q.quotation_number}` : `عرض سعر رسمي - ${q.quotation_number}`;
+  
+  const getQuotationHtml = (q: Quotation) => {
+    const docTitle = `عرض سعر رسمي - ${q.quotation_number}`;
     const cust = q.customer;
     const subtotal = q.total_ex_vat || 0;
     const vat = q.vat_amount || 0;
     const grand = q.grand_total || 0;
-
-    win.document.write(`
+    return `
       <!DOCTYPE html>
       <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
         <head>
@@ -183,13 +182,18 @@ export function QuotationsPage() {
             </div>
           </div>
 
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintQuotation = (q: Quotation) => {
+    printDocumentHtml(getQuotationHtml(q), `عرض_سعر_${q.quotation_number}`);
+  };
+
+  const handleSavePdfQuotation = (q: Quotation) => {
+    saveDocumentPdfFromHtml(getQuotationHtml(q), `عرض_سعر_${q.quotation_number}`);
   };
 
   const handleShareQuotationWhatsApp = (q: Quotation) => {
@@ -211,7 +215,7 @@ export function QuotationsPage() {
     const waUrl = phone
       ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}`
       : `https://api.whatsapp.com/send?text=${encoded}`;
-    window.open(waUrl, "_blank");
+    shareDocumentWhatsApp(q.customer?.phone, msg);
   };
 
   // New Quotation State
@@ -489,7 +493,7 @@ export function QuotationsPage() {
             <Button
               variant="filled"
               size="sm"
-              onClick={() => handlePrintQuotation(selectedQuotation, false)}
+              onClick={() => handleSavePdfQuotation(selectedQuotation)}
               className="min-h-[36px] px-3 gap-1.5 shadow-sm text-xs"
             >
               <Printer className="h-3.5 w-3.5 text-sky-400" />
@@ -499,7 +503,7 @@ export function QuotationsPage() {
             <Button
               variant="tonal"
               size="sm"
-              onClick={() => handlePrintQuotation(selectedQuotation, true)}
+              onClick={() => handlePrintQuotation(selectedQuotation)}
               className="min-h-[36px] px-3 gap-1.5 text-xs font-semibold"
             >
               <FileDown className="h-3.5 w-3.5 text-sky-700" />
@@ -1050,7 +1054,7 @@ export function QuotationsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintQuotation(q, false)}
+                            onClick={() => handleSavePdfQuotation(q)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title={isArabic ? "طباعة A4" : "Print A4"}
                           >
@@ -1059,7 +1063,7 @@ export function QuotationsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintQuotation(q, true)}
+                            onClick={() => handlePrintQuotation(q)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title={isArabic ? "حفظ PDF" : "Save PDF"}
                           >

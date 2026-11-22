@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -161,27 +162,24 @@ export function JournalEntriesPage() {
     setLines(updated);
   };
 
-  const handlePrintEntry = (entry: JournalEntry, isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-    const docTitle = isPdf ? `قيد_يومية_${entry.entry_number}` : `سند قيد يومية - ${entry.entry_number}`;
-
+  
+  const getEntryHtml = (entry: JournalEntry) => {
+    const docTitle = `سند قيد يومية - ${entry.entry_number}`;
     const linesHtml = (entry.lines || [])
       .map(
         (l, i) => `
-        <tr>
-          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${i + 1}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 8px; font-family: monospace;">${l.account?.code || "-"}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 8px; font-weight: bold;">${l.account?.name_ar || l.account?.name_en || "-"}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-family: monospace;">${l.debit > 0 ? Number(l.debit).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "-"}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-family: monospace;">${l.credit > 0 ? Number(l.credit).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "-"}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 8px; font-size: 11px; color: #475569;">${l.description || entry.description || "-"}</td>
-        </tr>
-      `
+      <tr>
+        <td style="text-align: center;">${i + 1}</td>
+        <td style="font-family: monospace; font-weight: bold;">${(l as any).account?.code || (l as any).account?.account_code || "-"}</td>
+        <td>${(l as any).account?.name_ar || "-"}</td>
+        <td>${l.description || (entry as any).description || (entry as any).narration || "-"}</td>
+        <td class="tabular" style="text-align: right;">${Number((l as any).debit || (l as any).debit_amount || 0) > 0 ? Number((l as any).debit || (l as any).debit_amount).toFixed(2) : "-"}</td>
+        <td class="tabular" style="text-align: right;">${Number((l as any).credit || (l as any).credit_amount || 0) > 0 ? Number((l as any).credit || (l as any).credit_amount).toFixed(2) : "-"}</td>
+      </tr>
+    `
       )
       .join("");
-
-    win.document.write(`
+    return `
       <!DOCTYPE html>
       <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
         <head>
@@ -262,13 +260,18 @@ export function JournalEntriesPage() {
             </div>
           </div>
 
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintEntry = (entry: JournalEntry) => {
+    printDocumentHtml(getEntryHtml(entry), `قيد_يومية_${entry.entry_number}`);
+  };
+
+  const handleSavePdfEntry = (entry: JournalEntry) => {
+    saveDocumentPdfFromHtml(getEntryHtml(entry), `قيد_يومية_${entry.entry_number}`);
   };
 
   const handleShareWhatsapp = (entry: JournalEntry) => {
@@ -545,7 +548,7 @@ _نظام إدارة العمليات والمحاسبة - مصنع الأسيا
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintEntry(selectedEntry, false)}
+              onClick={() => handleSavePdfEntry(selectedEntry)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -554,7 +557,7 @@ _نظام إدارة العمليات والمحاسبة - مصنع الأسيا
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintEntry(selectedEntry, true)}
+              onClick={() => handlePrintEntry(selectedEntry)}
               className="gap-1.5"
             >
               <FileDown className="w-4 h-4 text-sky-600" />
@@ -791,7 +794,7 @@ _نظام إدارة العمليات والمحاسبة - مصنع الأسيا
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintEntry(entry, false)}
+                            onClick={() => handleSavePdfEntry(entry)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title={isArabic ? "طباعة A4" : "Print A4"}
                           >
@@ -800,7 +803,7 @@ _نظام إدارة العمليات والمحاسبة - مصنع الأسيا
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintEntry(entry, true)}
+                            onClick={() => handlePrintEntry(entry)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title={isArabic ? "حفظ PDF" : "Save PDF"}
                           >

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Printer, Share2, FileDown } from "lucide-react";
 import type { SalesInvoice, FactorySettings } from "@/types/database";
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 
 interface TaxInvoicePrintProps {
   invoice: SalesInvoice;
@@ -30,18 +31,9 @@ export function TaxInvoicePrint({ invoice, settings, isCreditNote = false, compa
     }
   }, [invoice.zatca_qr_base64]);
 
-  const handlePrint = (isPdf = false) => {
-    const content = printContainerRef.current;
-    if (!content) return;
-
-    const win = window.open("", "_blank");
-    if (!win) return;
-
-    const docTitle = isPdf
-      ? `فاتورة_ضريبية_${invoice.invoice_number}`
-      : `${isCreditNote ? "إشعار دائن ضريبي" : "فاتورة ضريبية"} - ${invoice.invoice_number}`;
-
-    win.document.write(`
+  const getInvoiceHtml = (contentHtml: string) => {
+    const docTitle = `${isCreditNote ? "إشعار دائن ضريبي" : "فاتورة ضريبية"} - ${invoice.invoice_number}`;
+    return `
       <!DOCTYPE html>
       <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
@@ -190,19 +182,22 @@ export function TaxInvoicePrint({ invoice, settings, isCreditNote = false, compa
           </style>
         </head>
         <body>
-          ${content.innerHTML}
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.close();
-              }, 200);
-            };
-          </script>
+          ${contentHtml}
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrint = () => {
+    const content = printContainerRef.current;
+    if (!content) return;
+    printDocumentHtml(getInvoiceHtml(content.innerHTML), `فاتورة_${invoice.invoice_number}`);
+  };
+
+  const handleSavePdf = () => {
+    const content = printContainerRef.current;
+    if (!content) return;
+    saveDocumentPdfFromHtml(getInvoiceHtml(content.innerHTML), `فاتورة_ضريبية_${invoice.invoice_number}`);
   };
 
   const isDraft = invoice.status === "draft";
@@ -229,14 +224,7 @@ ${isCreditNote ? "قيمة الإشعار الدائن" : "صافي المستح
 الرقم الضريبي: ${settings?.vat_number || ""}
 نشكركم لتعاملكم معنا.`;
 
-    const encoded = encodeURIComponent(msg);
-    const phone = invoice.customer?.phone?.replace(/[^0-9]/g, "") || "";
-    const waUrl = phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
-    window.open(waUrl, "_blank");
-  };
-
-  const handleSavePdf = () => {
-    handlePrint(true);
+    shareDocumentWhatsApp(invoice.customer?.phone, msg);
   };
 
   return (
@@ -244,7 +232,7 @@ ${isCreditNote ? "قيمة الإشعار الدائن" : "صافي المستح
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         {/* 1. M3 Filled Button: Print A4 */}
         <Button
-          onClick={() => handlePrint(false)}
+          onClick={handlePrint}
           variant="filled"
           size="sm"
           className={compact ? "h-7 px-2 text-xs gap-1" : "min-h-[36px] px-3 gap-1.5 shadow-sm text-xs"}

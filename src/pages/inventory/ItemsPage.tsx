@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -35,7 +36,7 @@ import {
 const itemSchema = z.object({
   sku: z.string().min(2, "رمز الصنف مطلوب"),
   name_ar: z.string().min(2, "الاسم بالعربية مطلوب"),
-  name_en: z.string().min(2, "English name is required"),
+  name_en: z.string().optional().default(""),
   item_type: z.enum(["raw_material", "packaging", "bulk_in_tank", "finished_good"]),
   base_unit: z.enum(["gram", "piece"]),
   density: z.coerce.number().min(0.1, "الكثافة يجب أن تكون أكبر من صفر").default(1.0),
@@ -257,27 +258,25 @@ export function ItemsPage() {
     const totalCostValue = fifoLayers.reduce((sum, l) => sum + ((l.remaining_qty || 0) * (l.unit_cost_ex_vat || 0)), 0);
     const avgCost = totalRemaining > 0 ? (totalCostValue / totalRemaining) : 0;
 
-    const handlePrintFifoLayers = (isPdf = false) => {
-      const win = window.open("", "_blank");
-      if (!win) return;
-      const itemTitle = isAr ? selectedFifoItem.name_ar : selectedFifoItem.name_en;
-      const docTitle = isPdf ? `طبقات_FIFO_${selectedFifoItem.sku}` : `كشف طبقات التكلفة FIFO - ${selectedFifoItem.sku}`;
+    
+  const getFifoLayersHtml = (selectedFifoItem: Item, fifoLayers: FifoLayer[], totalRemaining: number, totalCostValue: number, avgCost: number) => {
+    const itemTitle = isAr ? selectedFifoItem.name_ar : selectedFifoItem.name_en;
+    const docTitle = `كشف طبقات التكلفة FIFO - ${selectedFifoItem.sku}`;
+    const rows = fifoLayers.map((l, idx) => `
+      <tr>
+        <td class="tabular" style="text-align: center;">${idx + 1}</td>
+        <td class="tabular font-bold">${l.batch_number || "-"}</td>
+        <td class="tabular" style="text-align: center;">${l.layer_date || "-"}</td>
+        <td class="tabular" style="text-align: center;">${l.expiry_date || "-"}</td>
+        <td class="tabular" style="text-align: center; font-weight: bold;">${l.remaining_qty?.toLocaleString("en-US")}</td>
+        <td class="tabular" style="text-align: right;">${Number(l.unit_cost_ex_vat || 0).toFixed(4)} ر.س</td>
+        <td class="tabular font-bold" style="text-align: right;">${((l.remaining_qty || 0) * (l.unit_cost_ex_vat || 0)).toFixed(2)} ر.س</td>
+      </tr>
+    `).join("") || `
+      <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">لا توجد طبقات تكلفة مسجلة</td></tr>
+    `;
 
-      const rows = fifoLayers.map((l, idx) => `
-        <tr>
-          <td style="text-align: center;">${idx + 1}</td>
-          <td class="tabular font-bold">${l.batch_number || "-"}</td>
-          <td class="tabular" style="text-align: center;">${l.layer_date || "-"}</td>
-          <td class="tabular" style="text-align: center;">${l.expiry_date || "-"}</td>
-          <td class="tabular" style="text-align: center; font-weight: bold;">${l.remaining_qty?.toLocaleString("en-US")}</td>
-          <td class="tabular" style="text-align: right;">${Number(l.unit_cost_ex_vat || 0).toFixed(4)} ر.س</td>
-          <td class="tabular font-bold" style="text-align: right;">${((l.remaining_qty || 0) * (l.unit_cost_ex_vat || 0)).toFixed(2)} ر.س</td>
-        </tr>
-      `).join("") || `
-        <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">لا توجد طبقات تكلفة مسجلة</td></tr>
-      `;
-
-      win.document.write(`
+    return `
         <!DOCTYPE html>
         <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
           <head>
@@ -374,14 +373,27 @@ export function ItemsPage() {
               </div>
             </div>
 
-            <script>
-              window.onload = function() { window.print(); window.close(); };
-            </script>
+            
           </body>
         </html>
-      `);
-      win.document.close();
-    };
+      `;
+  };
+
+  const handlePrintFifoLayers = () => {
+    if (!selectedFifoItem) return;
+    const totalRemaining = fifoLayers.reduce((sum, l) => sum + (l.remaining_qty || 0), 0);
+    const totalCostValue = fifoLayers.reduce((sum, l) => sum + ((l.remaining_qty || 0) * (l.unit_cost_ex_vat || 0)), 0);
+    const avgCost = totalRemaining > 0 ? (totalCostValue / totalRemaining) : 0;
+    printDocumentHtml(getFifoLayersHtml(selectedFifoItem, fifoLayers, totalRemaining, totalCostValue, avgCost), `طبقات_FIFO_${selectedFifoItem.sku}`);
+  };
+
+  const handleSavePdfFifoLayers = () => {
+    if (!selectedFifoItem) return;
+    const totalRemaining = fifoLayers.reduce((sum, l) => sum + (l.remaining_qty || 0), 0);
+    const totalCostValue = fifoLayers.reduce((sum, l) => sum + ((l.remaining_qty || 0) * (l.unit_cost_ex_vat || 0)), 0);
+    const avgCost = totalRemaining > 0 ? (totalCostValue / totalRemaining) : 0;
+    saveDocumentPdfFromHtml(getFifoLayersHtml(selectedFifoItem, fifoLayers, totalRemaining, totalCostValue, avgCost), `طبقات_FIFO_${selectedFifoItem.sku}`);
+  };
 
     const handleShareFifoWhatsApp = () => {
       const itemTitle = isAr ? selectedFifoItem.name_ar : selectedFifoItem.name_en;
@@ -428,7 +440,7 @@ export function ItemsPage() {
             <Button
               variant="filled"
               size="sm"
-              onClick={() => handlePrintFifoLayers(false)}
+              onClick={handlePrintFifoLayers}
               className="min-h-[36px] px-3 gap-1.5 shadow-sm text-xs"
               title={isAr ? "طباعة تقرير الطبقات A4" : "Print Layers Report A4"}
             >
@@ -438,7 +450,7 @@ export function ItemsPage() {
             <Button
               variant="tonal"
               size="sm"
-              onClick={() => handlePrintFifoLayers(true)}
+              onClick={handleSavePdfFifoLayers}
               className="min-h-[36px] px-3 gap-1.5 text-xs font-semibold"
               title={isAr ? "حفظ التقرير بصيغة PDF" : "Save as PDF"}
             >
@@ -631,7 +643,13 @@ export function ItemsPage() {
             <Button
               size="sm"
               disabled={saveMutation.isPending}
-              onClick={form.handleSubmit((data) => saveMutation.mutate(data))}
+              onClick={form.handleSubmit(
+                (data) => saveMutation.mutate({ ...data, name_en: data.name_en || data.name_ar }),
+                (errs) => {
+                  const first = Object.values(errs)[0]?.message;
+                  toast.error(first ? String(first) : (isAr ? "يرجى تعبئة الحقول المطلوبة بشكل صحيح" : "Please fill in all required fields"));
+                }
+              )}
               className="bg-slate-900 hover:bg-slate-800 text-white min-h-[38px] px-5 gap-1.5 font-bold shadow-sm"
             >
               {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

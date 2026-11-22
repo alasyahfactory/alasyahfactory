@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useRef } from "react";
 import { Printer, FileDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,18 +17,9 @@ export const VoucherPrint: React.FC<VoucherPrintProps> = ({ voucher, settings, c
   const isPayment = voucher.voucher_type === "payment";
   const voucherTypeName = isReceipt ? "سند قبض" : isPayment ? "سند صرف" : "سند تحويل";
 
-  const handlePrint = (isPdf = false) => {
-    const printContent = printRef.current;
-    if (!printContent) return;
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
-    const docTitle = isPdf
-      ? `${voucherTypeName.replace(/\s+/g, "_")}_${voucher.voucher_number}`
-      : `${voucher.voucher_number} - ${voucherTypeName}`;
-
-    printWindow.document.write(`
+  
+  const getDocumentHtml = (contentHtml: string, docTitle: string = "document") => {
+    return `
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
@@ -149,18 +141,24 @@ export const VoucherPrint: React.FC<VoucherPrintProps> = ({ voucher, settings, c
         </head>
         <body>
           <div class="voucher-container">
-            ${printContent.innerHTML}
+            ${contentHtml}
           </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            };
-          </script>
+          
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+  };
+
+  const handlePrint = () => {
+    const el = printRef.current;
+    if (!el) return;
+    printDocumentHtml(getDocumentHtml(el.innerHTML, "document"), typeof voucherTypeName !== 'undefined' ? voucherTypeName : "document");
+  };
+
+  const handleSavePdf = () => {
+    const el = printRef.current;
+    if (!el) return;
+    saveDocumentPdfFromHtml(getDocumentHtml(el.innerHTML, "document"), typeof voucherTypeName !== 'undefined' ? voucherTypeName : "document");
   };
 
   const handleShareWhatsApp = () => {
@@ -186,7 +184,7 @@ _صادر من ${factory}_`;
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handlePrint(false)}
+          onClick={handlePrint}
           className={compact ? "h-7 px-2 text-xs gap-1 border-slate-300 text-slate-800 hover:bg-slate-100" : "h-8 px-2.5 gap-1.5 text-xs font-medium text-slate-800 border-slate-300 hover:bg-slate-100"}
           title="طباعة السند A4"
         >
@@ -198,7 +196,7 @@ _صادر من ${factory}_`;
         <Button
           variant="tonal"
           size="sm"
-          onClick={() => handlePrint(true)}
+          onClick={handleSavePdf}
           className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "h-8 px-2.5 gap-1.5 text-xs font-semibold"}
           title="حفظ السند كملف PDF"
         >

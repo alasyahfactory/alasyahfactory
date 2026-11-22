@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -30,18 +31,9 @@ export function ThermalBatchLabel({
   const printRef = useRef<HTMLDivElement>(null);
   const isAr = i18n.language === "ar";
 
-  const handlePrint = (isPdf = false) => {
-    const printContent = printRef.current;
-    if (!printContent) return;
-
-    const win = window.open("", "_blank");
-    if (!win) return;
-
-    const docTitle = isPdf
-      ? `ملصق_باتش_${batchNumber}`
-      : `ملصق باركود الباتش - ${batchNumber}`;
-
-    win.document.write(`
+  
+  const getDocumentHtml = (contentHtml: string, docTitle: string = "document") => {
+    return `
       <!DOCTYPE html>
       <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
@@ -113,17 +105,23 @@ export function ThermalBatchLabel({
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
+          ${contentHtml}
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrint = () => {
+    const el = printRef.current;
+    if (!el) return;
+    printDocumentHtml(getDocumentHtml(el.innerHTML, "document"), typeof "ملصق_تشغيلة" !== 'undefined' ? "ملصق_تشغيلة" : "document");
+  };
+
+  const handleSavePdf = () => {
+    const el = printRef.current;
+    if (!el) return;
+    saveDocumentPdfFromHtml(getDocumentHtml(el.innerHTML, "document"), typeof "ملصق_تشغيلة" !== 'undefined' ? "ملصق_تشغيلة" : "document");
   };
 
   const handleShareWhatsApp = () => {
@@ -181,7 +179,7 @@ _مصنع الأسياح للمنتجات الكيميائية_`;
       <div className="flex flex-wrap items-center gap-2">
         {/* 1. Print Button */}
         <Button
-          onClick={() => handlePrint(false)}
+          onClick={handlePrint}
           size="sm"
           variant="outline"
           className="flex-1 min-w-[120px] gap-1.5 text-xs h-8 border-slate-300 text-slate-800 hover:bg-slate-100"
@@ -193,7 +191,7 @@ _مصنع الأسياح للمنتجات الكيميائية_`;
 
         {/* 2. Save PDF Button */}
         <Button
-          onClick={() => handlePrint(true)}
+          onClick={handleSavePdf}
           size="sm"
           variant="tonal"
           className="h-8 px-2.5 gap-1.5 text-xs font-semibold"

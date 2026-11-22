@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -114,14 +115,11 @@ export function ChecksPage() {
   });
 
 
-  const handlePrintCheck = (chk: CheckAndNote, isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-
+  
+  const getCheckHtml = (chk: CheckAndNote) => {
     const isRec = chk.check_type === "received";
-    const docTitle = isPdf ? `حافظة_شيك_${chk.check_number}` : `حافظة شيك بنكي - ${chk.check_number}`;
-
-    win.document.write(`
+    const docTitle = `حافظة شيك بنكي - ${chk.check_number}`;
+    return `
       <!DOCTYPE html>
       <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
         <head>
@@ -194,13 +192,18 @@ export function ChecksPage() {
             </div>
           </div>
 
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintCheck = (chk: CheckAndNote) => {
+    printDocumentHtml(getCheckHtml(chk), `حافظة_شيك_${chk.check_number}`);
+  };
+
+  const handleSavePdfCheck = (chk: CheckAndNote) => {
+    saveDocumentPdfFromHtml(getCheckHtml(chk), `حافظة_شيك_${chk.check_number}`);
   };
 
   const handleShareWhatsapp = (chk: CheckAndNote) => {
@@ -258,7 +261,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintCheck(selectedCheck, false)}
+              onClick={() => handleSavePdfCheck(selectedCheck)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -267,7 +270,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintCheck(selectedCheck, true)}
+              onClick={() => handlePrintCheck(selectedCheck)}
               className="gap-1.5"
             >
               <FileDown className="w-4 h-4 text-sky-600" />
@@ -550,7 +553,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handlePrintCheck(chk, false)}
+                              onClick={() => handleSavePdfCheck(chk)}
                               className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                               title={isArabic ? "طباعة A4" : "Print A4"}
                             >
@@ -559,7 +562,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handlePrintCheck(chk, true)}
+                              onClick={() => handlePrintCheck(chk)}
                               className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                               title={isArabic ? "حفظ PDF" : "Save PDF"}
                             >

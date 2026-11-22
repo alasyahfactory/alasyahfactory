@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -464,13 +465,11 @@ export function PurchaseReturnsPage() {
     );
   }
 
-  const handlePrintDebitNote = (dn: PurchaseReturn, isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-    const docTitle = isPdf ? `إشعار_مدين_${dn.return_number}` : `إشعار مدين للمورد - ${dn.return_number}`;
+  
+  const getDebitNoteHtml = (dn: PurchaseReturn) => {
+    const docTitle = `إشعار مدين للمورد - ${dn.return_number}`;
     const vat = Math.max(0, dn.total_claimed_inc_vat - (dn.stock_deducted_value + dn.consumed_compensation_value));
-
-    win.document.write(`
+    return `
       <!DOCTYPE html>
       <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
@@ -573,13 +572,18 @@ export function PurchaseReturnsPage() {
             </div>
           </div>
 
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintDebitNote = (dn: PurchaseReturn) => {
+    printDocumentHtml(getDebitNoteHtml(dn), `إشعار_مدين_${dn.return_number}`);
+  };
+
+  const handleSavePdfDebitNote = (dn: PurchaseReturn) => {
+    saveDocumentPdfFromHtml(getDebitNoteHtml(dn), `إشعار_مدين_${dn.return_number}`);
   };
 
   const handleShareDebitNoteWhatsapp = (dn: PurchaseReturn) => {
@@ -592,7 +596,7 @@ export function PurchaseReturnsPage() {
       `إجمالي المطالبة شامل الضريبة: ${dn.total_claimed_inc_vat.toFixed(2)} ر.س\n` +
       `_إدارة المشتريات والمستودعات - مصنع الأسياح_`
     );
-    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+    shareDocumentWhatsApp(dn.supplier?.contact_phone, decodeURIComponent(text));
   };
 
   // In-Page Canvas View for Debit Note Details Inspection (Material Design 3)
@@ -643,7 +647,7 @@ export function PurchaseReturnsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintDebitNote(selectedReturn, false)}
+              onClick={() => handleSavePdfDebitNote(selectedReturn)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -652,7 +656,7 @@ export function PurchaseReturnsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintDebitNote(selectedReturn, true)}
+              onClick={() => handlePrintDebitNote(selectedReturn)}
               className="gap-1.5"
             >
               <Download className="w-4 h-4 text-sky-600" />
@@ -1034,7 +1038,7 @@ export function PurchaseReturnsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintDebitNote(dn, false)}
+                            onClick={() => handleSavePdfDebitNote(dn)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title={isAr ? "طباعة A4" : "Print A4"}
                           >
@@ -1043,7 +1047,7 @@ export function PurchaseReturnsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintDebitNote(dn, true)}
+                            onClick={() => handlePrintDebitNote(dn)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title={isAr ? "حفظ PDF" : "Save PDF"}
                           >

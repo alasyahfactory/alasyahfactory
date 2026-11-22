@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -288,14 +289,12 @@ export function MixingBatchesPage() {
     }
   };
 
-  const handlePrintBatchSheet = (batch: MixingBatch, isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-    const docTitle = isPdf ? `كرت_تشغيل_باتش_${batch.batch_number}` : `كرت تشغيل باتش خلط - ${batch.batch_number}`;
+  
+  const getBatchSheetHtml = (batch: MixingBatch) => {
+    const docTitle = `أمر خلط وتشغيل - ${batch.batch_number}`;
     const plannedKg = Math.round((batch.planned_qty_grams || 0) / 1000);
     const remainingKg = Math.round((batch.remaining_qty_grams || 0) / 1000);
-
-    win.document.write(`
+    return `
       <!DOCTYPE html>
       <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
         <head>
@@ -368,13 +367,18 @@ export function MixingBatchesPage() {
             </div>
           </div>
 
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintBatchSheet = (batch: MixingBatch) => {
+    printDocumentHtml(getBatchSheetHtml(batch), `أمر_تشغيل_${batch.batch_number}`);
+  };
+
+  const handleSavePdfBatchSheet = (batch: MixingBatch) => {
+    saveDocumentPdfFromHtml(getBatchSheetHtml(batch), `أمر_تشغيل_${batch.batch_number}`);
   };
 
   const handleShareWhatsapp = (batch: MixingBatch) => {
@@ -432,7 +436,7 @@ _إدارة العمليات الصناعية والخلط - مصنع الأسي
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintBatchSheet(selectedBatch, false)}
+              onClick={() => handleSavePdfBatchSheet(selectedBatch)}
               className="gap-1.5 text-xs text-slate-700 hover:bg-slate-100 min-h-[38px]"
             >
               <Printer className="h-4 w-4 text-slate-600" />
@@ -441,7 +445,7 @@ _إدارة العمليات الصناعية والخلط - مصنع الأسي
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintBatchSheet(selectedBatch, true)}
+              onClick={() => handlePrintBatchSheet(selectedBatch)}
               className="gap-1.5 text-xs text-sky-700 hover:bg-sky-50 min-h-[38px]"
             >
               <FileDown className="h-4 w-4 text-sky-600" />
@@ -835,7 +839,7 @@ _إدارة العمليات الصناعية والخلط - مصنع الأسي
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handlePrintBatchSheet(batch, false)}
+                                onClick={() => handleSavePdfBatchSheet(batch)}
                                 className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                                 title={isArabic ? "طباعة كرت التشغيل A4" : "Print A4"}
                               >
@@ -844,7 +848,7 @@ _إدارة العمليات الصناعية والخلط - مصنع الأسي
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handlePrintBatchSheet(batch, true)}
+                                onClick={() => handlePrintBatchSheet(batch)}
                                 className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                                 title={isArabic ? "حفظ PDF" : "Save PDF"}
                               >

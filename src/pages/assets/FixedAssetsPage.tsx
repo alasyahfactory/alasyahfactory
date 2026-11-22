@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -198,34 +199,26 @@ export function FixedAssetsPage() {
     );
   });
 
-  const handlePrintAssetsRegister = (isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-    const docTitle = isPdf ? `سجل_الاصول_الثابتة` : `سجل الأصول الثابتة والإهلاك`;
-
-    const totalCostSum = (assets || []).reduce((acc, a) => acc + (Number(a.purchase_cost) || 0), 0);
-    const totalDepSum = (assets || []).reduce((acc, a) => acc + (Number(a.accumulated_depreciation) || 0), 0);
-    const totalBookSum = (assets || []).reduce((acc, a) => acc + (Number(a.book_value) || 0), 0);
-
-    const rowsHtml = (assets || [])
-      .map(
-        (a, i) => `
-        <tr>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center;">${i + 1}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; font-family: monospace;">${a.asset_code}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">${a.name_ar}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 10px;">${a.category}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-family: monospace;">${a.purchase_date}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-family: monospace;">${Number(a.purchase_cost).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-family: monospace;">${Number(a.accumulated_depreciation).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-family: monospace; font-weight: bold;">${Number(a.book_value).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">${a.status === "active" ? "نشط" : a.status === "fully_depreciated" ? "مهلك بالكامل" : a.status}</td>
-        </tr>
-      `
-      )
-      .join("");
-
-    win.document.write(`
+  
+  const getAssetsRegisterHtml = () => {
+    const docTitle = "سجل الأصول الثابتة والإهلاك المحاسبي";
+    const totalCostSum = assets?.reduce((s, a) => s + (a.purchase_cost || 0), 0) || 0;
+    const totalDepSum = assets?.reduce((s, a) => s + (a.accumulated_depreciation || 0), 0) || 0;
+    const totalBookSum = assets?.reduce((s, a) => s + (a.book_value || 0), 0) || 0;
+    const rowsHtml = (assets || []).map((a, i) => `
+      <tr>
+        <td style="text-align: center;">${i + 1}</td>
+        <td style="font-family: monospace; font-weight: bold;">${a.asset_code}</td>
+        <td>${a.name_ar}</td>
+        <td>${a.category}</td>
+        <td style="font-family: monospace;">${a.purchase_date}</td>
+        <td style="text-align: right; font-family: monospace;">${(a.purchase_cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align: right; font-family: monospace;">${(a.accumulated_depreciation || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: bold;">${(a.book_value || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align: center;">${a.status}</td>
+      </tr>
+    `).join("");
+    return `
       <!DOCTYPE html>
       <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
         <head>
@@ -301,13 +294,18 @@ export function FixedAssetsPage() {
             </div>
           </div>
 
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintAssetsRegister = () => {
+    printDocumentHtml(getAssetsRegisterHtml(), "سجل_الأصول_الثابتة");
+  };
+
+  const handleSavePdfAssetsRegister = () => {
+    saveDocumentPdfFromHtml(getAssetsRegisterHtml(), "سجل_الأصول_الثابتة");
   };
 
   const handleShareWhatsappAssets = () => {
@@ -782,7 +780,7 @@ _نظام إدارة الأصول والإهلاك الآلي - مصنع الأ�
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handlePrintAssetsRegister(false)}
+            onClick={handlePrintAssetsRegister}
             className="gap-1.5 text-xs text-slate-700 hover:bg-slate-100 min-h-[38px]"
           >
             <Printer className="h-4 w-4 text-slate-600" />
@@ -792,7 +790,7 @@ _نظام إدارة الأصول والإهلاك الآلي - مصنع الأ�
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handlePrintAssetsRegister(true)}
+            onClick={handleSavePdfAssetsRegister}
             className="gap-1.5 text-xs text-sky-700 hover:bg-sky-50 min-h-[38px]"
           >
             <FileDown className="h-4 w-4 text-sky-600" />

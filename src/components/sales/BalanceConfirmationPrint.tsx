@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -23,18 +24,9 @@ export function BalanceConfirmationPrint({
   const printContainerRef = useRef<HTMLDivElement>(null);
   const isAr = i18n.language === "ar";
 
-  const handlePrint = (isPdf = false) => {
-    const content = printContainerRef.current;
-    if (!content) return;
-
-    const win = window.open("", "_blank");
-    if (!win) return;
-
-    const docTitle = isPdf
-      ? `خطاب_مصادقة_الرصيد_${customer.name_ar.replace(/\s+/g, "_")}`
-      : `خطاب مصادقة الرصيد - ${customer.name_ar}`;
-
-    win.document.write(`
+  
+  const getDocumentHtml = (contentHtml: string, docTitle: string = "document") => {
+    return `
       <!DOCTYPE html>
       <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
@@ -113,17 +105,23 @@ export function BalanceConfirmationPrint({
           </style>
         </head>
         <body>
-          ${content.innerHTML}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            };
-          </script>
+          ${contentHtml}
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrint = () => {
+    const el = printContainerRef.current;
+    if (!el) return;
+    printDocumentHtml(getDocumentHtml(el.innerHTML, "document"), typeof "مصادقة_رصيد" !== 'undefined' ? "مصادقة_رصيد" : "document");
+  };
+
+  const handleSavePdf = () => {
+    const el = printContainerRef.current;
+    if (!el) return;
+    saveDocumentPdfFromHtml(getDocumentHtml(el.innerHTML, "document"), typeof "مصادقة_رصيد" !== 'undefined' ? "مصادقة_رصيد" : "document");
   };
 
   const handleShareWhatsApp = () => {
@@ -149,7 +147,7 @@ export function BalanceConfirmationPrint({
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         {/* 1. Print A4 Button */}
         <Button
-          onClick={() => handlePrint(false)}
+          onClick={handlePrint}
           size="sm"
           variant="outline"
           className={compact ? "h-7 px-2 text-xs gap-1 border-slate-300 text-slate-800 hover:bg-slate-50" : "text-xs border-slate-300 text-slate-800 hover:bg-slate-50 min-h-[36px] gap-1.5"}
@@ -161,7 +159,7 @@ export function BalanceConfirmationPrint({
 
         {/* 2. Save PDF Button */}
         <Button
-          onClick={() => handlePrint(true)}
+          onClick={handleSavePdf}
           size="sm"
           variant="tonal"
           className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "text-xs min-h-[36px] px-2.5 gap-1.5 font-semibold"}

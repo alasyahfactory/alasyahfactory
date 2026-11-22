@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useRef } from "react";
 import { Printer, FileDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,18 +13,9 @@ interface PayrollSlipPrintProps {
 export const PayrollSlipPrint: React.FC<PayrollSlipPrintProps> = ({ payrollRun, settings, compact = false }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = (isPdf = false) => {
-    const printContent = printRef.current;
-    if (!printContent) return;
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
-    const docTitle = isPdf
-      ? `مسير_رواتب_${payrollRun.month}_${payrollRun.year}_${payrollRun.run_number}`
-      : `${payrollRun.run_number} - مسير رواتب ${payrollRun.month}/${payrollRun.year}`;
-
-    printWindow.document.write(`
+  
+  const getDocumentHtml = (contentHtml: string, docTitle: string = "document") => {
+    return `
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
@@ -102,18 +94,24 @@ export const PayrollSlipPrint: React.FC<PayrollSlipPrintProps> = ({ payrollRun, 
         </head>
         <body>
           <div>
-            ${printContent.innerHTML}
+            ${contentHtml}
           </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            };
-          </script>
+          
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+  };
+
+  const handlePrint = () => {
+    const el = printRef.current;
+    if (!el) return;
+    printDocumentHtml(getDocumentHtml(el.innerHTML, "document"), typeof "مسير_رواتب" !== 'undefined' ? "مسير_رواتب" : "document");
+  };
+
+  const handleSavePdf = () => {
+    const el = printRef.current;
+    if (!el) return;
+    saveDocumentPdfFromHtml(getDocumentHtml(el.innerHTML, "document"), typeof "مسير_رواتب" !== 'undefined' ? "مسير_رواتب" : "document");
   };
 
   const handleShareWhatsApp = () => {
@@ -140,7 +138,7 @@ _صادر ومعتمد من إدارة الرواتب والشؤون المال�
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handlePrint(false)}
+          onClick={handlePrint}
           className={compact ? "h-7 px-2 text-xs gap-1 border-slate-300 text-slate-800 hover:bg-slate-100" : "h-8 px-2.5 gap-1.5 text-xs font-medium text-slate-800 border-slate-300 hover:bg-slate-100"}
           title="طباعة المسير A4"
         >
@@ -152,7 +150,7 @@ _صادر ومعتمد من إدارة الرواتب والشؤون المال�
         <Button
           variant="tonal"
           size="sm"
-          onClick={() => handlePrint(true)}
+          onClick={handleSavePdf}
           className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "h-8 px-2.5 gap-1.5 text-xs font-semibold"}
           title="حفظ المسير كملف PDF"
         >

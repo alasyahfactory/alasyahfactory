@@ -28,6 +28,7 @@ import {
   FileDown,
   Share2
 } from "lucide-react";
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 
 interface ReceiptLineItem {
   item_id: string;
@@ -295,13 +296,10 @@ export function PurchaseReceiptsPage() {
   });
 
 
-  const handlePrintGrn = (rec: PurchaseReceipt, isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-
-    const docTitle = isPdf ? `سند_استلام_بضاعة_${rec.receipt_number}` : `سند استلام بضاعة بالوزن الفعلي - ${rec.receipt_number}`;
-
-    win.document.write(`
+  
+  const getGrnHtml = (rec: PurchaseReceipt) => {
+    const docTitle = `سند استلام بضاعة - ${rec.receipt_number}`;
+    return `
       <!DOCTYPE html>
       <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
@@ -394,13 +392,18 @@ export function PurchaseReceiptsPage() {
             </div>
           </div>
 
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintGrn = (rec: PurchaseReceipt) => {
+    printDocumentHtml(getGrnHtml(rec), `سند_استلام_${rec.receipt_number}`);
+  };
+
+  const handleSavePdfGrn = (rec: PurchaseReceipt) => {
+    saveDocumentPdfFromHtml(getGrnHtml(rec), `سند_استلام_${rec.receipt_number}`);
   };
 
   const handleShareWhatsapp = (rec: PurchaseReceipt) => {
@@ -418,7 +421,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
     const encoded = encodeURIComponent(msg);
     const phone = rec.supplier?.contact_phone?.replace(/[^0-9]/g, "") || "";
     const waUrl = phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
-    window.open(waUrl, "_blank");
+    shareDocumentWhatsApp(rec.supplier?.contact_phone, msg);
   };
 
   // In-Page Canvas View for Goods Receipt Creation (Eliminating modal popup)
@@ -784,7 +787,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintGrn(selectedReceipt, false)}
+              onClick={() => handleSavePdfGrn(selectedReceipt)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -793,7 +796,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintGrn(selectedReceipt, true)}
+              onClick={() => handlePrintGrn(selectedReceipt)}
               className="gap-1.5"
             >
               <FileDown className="w-4 h-4 text-sky-600" />
@@ -1048,7 +1051,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintGrn(rec, false)}
+                            onClick={() => handleSavePdfGrn(rec)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title={isAr ? "طباعة A4" : "Print A4"}
                           >
@@ -1057,7 +1060,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintGrn(rec, true)}
+                            onClick={() => handlePrintGrn(rec)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title={isAr ? "حفظ PDF" : "Save PDF"}
                           >

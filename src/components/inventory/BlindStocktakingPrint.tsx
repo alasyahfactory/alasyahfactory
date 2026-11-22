@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import React, { useRef } from "react";
 import { Printer, EyeOff, FileDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,18 +13,9 @@ interface BlindStocktakingPrintProps {
 export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ session, settings, compact = false }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = (isPdf = false) => {
-    const printContent = printRef.current;
-    if (!printContent) return;
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
-    const docTitle = isPdf
-      ? `ورقة_الجرد_الأعمى_${session.session_number}`
-      : `${session.session_number} - ورقة الجرد الأعمى`;
-
-    printWindow.document.write(`
+  
+  const getDocumentHtml = (contentHtml: string, docTitle: string = "document") => {
+    return `
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
@@ -112,18 +104,24 @@ export const BlindStocktakingPrint: React.FC<BlindStocktakingPrintProps> = ({ se
         </head>
         <body>
           <div>
-            ${printContent.innerHTML}
+            ${contentHtml}
           </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            };
-          </script>
+          
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+  };
+
+  const handlePrint = () => {
+    const el = printRef.current;
+    if (!el) return;
+    printDocumentHtml(getDocumentHtml(el.innerHTML, "document"), typeof "ورقة_جرد_أعمى" !== 'undefined' ? "ورقة_جرد_أعمى" : "document");
+  };
+
+  const handleSavePdf = () => {
+    const el = printRef.current;
+    if (!el) return;
+    saveDocumentPdfFromHtml(getDocumentHtml(el.innerHTML, "document"), typeof "ورقة_جرد_أعمى" !== 'undefined' ? "ورقة_جرد_أعمى" : "document");
   };
 
   const handleShareWhatsApp = () => {
@@ -147,7 +145,7 @@ _صادر من إدارة المستودعات والمخزون - ${factory}_`;
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handlePrint(false)}
+          onClick={handlePrint}
           className={compact ? "h-7 px-2 text-xs gap-1 border-slate-300 text-slate-800 hover:bg-slate-100" : "h-8 px-2.5 gap-1.5 text-xs font-medium text-slate-800 border-slate-300 hover:bg-slate-100"}
           title="طباعة ورقة الجرد الأعمى A4"
         >
@@ -160,7 +158,7 @@ _صادر من إدارة المستودعات والمخزون - ${factory}_`;
         <Button
           variant="tonal"
           size="sm"
-          onClick={() => handlePrint(true)}
+          onClick={handleSavePdf}
           className={compact ? "h-7 px-2 text-xs gap-1 font-semibold" : "h-8 px-2.5 gap-1.5 text-xs font-semibold"}
           title="حفظ ورقة الجرد كملف PDF"
         >

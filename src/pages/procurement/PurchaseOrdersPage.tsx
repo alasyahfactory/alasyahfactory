@@ -28,6 +28,7 @@ import {
   FileDown,
   Share2
 } from "lucide-react";
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 
 interface NewPoLine {
   item_id: string;
@@ -253,16 +254,13 @@ export function PurchaseOrdersPage() {
   });
 
 
-  const handlePrintPo = (po: PurchaseOrder, isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-
-    const docTitle = isPdf ? `أمر_شراء_${po.po_number}` : `أمر شراء رسمي - ${po.po_number}`;
+  const getPoHtml = (po: PurchaseOrder) => {
+    const docTitle = `أمر شراء رسمي - ${po.po_number}`;
     const totalExVat = po.total_amount;
     const vat15 = totalExVat * 0.15;
     const grandTotal = totalExVat + vat15;
 
-    win.document.write(`
+    return `
       <!DOCTYPE html>
       <html dir="${isAr ? "rtl" : "ltr"}" lang="${isAr ? "ar" : "en"}">
         <head>
@@ -372,14 +370,17 @@ export function PurchaseOrdersPage() {
               <div>الختم والتوقيع: ............................</div>
             </div>
           </div>
-
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintPo = (po: PurchaseOrder) => {
+    printDocumentHtml(getPoHtml(po), `أمر_شراء_${po.po_number}`);
+  };
+
+  const handleSavePdfPo = (po: PurchaseOrder) => {
+    saveDocumentPdfFromHtml(getPoHtml(po), `أمر_شراء_${po.po_number}`);
   };
 
   const handleShareWhatsapp = (po: PurchaseOrder) => {
@@ -395,10 +396,7 @@ export function PurchaseOrdersPage() {
 يرجى تأكيد الاستلام وتجهيز البضاعة للتوريد.
 _مصنع الأسياح للمنتجات الكيميائية - إدارة المشتريات_`;
 
-    const encoded = encodeURIComponent(msg);
-    const phone = po.supplier?.contact_phone?.replace(/[^0-9]/g, "") || "";
-    const waUrl = phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
-    window.open(waUrl, "_blank");
+    shareDocumentWhatsApp(po.supplier?.contact_phone, msg);
   };
 
   // In-Page Canvas View for Purchase Order Creation (Eliminating modal popup)
@@ -702,7 +700,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintPo(selectedPo, false)}
+              onClick={() => handlePrintPo(selectedPo)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -711,7 +709,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintPo(selectedPo, true)}
+              onClick={() => handleSavePdfPo(selectedPo)}
               className="gap-1.5"
             >
               <FileDown className="w-4 h-4 text-sky-600" />
@@ -983,7 +981,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintPo(po, false)}
+                            onClick={() => handlePrintPo(po)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title={isAr ? "طباعة A4" : "Print A4"}
                           >
@@ -992,7 +990,7 @@ _مصنع الأسياح للمنتجات الكيميائية - إدارة ال
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintPo(po, true)}
+                            onClick={() => handleSavePdfPo(po)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title={isAr ? "حفظ PDF" : "Save PDF"}
                           >

@@ -1,3 +1,4 @@
+import { printDocumentHtml, saveDocumentPdfFromHtml, shareDocumentWhatsApp } from "@/utils/printAndPdf";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -168,13 +169,10 @@ export function EmployeeAdvancesPage() {
 
   const monthlyDeductionCalc = amount > 0 && installmentMonths > 0 ? (amount / installmentMonths).toFixed(2) : "0.00";
 
-  const handlePrintAdvance = (adv: EmployeeAdvance, isPdf = false) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-
-    const docTitle = isPdf ? `سند_سلفة_${adv.advance_number}` : `سند وإقرار سلفة موظف - ${adv.advance_number}`;
-
-    win.document.write(`
+  
+  const getAdvanceHtml = (adv: EmployeeAdvance) => {
+    const docTitle = `طلب وسند سلفة موظف - ${adv.id.slice(0, 8)}`;
+    return `
       <!DOCTYPE html>
       <html dir="${isArabic ? "rtl" : "ltr"}" lang="${isArabic ? "ar" : "en"}">
         <head>
@@ -259,13 +257,18 @@ export function EmployeeAdvancesPage() {
             </div>
           </div>
 
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          
         </body>
       </html>
-    `);
-    win.document.close();
+    `;
+  };
+
+  const handlePrintAdvance = (adv: EmployeeAdvance) => {
+    printDocumentHtml(getAdvanceHtml(adv), `سلفة_موظف_${adv.id.slice(0, 8)}`);
+  };
+
+  const handleSavePdfAdvance = (adv: EmployeeAdvance) => {
+    saveDocumentPdfFromHtml(getAdvanceHtml(adv), `سلفة_موظف_${adv.id.slice(0, 8)}`);
   };
 
   const handleShareWhatsapp = (adv: EmployeeAdvance) => {
@@ -491,7 +494,7 @@ _مصنع الأسياح للمنتجات الكيميائية - الموارد 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintAdvance(selectedAdvance, false)}
+              onClick={() => handleSavePdfAdvance(selectedAdvance)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4 text-slate-600" />
@@ -500,7 +503,7 @@ _مصنع الأسياح للمنتجات الكيميائية - الموارد 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePrintAdvance(selectedAdvance, true)}
+              onClick={() => handlePrintAdvance(selectedAdvance)}
               className="gap-1.5"
             >
               <FileDown className="w-4 h-4 text-sky-600" />
@@ -725,7 +728,7 @@ _مصنع الأسياح للمنتجات الكيميائية - الموارد 
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintAdvance(adv, false)}
+                            onClick={() => handleSavePdfAdvance(adv)}
                             className="h-7 w-7 p-0 text-slate-600 hover:bg-slate-100"
                             title="طباعة A4"
                           >
@@ -734,7 +737,7 @@ _مصنع الأسياح للمنتجات الكيميائية - الموارد 
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handlePrintAdvance(adv, true)}
+                            onClick={() => handlePrintAdvance(adv)}
                             className="h-7 w-7 p-0 text-sky-700 hover:bg-sky-50"
                             title="حفظ PDF"
                           >
